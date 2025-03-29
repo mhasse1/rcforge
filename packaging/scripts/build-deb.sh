@@ -78,9 +78,18 @@ if [[ -d "$REPO_DIR/src/lib" ]]; then
     cp -r "$REPO_DIR/src/lib/"* "$BUILD_DIR/usr/share/rcforge/src/lib/"
 fi
 
-# Copy include files (preserving directory structure)
+# Copy include files (preserving directory structure) if they exist
 if [[ -d "$REPO_DIR/include" ]]; then
-    cp -r "$REPO_DIR/include/"* "$BUILD_DIR/usr/share/rcforge/include/"
+    cp -r "$REPO_DIR/include/"* "$BUILD_DIR/usr/share/rcforge/include/" 2>/dev/null || true
+else
+    # Create basic include directory structure
+    mkdir -p "$BUILD_DIR/usr/share/rcforge/include/path"
+    mkdir -p "$BUILD_DIR/usr/share/rcforge/include/common"
+    mkdir -p "$BUILD_DIR/usr/share/rcforge/include/git"
+    mkdir -p "$BUILD_DIR/usr/share/rcforge/include/system"
+    # Create placeholder README
+    echo "# rcForge Include System
+This directory contains modular functions for the rcForge include system." > "$BUILD_DIR/usr/share/rcforge/include/README.md"
 fi
 
 # Copy example scripts
