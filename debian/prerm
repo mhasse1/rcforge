@@ -1,17 +1,77 @@
 #!/bin/bash
 set -e
 
-if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    echo "Removing rcForge system files..."
+# Pre-removal script for rcForge
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RESET='\033[0m'
+
+# Function to print warning message
+print_warning() {
+    echo -e "${YELLOW}WARNING: rcForge is being removed${RESET}"
+    echo ""
+    echo -e "${YELLOW}User configurations in ~/.config/rcforge will NOT be automatically removed.${RESET}"
+    echo -e "${YELLOW}This preserves your personal shell configurations.${RESET}"
+    echo ""
+    echo -e "${RED}To completely remove all rcForge files, manually delete:${RESET}"
+    echo "  ~/.config/rcforge"
+}
+
+# Main pre-removal logic
+if [[ "$1" = "remove" || "$1" = "purge" ]]; then
+    print_warning
     
-    # Note: We don't remove user configuration files in ~/.config/rcforge
-    # This preserves user customizations even if they reinstall later
-    
-    if [ "$1" = "purge" ]; then
-        echo "Note: User configuration files in ~/.config/rcforge are preserved."
-        echo "To completely remove all rcForge files, users should manually delete:"
-        echo "  ~/.config/rcforge"
+    # If purging, offer more aggressive cleanup option
+    if [[ "$1" = "purge" ]]; then
+        echo ""
+        echo -e "${RED}Purge option detected. This is a more complete removal.${RESET}"
+        echo -e "${YELLOW}Would you like to see options for complete removal? (y/N)${RESET}"
+        
+        read -r purge_response
+        
+        if [[ "$purge_response" =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${YELLOW}Removal Options:${RESET}"
+            echo "1. Keep all user configurations"
+            echo "2. Remove user configurations for the current user"
+            echo "3. Remove all user configurations (requires manual confirmation)"
+            echo ""
+            echo -e "${YELLOW}Enter option (1-3):${RESET}"
+            
+            read -r purge_option
+            
+            case "$purge_option" in
+                2)
+                    # Remove current user's rcForge configuration
+                    rm -rf "$HOME/.config/rcforge"
+                    echo -e "${GREEN}Removed current user's rcForge configuration.${RESET}"
+                    ;;
+                3)
+                    echo -e "${RED}WARNING: This will remove ALL user rcForge configurations!${RESET}"
+                    echo -e "${YELLOW}Type 'YES' to confirm complete removal:${RESET}"
+                    
+                    read -r confirm_removal
+                    
+                    if [[ "$confirm_removal" == "YES" ]]; then
+                        for user_home in /home/*; do
+                            [[ -d "$user_home" ]] || continue
+                            rm -rf "$user_home/.config/rcforge"
+                        done
+                        echo -e "${GREEN}Removed all user rcForge configurations.${RESET}"
+                    else
+                        echo -e "${YELLOW}Complete removal cancelled.${RESET}"
+                    fi
+                    ;;
+                *)
+                    echo -e "${GREEN}Keeping all user configurations.${RESET}"
+                    ;;
+            esac
+        fi
     fi
 fi
 
 exit 0
+# EOF
