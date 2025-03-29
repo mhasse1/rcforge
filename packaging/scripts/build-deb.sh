@@ -1,6 +1,17 @@
 #!/bin/bash
 # build-deb.sh - Script to build the rcForge Debian package
-set -e
+# Author: Mark Hasse
+# Date: 2025-03-29
+
+set -e  # Exit on error
+
+# Colors for better readability
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RESET='\033[0m'  # Reset color
 
 # Default version if not specified
 VERSION=${1:-"0.2.0"}
@@ -10,71 +21,160 @@ REPO_DIR=$(pwd)
 
 # Check if we're in the right directory
 if [[ ! -f "rcforge.sh" ]]; then
-    echo "Error: This script must be run from the root of the rcForge repository."
+    echo -e "${RED}Error: This script must be run from the root of the rcForge repository.${RESET}"
     exit 1
 fi
 
 # Check for required tools
-for cmd in debuild dh_make; do
+for cmd in dpkg-deb fakeroot; do
     if ! command -v $cmd &> /dev/null; then
-        echo "Error: Required tool $cmd not found."
+        echo -e "${RED}Error: Required tool $cmd not found.${RESET}"
         echo "Please install the build dependencies:"
-        echo "  sudo apt install debhelper devscripts dh-make"
+        echo "  sudo apt install dpkg fakeroot"
         exit 1
     fi
 done
 
-echo "Building rcForge $VERSION Debian package..."
+echo -e "${BLUE}┌──────────────────────────────────────────────────────┐${RESET}"
+echo -e "${BLUE}│ Building rcForge $VERSION Debian Package             │${RESET}"
+echo -e "${BLUE}└──────────────────────────────────────────────────────┘${RESET}"
+echo ""
 
 # Create temporary build directory
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-# Copy files to build directory
-echo "Copying files to build directory..."
-cp -r "$REPO_DIR"/* "$BUILD_DIR/"
+# Create package directory structure
+echo -e "${CYAN}Creating package directory structure...${RESET}"
+mkdir -p "$BUILD_DIR/DEBIAN"
+mkdir -p "$BUILD_DIR/usr/share/rcforge"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/core"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/utils"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/src/lib"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/include"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/examples"
+mkdir -p "$BUILD_DIR/usr/share/doc/rcforge"
+mkdir -p "$BUILD_DIR/usr/bin"
 
-# Clean up any previous build artifacts
-cd "$BUILD_DIR"
-rm -rf debian
+# Copy files to package directory
+echo -e "${CYAN}Copying files to package directory...${RESET}"
 
-# Initialize Debian packaging files with explicit non-interactive mode
-echo "Initializing Debian packaging..."
-dh_make --native --single --packagename "${PACKAGE_NAME}_${VERSION}" \
-        --email "mark@analogedge.com" --copyright expat --yes
+# Copy main script
+cp "$REPO_DIR/rcforge.sh" "$BUILD_DIR/usr/share/rcforge/"
+cp "$REPO_DIR/include-structure.sh" "$BUILD_DIR/usr/share/rcforge/"
 
-# Remove any architecture-specific configuration files
-rm -f debian/source/format
-touch debian/source/format
-echo "3.0 (native)" > debian/source/format
+# Copy core files
+if [[ -d "$REPO_DIR/core" ]]; then
+    cp -r "$REPO_DIR/core/"* "$BUILD_DIR/usr/share/rcforge/core/"
+fi
 
-# Replace generated files with our custom ones
-echo "Customizing Debian package configuration..."
+# Copy utility files
+if [[ -d "$REPO_DIR/utils" ]]; then
+    cp -r "$REPO_DIR/utils/"* "$BUILD_DIR/usr/share/rcforge/utils/"
+fi
 
-# Ensure critical files are in place
-cp "$REPO_DIR/debian/control" debian/control
-cp "$REPO_DIR/debian/rules" debian/rules
-cp "$REPO_DIR/debian/postinst" debian/postinst
-cp "$REPO_DIR/debian/prerm" debian/prerm
+# Copy library files
+if [[ -d "$REPO_DIR/src/lib" ]]; then
+    cp -r "$REPO_DIR/src/lib/"* "$BUILD_DIR/usr/share/rcforge/src/lib/"
+fi
 
-# Remove compat file if it exists
-rm -f debian/compat
+# Copy include files (preserving directory structure)
+if [[ -d "$REPO_DIR/include" ]]; then
+    cp -r "$REPO_DIR/include/"* "$BUILD_DIR/usr/share/rcforge/include/"
+fi
 
-# Build the package with explicit architecture-independent settings
-echo "Building Debian package..."
-DEBIAN_BUILDARCH=all dpkg-buildpackage -us -uc
+# Copy example scripts
+if [[ -d "$REPO_DIR/scripts" ]]; then
+    cp -r "$REPO_DIR/scripts/"* "$BUILD_DIR/usr/share/rcforge/examples/"
+elif [[ -d "$REPO_DIR/docs/development-docs/examples" ]]; then
+    # Fallback to examples in docs directory
+    cp -r "$REPO_DIR/docs/development-docs/examples/"*.sh "$BUILD_DIR/usr/share/rcforge/examples/"
+fi
 
-# Move the built package to the parent directory
-echo "Moving package to parent directory..."
-cd ..
-mv "${PACKAGE_NAME}_${VERSION}_all.deb" "$REPO_DIR/"
+# Copy documentation
+cp "$REPO_DIR/README.md" "$BUILD_DIR/usr/share/doc/rcforge/"
+if [[ -d "$REPO_DIR/docs" ]]; then
+    # Copy primary documentation
+    if [[ -d "$REPO_DIR/docs/user-guides" ]]; then
+        cp -r "$REPO_DIR/docs/user-guides/"*.md "$BUILD_DIR/usr/share/doc/rcforge/"
+    fi
+    
+    # Copy other important docs
+    cp "$REPO_DIR/docs/README-includes.md" "$BUILD_DIR/usr/share/doc/rcforge/" 2>/dev/null || true
+fi
 
-echo "Package built successfully:"
-echo "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb"
+# Copy LICENSE if it exists
+if [[ -f "$REPO_DIR/LICENSE" ]]; then
+    cp "$REPO_DIR/LICENSE" "$BUILD_DIR/usr/share/doc/rcforge/"
+fi
 
-# Clean up
-echo "Cleaning up build directory..."
-rm -rf "$BUILD_DIR"
+# Create symlink to setup script
+ln -sf "/usr/share/rcforge/utils/rcforge-setup.sh" "$BUILD_DIR/usr/bin/rcforge"
 
-echo "Done!"
+# Set file permissions
+echo -e "${CYAN}Setting file permissions...${RESET}"
+find "$BUILD_DIR/usr/share/rcforge" -name "*.sh" -type f -exec chmod 755 {} \;
+chmod 755 "$BUILD_DIR/usr/bin/rcforge"
+
+# Create DEBIAN control files
+echo -e "${CYAN}Creating Debian control files...${RESET}"
+
+# Control file
+cat > "$BUILD_DIR/DEBIAN/control" << EOF
+Package: $PACKAGE_NAME
+Version: $VERSION
+Section: shells
+Priority: optional
+Architecture: all
+Depends: bash (>= 4.0)
+Recommends: zsh
+Maintainer: Mark Hasse <mark@analogedge.com>
+Homepage: https://github.com/mhasse1/rcforge
+Description: Universal shell configuration system for Bash and Zsh
+ rcForge is a flexible, modular configuration system for Bash and Zsh shells
+ that provides a single framework for managing shell environments across
+ multiple machines.
+ .
+ Key features:
+  * Cross-shell compatibility
+  * Machine-specific configurations
+  * Deterministic loading order
+  * Conflict detection
+  * Include system for modular functions
+ .
+ Currently in version $VERSION (pre-release)
+EOF
+
+# Copy our fixed postinst and prerm scripts
+cp "$REPO_DIR/packaging/scripts/dpkg-postinst.sh" "$BUILD_DIR/DEBIAN/postinst"
+cp "$REPO_DIR/packaging/scripts/dpkg-prerm.sh" "$BUILD_DIR/DEBIAN/prerm"
+
+# Make sure they're executable
+chmod 755 "$BUILD_DIR/DEBIAN/postinst"
+chmod 755 "$BUILD_DIR/DEBIAN/prerm"
+
+# Build the package
+echo -e "${CYAN}Building the Debian package...${RESET}"
+fakeroot dpkg-deb --build "$BUILD_DIR" "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb"
+
+# Check if the package was built successfully
+if [[ -f "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb" ]]; then
+    echo -e "${GREEN}✓ Package built successfully: ${YELLOW}${PACKAGE_NAME}_${VERSION}_all.deb${RESET}"
+    
+    # Display package information
+    echo -e "${CYAN}Package information:${RESET}"
+    dpkg-deb --info "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb"
+    
+    # Cleanup
+    echo -e "${CYAN}Cleaning up build files...${RESET}"
+    rm -rf "$BUILD_DIR"
+else
+    echo -e "${RED}× Failed to build package.${RESET}"
+    exit 1
+fi
+
+echo -e "${GREEN}Build complete! Package is ready for distribution.${RESET}"
+echo "To install the package on Debian/Ubuntu systems:"
+echo "  sudo dpkg -i ${PACKAGE_NAME}_${VERSION}_all.deb"
+echo "  sudo apt install -f  # To resolve any dependencies"
 # EOF
