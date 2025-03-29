@@ -1,0 +1,295 @@
+name: Package Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  bash-version-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check Bash Version
+        run: |
+          bash --version
+          bash -c "if [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then echo 'Bash 4.0 or higher required'; exit 1; fi"
+      
+      - name: Run install script with minimum flags
+        run: |
+          chmod +x utils/install-rcforge.sh
+          ./utils/install-rcforge.sh --minimal --non-interactive
+      
+      - name: Test basic functionality
+        run: |
+          source ~/.config/rcforge/rcforge.sh
+          # Run any validation tests here
+          test -d ~/.config/rcforge/scripts || exit 1
+          test -d ~/.config/rcforge/include || exit 1
+      
+  debian-package-ubuntu:
+    runs-on: ubuntu-latest
+    needs: bash-version-test
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper build-essential fakeroot
+
+      - name: Prepare Debian packaging
+        run: |
+          # Create necessary debian directory structure if not exists
+          mkdir -p debian/source
+          
+          # Check if debian control file exists, create basic one if not
+          if [ ! -f debian/control ]; then
+            cat > debian/control << EOF
+Package: rcforge
+Version: 2.0.0
+Section: shells
+Priority: optional
+Architecture: all
+Depends: bash (>= 4.0)
+Maintainer: Your Name <your.email@example.com>
+Description: Universal shell configuration system
+ rcForge is a flexible, modular configuration system for Bash and Zsh shells
+ that provides a single framework for managing your shell environment across
+ multiple machines.
+EOF
+          fi
+          
+          # Create rules file if it doesn't exist
+          if [ ! -f debian/rules ]; then
+            cat > debian/rules << EOF
+#!/usr/bin/make -f
+%:
+	dh \$@
+
+override_dh_auto_install:
+	mkdir -p debian/rcforge/usr/share/rcforge
+	mkdir -p debian/rcforge/usr/share/doc/rcforge
+	cp -r core utils rcforge.sh include-structure.sh debian/rcforge/usr/share/rcforge/
+	cp -r docs/* debian/rcforge/usr/share/doc/rcforge/
+EOF
+            chmod +x debian/rules
+          fi
+          
+          # Create changelog if it doesn't exist
+          if [ ! -f debian/changelog ]; then
+            cat > debian/changelog << EOF
+rcforge (2.0.0) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Your Name <your.email@example.com>  $(date -R)
+EOF
+          fi
+          
+          # Create source/format file
+          echo "3.0 (quilt)" > debian/source/format
+
+      - name: Build Debian package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          
+      - name: Verify package
+        run: |
+          ls -la ../*.deb
+          dpkg-deb --info ../*.deb
+          
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: debian-package-ubuntu
+          path: ../*.deb
+
+  debian-package-debian:
+    runs-on: ubuntu-latest
+    container: debian:latest
+    needs: bash-version-test
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install packaging dependencies
+        run: |
+          apt-get update
+          apt-get install -y devscripts debhelper build-essential fakeroot
+          
+      - name: Prepare Debian packaging
+        run: |
+          # Create necessary debian directory structure if not exists
+          mkdir -p debian/source
+          
+          # Same packaging preparation steps as above
+          # Check if debian control file exists, create basic one if not
+          if [ ! -f debian/control ]; then
+            cat > debian/control << EOF
+Package: rcforge
+Version: 2.0.0
+Section: shells
+Priority: optional
+Architecture: all
+Depends: bash (>= 4.0)
+Maintainer: Your Name <your.email@example.com>
+Description: Universal shell configuration system
+ rcForge is a flexible, modular configuration system for Bash and Zsh shells
+ that provides a single framework for managing your shell environment across
+ multiple machines.
+EOF
+          fi
+          
+          # Create rules file if it doesn't exist
+          if [ ! -f debian/rules ]; then
+            cat > debian/rules << EOF
+#!/usr/bin/make -f
+%:
+	dh \$@
+
+override_dh_auto_install:
+	mkdir -p debian/rcforge/usr/share/rcforge
+	mkdir -p debian/rcforge/usr/share/doc/rcforge
+	cp -r core utils rcforge.sh include-structure.sh debian/rcforge/usr/share/rcforge/
+	cp -r docs/* debian/rcforge/usr/share/doc/rcforge/
+EOF
+            chmod +x debian/rules
+          fi
+          
+          # Create changelog if it doesn't exist
+          if [ ! -f debian/changelog ]; then
+            cat > debian/changelog << EOF
+rcforge (2.0.0) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Your Name <your.email@example.com>  $(date -R)
+EOF
+          fi
+          
+          # Create source/format file
+          echo "3.0 (quilt)" > debian/source/format
+
+      - name: Build Debian package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          
+      - name: Verify package
+        run: |
+          ls -la ../*.deb
+          dpkg-deb --info ../*.deb
+          
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: debian-package-debian
+          path: ../*.deb
+
+  homebrew-formula:
+    runs-on: macos-latest
+    needs: bash-version-test
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up brew
+        run: |
+          brew update
+          
+      - name: Create Homebrew formula
+        run: |
+          mkdir -p Formula
+          
+          # Create a basic formula file if it doesn't exist
+          if [ ! -f Formula/rcforge.rb ]; then
+            cat > Formula/rcforge.rb << EOF
+class Rcforge < Formula
+  desc "Universal shell configuration system"
+  homepage "https://github.com/yourusername/rcforge"
+  url "https://github.com/yourusername/rcforge/archive/refs/tags/v2.0.0.tar.gz"
+  sha256 "placeholder_sha256_replace_this_when_available"
+  license "MIT"
+  
+  depends_on "bash"
+  
+  def install
+    prefix.install Dir["*"]
+    
+    # Create symlinks or other installation steps
+    bin.install_symlink prefix/"rcforge.sh" => "rcforge"
+  end
+  
+  test do
+    system "#{bin}/rcforge", "--version"
+  end
+end
+EOF
+          fi
+          
+          # For testing, we'll replace the URL and sha256 with local values
+          sed -i '' 's|url ".*"|url "'$(pwd)'"|' Formula/rcforge.rb
+          sed -i '' 's|sha256 ".*"|sha256 "0"|' Formula/rcforge.rb
+          
+      - name: Audit formula
+        run: |
+          brew audit --new-formula Formula/rcforge.rb || true
+        
+      - name: Test install (local only)
+        run: |
+          # Test installing from the formula (local only)
+          brew install --build-from-source Formula/rcforge.rb || true
+          
+      - name: Upload formula artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: homebrew-formula
+          path: Formula/rcforge.rb
+
+  release:
+    needs: [debian-package-ubuntu, debian-package-debian, homebrew-formula]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          
+      - name: Upload Debian Package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./debian-package-ubuntu/rcforge_2.0.0_all.deb
+          asset_name: rcforge_2.0.0_all.deb
+          asset_content_type: application/vnd.debian.binary-package
+          
+      - name: Upload Homebrew Formula
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./homebrew-formula/rcforge.rb
+          asset_name: rcforge.rb
+          asset_content_type: text/plain

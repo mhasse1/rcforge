@@ -1,0 +1,50 @@
+#!/bin/bash
+set -e
+
+# Create directory structure for user configuration if it doesn't exist
+if [ "$1" = "configure" ]; then
+    echo "Setting up rcForge..."
+    
+    # Create user configuration examples
+    for user_home in /home/*; do
+        # Skip if not a directory or no login shell
+        [ ! -d "$user_home" ] && continue
+        user=$(basename "$user_home")
+        
+        # Skip system users
+        if [ $(id -u "$user" 2>/dev/null || echo 0) -ge 1000 ]; then
+            USER_DIR="$user_home/.config/rcforge"
+            
+            # Create user directories only if they don't exist
+            if [ ! -d "$USER_DIR" ]; then
+                echo "Creating configuration directory for user: $user"
+                
+                # Create with proper permissions
+                mkdir -p "$USER_DIR/scripts" "$USER_DIR/include" "$USER_DIR/exports" "$USER_DIR/docs"
+                chown -R "$user:$user" "$USER_DIR"
+                
+                # Create README
+                cp /usr/share/doc/rcforge/README.md "$USER_DIR/docs/"
+                chown "$user:$user" "$USER_DIR/docs/README.md"
+                
+                # Copy example configurations if they don't exist
+                if [ ! -f "$USER_DIR/scripts/100_global_common_environment.sh" ]; then
+                    cp /usr/share/rcforge/examples/*.sh "$USER_DIR/scripts/"
+                    chown "$user:$user" "$USER_DIR/scripts/"*.sh
+                    chmod +x "$USER_DIR/scripts/"*.sh
+                fi
+            fi
+        fi
+    done
+    
+    echo "rcForge installation complete."
+    echo ""
+    echo "To activate rcForge in your shell:"
+    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
+    echo "  # or for Zsh"
+    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"
+    echo ""
+    echo "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
+fi
+
+exit 0

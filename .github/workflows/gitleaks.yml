@@ -1,0 +1,47 @@
+name: Gitleaks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 0'  # Run every Sunday at 6 AM
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Install gitleaks
+        run: |
+          wget https://github.com/zricethezav/gitleaks/releases/download/v8.16.3/gitleaks_8.16.3_linux_x64.tar.gz
+          tar -xzf gitleaks_8.16.3_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+      
+      - name: Run gitleaks
+        run: |
+          gitleaks detect --report-format json --report-path gitleaks-report.json
+        continue-on-error: true
+      
+      - name: Check gitleaks report
+        run: |
+          if [ -f gitleaks-report.json ] && [ "$(cat gitleaks-report.json | jq length)" -gt 0 ]; then
+            echo "Potential secrets found in the repository!"
+            cat gitleaks-report.json | jq
+            exit 1
+          else
+            echo "No secrets found in the repository!"
+          fi
+      
+      - name: Upload gitleaks report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore

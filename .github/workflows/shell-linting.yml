@@ -1,0 +1,65 @@
+name: Shell Linting
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.sh'
+      - '.github/workflows/shell-linting.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.sh'
+      - '.github/workflows/shell-linting.yml'
+  workflow_dispatch:
+
+jobs:
+  shell-linting:
+    name: Shell Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install shfmt
+        run: |
+          GO111MODULE=on go install mvdan.cc/sh/v3/cmd/shfmt@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Run shfmt
+        run: |
+          # Check formatting
+          shfmt -d -s -i 2 -ci -bn .
+      
+      - name: Check for basic issues
+        run: |
+          # Find scripts with problematic constructs
+          echo "Checking for potentially unsafe constructs..."
+          
+          # Check for scripts not starting with a shebang
+          echo "Scripts missing shebang:"
+          find . -name "*.sh" -type f -exec grep -L "^#!" {} \;
+          
+          # Check for use of 'cd' without error handling
+          echo "Scripts with potentially unsafe 'cd' usage:"
+          grep -r "cd " --include="*.sh" . | grep -v "|| exit" | grep -v "&& " || true
+          
+          # Check for scripts with 'set -e' (encouraged)
+          echo "Scripts missing 'set -e' (this is just informational):"
+          find . -name "*.sh" -type f -exec grep -L "set -e" {} \; || true
+          
+      - name: Check executable permission
+        run: |
+          echo "Scripts without executable permission:"
+          find . -name "*.sh" -type f ! -perm -u+x || true
+          
+      - name: Bash version compatibility check
+        run: |
+          echo "Checking for bash 4+ features in scripts..."
+          
+          # Check for associative arrays (bash 4+)
+          echo "Scripts using associative arrays:"
+          grep -r "declare -A" --include="*.sh" . || true
+          
+          # Check for mapfile/readarray (bash 4+)
+          echo "Scripts using mapfile/readarray:"
+          grep -r -E "(mapfile|readarray)" --include="*.sh" . || true

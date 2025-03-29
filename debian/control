@@ -1,0 +1,28 @@
+Source: rcforge
+Section: shells
+Priority: optional
+Maintainer: Your Name <your.email@example.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.5.1
+Homepage: https://github.com/yourusername/rcforge
+Vcs-Browser: https://github.com/yourusername/rcforge
+Vcs-Git: https://github.com/yourusername/rcforge.git
+Rules-Requires-Root: no
+
+Package: rcforge
+Architecture: all
+Depends: ${misc:Depends}, bash (>= 4.0)
+Description: Universal shell configuration system
+ rcForge is a flexible, modular configuration system for Bash and Zsh shells
+ that provides a single framework for managing shell environments across
+ multiple machines. It features:
+ .
+ * Cross-shell compatibility with Bash and Zsh
+ * Machine-specific configurations using hostname detection
+ * Deterministic loading order with explicit sequence numbers
+ * Conflict detection to identify and resolve loading conflicts
+ * Integrated include system for modular function organization
+ * Visual diagrams of configuration loading order
+ .
+ Currently in version 0.2.0 (pre-release)
+# EOF

@@ -1,0 +1,118 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	# Create directory structure
+	mkdir -p debian/rcforge/usr/share/rcforge
+	mkdir -p debian/rcforge/usr/share/doc/rcforge
+	mkdir -p debian/rcforge/usr/bin
+	
+	# Create include directory structure
+	mkdir -p debian/rcforge/usr/share/rcforge/include
+	mkdir -p debian/rcforge/usr/share/rcforge/src/lib
+	
+	# Copy core files
+	cp -r core debian/rcforge/usr/share/rcforge/
+	cp -r utils debian/rcforge/usr/share/rcforge/
+	cp -r src debian/rcforge/usr/share/rcforge/
+	cp -r include debian/rcforge/usr/share/rcforge/
+	cp rcforge.sh debian/rcforge/usr/share/rcforge/
+	cp include-structure.sh debian/rcforge/usr/share/rcforge/
+	
+	# Copy documentation
+	cp -r docs/* debian/rcforge/usr/share/doc/rcforge/
+	cp LICENSE debian/rcforge/usr/share/doc/rcforge/
+	cp README.md debian/rcforge/usr/share/doc/rcforge/
+	cp CHANGELOG.md debian/rcforge/usr/share/doc/rcforge/ || true
+	
+	# Create executable wrapper script
+	cat > debian/rcforge/usr/bin/rcforge << 'EOF'
+#!/bin/bash
+# rcforge wrapper script
+# This script runs the main rcforge script from the system installation
+
+# Find the main script
+RCFORGE_SCRIPT="/usr/share/rcforge/rcforge.sh"
+
+# Check if it exists
+if [ ! -f "$RCFORGE_SCRIPT" ]; then
+    echo "Error: rcforge main script not found at $RCFORGE_SCRIPT"
+    exit 1
+fi
+
+# Execute the main script with all arguments
+exec "$RCFORGE_SCRIPT" "$@"
+EOF
+	chmod +x debian/rcforge/usr/bin/rcforge
+	
+	# Create setup symlink in bin
+	ln -sf /usr/share/rcforge/utils/rcforge-setup.sh debian/rcforge/usr/bin/rcforge-setup
+	
+	# Make all scripts executable
+	find debian/rcforge/usr/share/rcforge -name "*.sh" -exec chmod +x {} \;
+
+override_dh_installman:
+	# Create man pages
+	mkdir -p debian/rcforge/usr/share/man/man1
+	
+	# Create rcforge man page
+	cat > debian/rcforge/usr/share/man/man1/rcforge.1 << 'EOF'
+.TH RCFORGE 1 "March 2025" "rcforge 2.0.0" "User Commands"
+.SH NAME
+rcforge \- universal shell configuration system
+.SH SYNOPSIS
+.B rcforge
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B rcforge
+is a modular shell configuration manager for Bash and Zsh that provides
+a unified framework for managing shell environments across multiple machines.
+.PP
+It uses a smart loading system based on sequence numbers, hostname detection,
+and shell type to ensure the right configurations are loaded in the right order.
+.SH OPTIONS
+.TP
+.B \-\-help
+Show help message.
+.TP
+.B \-\-version
+Show version information.
+.SH FILES
+.TP
+.I /usr/share/rcforge/
+System-wide rcforge installation
+.TP
+.I ~/.config/rcforge/
+User configuration files
+.TP
+.I ~/.config/rcforge/scripts/
+User shell configuration scripts
+.TP
+.I ~/.config/rcforge/include/
+User custom functions
+.SH AUTHOR
+Mark Hasse (Analog Edge LLC)
+.SH REPORTING BUGS
+Report bugs to https://github.com/mhasse1/rcforge/issues
+.SH COPYRIGHT
+Copyright \(co 2025 Analog Edge LLC
+.br
+License: MIT
+.SH SEE ALSO
+.BR bash (1),
+.BR zsh (1)
+EOF
+	gzip -9 debian/rcforge/usr/share/man/man1/rcforge.1
+
+# Ensure scripts have correct permissions
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 debian/rcforge/usr/bin/rcforge
+	chmod 755 debian/rcforge/usr/bin/rcforge-setup
+	chmod 755 debian/rcforge/usr/share/rcforge/rcforge.sh
+	chmod 755 debian/rcforge/usr/share/rcforge/include-structure.sh
+	find debian/rcforge/usr/share/rcforge/utils -name "*.sh" -exec chmod 755 {} \;
+	find debian/rcforge/usr/share/rcforge/core -name "*.sh" -exec chmod 755 {} \;
