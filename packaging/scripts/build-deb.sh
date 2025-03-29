@@ -41,7 +41,7 @@ rm -rf debian
 # Initialize Debian packaging files
 echo "Initializing Debian packaging..."
 dh_make --native --single --packagename "${PACKAGE_NAME}_${VERSION}" \
-        --email "mark@analogedge.com" --copyright mit --yes
+        --email "mark@analogedge.com" --copyright expat --yes
 
 # Replace generated files with our custom ones
 echo "Customizing Debian package configuration..."
