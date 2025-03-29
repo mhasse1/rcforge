@@ -38,22 +38,31 @@ cp -r "$REPO_DIR"/* "$BUILD_DIR/"
 cd "$BUILD_DIR"
 rm -rf debian
 
-# Initialize Debian packaging files
+# Initialize Debian packaging files with explicit non-interactive mode
 echo "Initializing Debian packaging..."
 dh_make --native --single --packagename "${PACKAGE_NAME}_${VERSION}" \
         --email "mark@analogedge.com" --copyright expat --yes
 
+# Remove any architecture-specific configuration files
+rm -f debian/source/format
+touch debian/source/format
+echo "3.0 (native)" > debian/source/format
+
 # Replace generated files with our custom ones
 echo "Customizing Debian package configuration..."
 
-# Remove the compat file if it exists
-if [[ -f debian/compat ]]; then
-    rm debian/compat
-fi
+# Ensure critical files are in place
+cp "$REPO_DIR/debian/control" debian/control
+cp "$REPO_DIR/debian/rules" debian/rules
+cp "$REPO_DIR/debian/postinst" debian/postinst
+cp "$REPO_DIR/debian/prerm" debian/prerm
 
-# Build the package with architecture-independent flag
+# Remove compat file if it exists
+rm -f debian/compat
+
+# Build the package with explicit architecture-independent settings
 echo "Building Debian package..."
-debuild -us -uc -ai
+DEBIAN_BUILDARCH=all dpkg-buildpackage -us -uc
 
 # Move the built package to the parent directory
 echo "Moving package to parent directory..."
