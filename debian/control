@@ -1,7 +1,7 @@
 Source: rcforge
 Section: shells
 Priority: optional
-Maintainer: Mark Hasse <mark@analogedge.io>
+Maintainer: Mark Hasse <mark@analogedge.com>
 Build-Depends: debhelper-compat (= 13)
 Standards-Version: 4.5.1
 Homepage: https://github.com/mhasse1/rcforge
@@ -11,19 +11,18 @@ Rules-Requires-Root: no
 
 Package: rcforge
 Architecture: all
-Depends: ${misc:Depends}, 
-         bash (>= 4.0), 
-         findutils, 
-         sed, 
-         grep, 
-         coreutils
+Depends: ${misc:Depends}, bash (>= 4.0)
 Recommends: zsh
 Description: Universal shell configuration system for Bash and Zsh
- rcForge is a flexible, modular shell configuration framework that:
+ rcForge is a flexible, modular configuration system for Bash and Zsh shells
+ that provides a single framework for managing shell environments across
+ multiple machines.
  .
- * Provides a unified approach to managing shell environments
- * Works across multiple machines and shell types
- * Supports both Bash and Zsh
- * Offers machine-specific and global configurations
- * Includes a powerful include system for modular functions
-# EOF
+ Key features:
+  * Cross-shell compatibility
+  * Machine-specific configurations
+  * Deterministic loading order
+  * Conflict detection
+  * Include system for modular functions
+ .
+ Currently in version 0.2.0 (pre-release)
