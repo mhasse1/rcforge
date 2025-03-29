@@ -46,16 +46,14 @@ dh_make --native --single --packagename "${PACKAGE_NAME}_${VERSION}" \
 # Replace generated files with our custom ones
 echo "Customizing Debian package configuration..."
 
-# Ensure critical files are in place
-cp "$REPO_DIR/debian/control" debian/control
-cp "$REPO_DIR/debian/rules" debian/rules
-cp "$REPO_DIR/debian/postinst" debian/postinst
-cp "$REPO_DIR/debian/prerm" debian/prerm
-cp "$REPO_DIR/debian/compat" debian/compat
+# Remove the compat file if it exists
+if [[ -f debian/compat ]]; then
+    rm debian/compat
+fi
 
-# Build the package
+# Build the package with architecture-independent flag
 echo "Building Debian package..."
-debuild -us -uc
+debuild -us -uc -ai
 
 # Move the built package to the parent directory
 echo "Moving package to parent directory..."
