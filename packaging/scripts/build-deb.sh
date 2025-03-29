@@ -85,10 +85,11 @@ fi
 
 # Copy example scripts
 if [[ -d "$REPO_DIR/scripts" ]]; then
-    cp -r "$REPO_DIR/scripts/"* "$BUILD_DIR/usr/share/rcforge/examples/"
+    cp -r "$REPO_DIR/scripts/"* "$BUILD_DIR/usr/share/rcforge/examples/" 2>/dev/null || true
 elif [[ -d "$REPO_DIR/docs/development-docs/examples" ]]; then
     # Fallback to examples in docs directory
-    cp -r "$REPO_DIR/docs/development-docs/examples/"*.sh "$BUILD_DIR/usr/share/rcforge/examples/"
+    mkdir -p "$BUILD_DIR/usr/share/rcforge/examples/"
+    cp -r "$REPO_DIR/docs/development-docs/examples/"*.sh "$BUILD_DIR/usr/share/rcforge/examples/" 2>/dev/null || true
 fi
 
 # Copy documentation
@@ -108,8 +109,25 @@ if [[ -f "$REPO_DIR/LICENSE" ]]; then
     cp "$REPO_DIR/LICENSE" "$BUILD_DIR/usr/share/doc/rcforge/"
 fi
 
-# Create symlink to setup script
-ln -sf "/usr/share/rcforge/utils/rcforge-setup.sh" "$BUILD_DIR/usr/bin/rcforge"
+# Create executable wrapper script instead of symlink
+cat > "$BUILD_DIR/usr/bin/rcforge" << 'EOF'
+#!/bin/bash
+# rcforge wrapper script
+# This script runs the rcforge-setup.sh from the system installation
+
+# Find the setup script
+SETUP_SCRIPT="/usr/share/rcforge/utils/rcforge-setup.sh"
+
+# Check if it exists
+if [ ! -f "$SETUP_SCRIPT" ]; then
+    echo "Error: rcforge setup script not found at $SETUP_SCRIPT"
+    exit 1
+fi
+
+# Execute the setup script with all arguments
+exec "$SETUP_SCRIPT" "$@"
+EOF
+chmod 755 "$BUILD_DIR/usr/bin/rcforge"
 
 # Set file permissions
 echo -e "${CYAN}Setting file permissions...${RESET}"
