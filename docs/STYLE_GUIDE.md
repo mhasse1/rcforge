@@ -53,15 +53,16 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 #### Messaging
 - Use predefined messaging functions:
-  - `error_message()` for errors
-  - `warning_message()` for warnings
-  - `success_message()` for successful operations
-  - `info_message()` for informational output
+  - `ErrorMessage()` for errors
+  - `WarningMessage()` for warnings
+  - `SuccessMessage()` for successful operations
+  - `InfoMessage()` for informational output
 
 #### Colors and Formatting
+
 - Always use `shell-colors.sh` for color definitions
-- Use `display_header()` for script headers
-- Use `section_header()` for section breaks
+- Use `DisplayHeader()` for script headers
+- Use `SectionHeader()` for section breaks
 
 #### Error Handling
 - Always check command success
@@ -86,7 +87,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
        if some_condition; then
            result=$(perform_action)
        else
-           error_message "Condition not met"
+           ErrorMessage "Condition not met"
            return 1
        fi
    
@@ -103,6 +104,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 4. **Return Values**
 
    * Use `true` and `false` for boolean return values
+   * Use the traditional `0` for success and `1`  for failure 
 
 ## Markdown Documentation
 
