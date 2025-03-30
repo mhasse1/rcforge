@@ -77,27 +77,38 @@ In many ways this document is aspirational.  All I can say is I'm working on it.
 
 ## Shell Scripting Standards
 
-**Note** the use of `#!/usr/bin/env bash` instead of `#!/bin/bash`.  This ensures the greatest cross system compatibility, particularly with Darwin.
+> **⚠️ WARNING: #!/usr/bin/env bash**
+> It is critical to use `#!/usr/bin/env bash` instead of `#!/bin/bash`.  This ensures the greatest cross system compatibility, particularly with Darwin and other systems with a default install of Bash <4.0.
 
 ### Script Structure
 
 ```bash
 #!/usr/bin/env bash
-# script-name.sh - Brief description of script purpose
-# Author: Your Name
+# script-name.sh - Brief description
+# Author: Name
 # Date: YYYY-MM-DD
 
-# Always source color utilities first
+# Source color utilities
 source shell-colors.sh
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
 set -o errexit  # Exit immediately if a command exits with a non-zero status
+
+# Exported variables (for use in exported functions)
+export COLOR_ENABLED=true
+export DEBUG_MODE=false
+
+# Global constants (not exported)
+readonly gc_version="1.0.0"
+readonly gc_app_name="rcForge"
+
+# Function definitions...
 ```
 
 ### Standard Environment Variables and Functions
 
-`$RCFORGE_SYSTEM` provides the path to the 
+`$RCFORGE_SYSTEM` provides the path to the system installation location based on the current platform.
 
 ### Output and Formatting
 
@@ -181,7 +192,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 ##### Function File Structure
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # function_name.sh - Concise description of function purpose
 # Category: function_category
 # Author: Your Name
@@ -379,13 +390,44 @@ The most important rule when working with libraries and exported functions:
 
 **Any variable referenced inside an exported function must itself be exported and should be set as such when first declared.**
 
-- Exported variables should not be declared as readonly.
+#### Exported Variables
 
-- Exported variables should not use the c_ or gc_ prefix.
+> **⚠️ WARNING: EXPORTED VARIABLES**
+> When creating libraries with exported functions, any variables used within 
+> those functions MUST be exported and MUST use UPPERCASE_SNAKE_CASE naming.
+> Never use c_ or gc_ prefixes for exported variables!
+
+Variables that will be used by exported functions MUST:
+- Use UPPERCASE_SNAKE_CASE naming (e.g., COLOR_OUTPUT_ENABLED)
+- Be explicitly exported using the 'export' keyword when declared
+- NOT use any prefixes like c_, gc_, etc. (these are reserved for constants)
+- NOT be declared as readonly (as this can cause issues when sourced in different contexts)
+
+``` bash
+✅ CORRECT:
+export RED='\033[0;31m'
+export MAX_RETRIES=3
+
+ErrorMessage() {
+    echo -e "${RED}Error: $1${RESET}"
+}
+export -f ErrorMessage
+
+❌ INCORRECT:
+readonly gc_red='\033[0;31m'  # Wrong! Using gc_ prefix on an exported variable
+local c_max_retries=3        # Wrong! Local variable used in exported function
+
+ErrorMessage() {
+    echo -e "${gc_red}Error: $1${RESET}"  # Will fail when sourced elsewhere
+}
+export -f ErrorMessage
+```
+
+#### Example Library with Exported Functions and Variables
 
 ```bash
 # Example library with exported functions and variables
-#!/bin/bash
+#!/usr/bin/env bash
 # colors.sh - Simplified color utility
 
 # CORRECT: Color variables are exported because exported functions use them
