@@ -172,6 +172,8 @@ Description: Universal shell configuration system for Bash and Zsh
  Currently in version $VERSION (pre-release)
 EOF
 
+# Copy the rest of the build files
+cp $REPO_DIR/debian/{postinst,prerm,rules} $BUILD_DIR/DEBIAN/
 # Make sure they're executable
 chmod 755 "$BUILD_DIR/DEBIAN/postinst"
 chmod 755 "$BUILD_DIR/DEBIAN/prerm"
