@@ -47,7 +47,7 @@ get_rcforge_paths() {
     # Development mode
     export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/src/rcforge}"
     export RCFORGE_SYS_INCLUDE="${RCFORGE_SYS_INCLUDE:-$RCFORGE_ROOT/include}"
-    export RCFORGE_SYS_LIB="${RCFORGE_SYS_LIB:-$RCFORGE_ROOT/src/lib}"
+    export RCFORGE_SYS_LIB="${RCFORGE_SYS_LIB:-$RCFORGE_ROOT/lib}"
   else
     # Determine system directories based on available installations
     if [[ -d "/usr/share/rcforge" ]]; then
@@ -69,18 +69,18 @@ get_rcforge_paths() {
 
     # User directories
     export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/.config/rcforge}"
-    
+
     # System include and lib directories
     export RCFORGE_SYS_INCLUDE="${RCFORGE_SYS_INCLUDE:-$RCFORGE_SYS_DIR/include}"
-    export RCFORGE_SYS_LIB="${RCFORGE_SYS_LIB:-$RCFORGE_SYS_DIR/src/lib}"
+    export RCFORGE_SYS_LIB="${RCFORGE_SYS_LIB:-$RCFORGE_SYS_DIR/lib}"
   fi
 
-  # User include directory 
+  # User include directory
   export RCFORGE_USER_INCLUDE="${RCFORGE_USER_INCLUDE:-$RCFORGE_ROOT/include}"
-  
+
   debug_echo "rcForge paths:"
   debug_echo "  Root: $RCFORGE_ROOT"
-  debug_echo "  System include: $RCFORGE_SYS_INCLUDE" 
+  debug_echo "  System include: $RCFORGE_SYS_INCLUDE"
   debug_echo "  System lib: $RCFORGE_SYS_LIB"
   debug_echo "  User include: $RCFORGE_USER_INCLUDE"
 }
@@ -105,11 +105,11 @@ include_function() {
   if [[ -z "${_CATEGORY_PATHS[$category]}" ]]; then
     # Update paths in case environment has changed
     get_rcforge_paths
-    
+
     # Set search path for this category
     local user_path="$RCFORGE_USER_INCLUDE/$category"
     local sys_path="$RCFORGE_SYS_INCLUDE/$category"
-    
+
     # Store the path list for this category
     _CATEGORY_PATHS[$category]="$user_path:$sys_path"
   fi
@@ -153,11 +153,11 @@ include_category() {
   if [[ -z "${_CATEGORY_PATHS[$category]}" ]]; then
     # Update paths in case environment has changed
     get_rcforge_paths
-    
+
     # Set search path for this category
     local user_path="$RCFORGE_USER_INCLUDE/$category"
     local sys_path="$RCFORGE_SYS_INCLUDE/$category"
-    
+
     # Store the path list for this category
     _CATEGORY_PATHS[$category]="$user_path:$sys_path"
   fi
@@ -198,10 +198,10 @@ include_category() {
 # Usage: list_available_functions [category]
 list_available_functions() {
   local target_category="$1"
-  
+
   # Update paths in case environment has changed
   get_rcforge_paths
-  
+
   local sys_include_dir="$RCFORGE_SYS_INCLUDE"
   local user_include_dir="$RCFORGE_USER_INCLUDE"
 

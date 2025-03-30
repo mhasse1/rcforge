@@ -113,18 +113,18 @@ You can also create include functions manually:
    # Category: mycategory
    # Author: Your Name
    # Date: YYYY-MM-DD
-   
+
    # Function: myfunction
    # Description: Detailed description here
    # Usage: myfunction arg1 arg2
    myfunction() {
      local arg1="$1"
      local arg2="$2"
-     
+
      # Function implementation
      echo "Hello from myfunction!"
    }
-   
+
    # Export the function
    export -f myfunction
    ```
@@ -209,7 +209,7 @@ This will make the include system use the development directories instead:
 
 ```
 <PROJECT_ROOT>/include/  # Development include directory
-<PROJECT_ROOT>/src/lib/  # Development library directory
+<PROJECT_ROOT>/lib/      # Development library directory
 ```
 
 Suggested project root locations:
@@ -235,14 +235,14 @@ setup_development_environment() {
   # Add development directories to PATH
   add_to_path "$HOME/bin"
   add_to_path "$HOME/.local/bin"
-  
+
   # OS-specific configuration
   if is_macos; then
     add_to_path "/opt/homebrew/bin"
   elif is_linux; then
     add_to_path "/usr/local/bin"
   fi
-  
+
   echo "Development environment configured"
 }
 

@@ -31,7 +31,7 @@ check_root() {
     # Check if we're running with sudo
     local sudo_user="${SUDO_USER:-}"
     local username="${sudo_user:-$USER}"
-    
+
     display_warning_header
     echo -e "\033[0;31mError: This script should not be run as root or with sudo.\033[0m"
     echo -e "\033[0;33mRunning shell configuration tools as root can create files with"
@@ -44,7 +44,7 @@ check_root() {
     echo
     echo -e "  \033[0;36mRCFORGE_ALLOW_ROOT=1 source ~/.config/rcforge/rcforge.sh\033[0m"
     echo
-    
+
     # Check for override environment variable
     if [[ -n "${RCFORGE_ALLOW_ROOT:-}" ]]; then
       echo -e "\033[0;33mWarning: Running as root due to RCFORGE_ALLOW_ROOT override.\033[0m"
@@ -52,11 +52,11 @@ check_root() {
       echo
       return 0  # Allow execution to continue
     fi
-    
+
     # Return error since this is being sourced (exit would close the shell)
     return 1
   fi
-  
+
   # Not root, allow execution to continue
   return 0
 }
@@ -101,7 +101,7 @@ if [[ -n "${RCFORGE_DEV:-}" ]]; then
   export RCFORGE_CORE="$RCFORGE_ROOT/core"
   export RCFORGE_UTILS="$RCFORGE_ROOT/utils"
   export RCFORGE_INCLUDES="$RCFORGE_ROOT/include"
-  export RCFORGE_SRC_LIB="$RCFORGE_ROOT/src/lib"
+  export RCFORGE_LIB="$RCFORGE_ROOT/lib"
 else
   # Production mode
   # Configure user level directories
@@ -119,7 +119,7 @@ else
   else
     export RCFORGE_SYS_DIR="$HOME/.config/rcforge"
   fi
-  
+
   export RCFORGE_SYS_INCLUDES="$RCFORGE_SYS_DIR/include"
 
   # Primary directories (with preference for user files)
@@ -128,7 +128,7 @@ else
   export RCFORGE_INCLUDES="$RCFORGE_USER_INCLUDES"
   export RCFORGE_CORE="$RCFORGE_SYS_DIR/core"
   export RCFORGE_UTILS="$RCFORGE_SYS_DIR/utils"
-  export RCFORGE_SRC_LIB="$RCFORGE_SYS_DIR/src/lib"
+  export RCFORGE_LIB="$RCFORGE_SYS_DIR/lib"
 fi
 
 # Uncomment for debugging
@@ -192,11 +192,11 @@ else
 fi
 
 # Load include system if available
-if [[ -f "$RCFORGE_SRC_LIB/include-functions.sh" ]]; then
-  source "$RCFORGE_SRC_LIB/include-functions.sh"
-  debug_echo "Include functions loaded from $RCFORGE_SRC_LIB/include-functions.sh"
+if [[ -f "$RCFORGE_LIB/include-functions.sh" ]]; then
+  source "$RCFORGE_LIB/include-functions.sh"
+  debug_echo "Include functions loaded from $RCFORGE_LIB/include-functions.sh"
 else
-  debug_echo "Include functions not found at $RCFORGE_SRC_LIB/include-functions.sh"
+  debug_echo "Include functions not found at $RCFORGE_LIB/include-functions.sh"
 
   # Simple include_function stub for compatibility
   include_function() {

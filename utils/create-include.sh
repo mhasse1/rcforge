@@ -40,7 +40,7 @@ determine_paths() {
     # Development mode
     RCFORGE_DIR="$HOME/src/rcforge"
     SYS_INCLUDE_DIR="$RCFORGE_DIR/include"
-    SYS_LIB_DIR="$RCFORGE_DIR/src/lib"
+    SYS_LIB_DIR="$RCFORGE_DIR/lib"
   else
     # Production mode - Detect system installation
     if [[ -d "/usr/share/rcforge" ]]; then
@@ -53,7 +53,7 @@ determine_paths() {
       RCFORGE_SYS_DIR="$HOME/.config/rcforge"
     fi
     SYS_INCLUDE_DIR="$RCFORGE_SYS_DIR/include"
-    SYS_LIB_DIR="$RCFORGE_SYS_DIR/src/lib"
+    SYS_LIB_DIR="$RCFORGE_SYS_DIR/lib"
   fi
 
   # User level directories
@@ -128,14 +128,14 @@ if [[ $use_system -eq 1 ]]; then
 else
   INCLUDE_DIR="$USER_INCLUDE_DIR"
   echo -e "${CYAN}Using user include directory: ${YELLOW}$INCLUDE_DIR${RESET}"
-  
+
   # Ask if the user wants to use the system directory instead
   if [[ -d "$SYS_INCLUDE_DIR" && -z "$category" ]]; then
     echo -e "${YELLOW}Which include directory do you want to use?${RESET}"
     echo "1) User directory: $USER_INCLUDE_DIR (default)"
     echo "2) System directory: $SYS_INCLUDE_DIR"
     read -r choice
-    
+
     if [[ "$choice" == "2" ]]; then
       INCLUDE_DIR="$SYS_INCLUDE_DIR"
       echo -e "${CYAN}Switched to system include directory: ${YELLOW}$INCLUDE_DIR${RESET}"
@@ -147,7 +147,7 @@ fi
 if [[ -z "$category" ]]; then
   echo -e "${CYAN}Available categories:${RESET}"
   categories=()
-  
+
   # Get existing categories from both user and system directories
   for dir in "$INCLUDE_DIR"/*/; do
     if [[ -d "$dir" ]]; then
@@ -156,7 +156,7 @@ if [[ -z "$category" ]]; then
       echo "  $category_name"
     fi
   done
-  
+
   # Also check system directory if we're using user directory
   if [[ "$INCLUDE_DIR" == "$USER_INCLUDE_DIR" && "$INCLUDE_DIR" != "$SYS_INCLUDE_DIR" ]]; then
     for dir in "$SYS_INCLUDE_DIR"/*/; do
@@ -170,12 +170,12 @@ if [[ -z "$category" ]]; then
       fi
     done
   fi
-  
+
   if [[ ${#categories[@]} -eq 0 ]]; then
     echo "  No categories found."
     echo -e "${YELLOW}Creating a new category...${RESET}"
   fi
-  
+
   echo ""
   echo -e "${YELLOW}Enter category (existing or new):${RESET}"
   read -r category
@@ -202,7 +202,7 @@ if [[ -f "$function_file" && "$force" -eq 0 ]]; then
   echo -e "${RED}Function already exists: $function_file${RESET}"
   echo -e "${YELLOW}Do you want to overwrite it? (y/n)${RESET}"
   read -r overwrite
-  
+
   if [[ ! "$overwrite" =~ ^[Yy] ]]; then
     echo -e "${RED}Operation cancelled.${RESET}"
     exit 1

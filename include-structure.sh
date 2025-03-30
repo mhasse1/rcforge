@@ -72,7 +72,7 @@ if [[ -n "${RCFORGE_DEV}" ]]; then
   fi
 
   SYS_INCLUDE_DIR="$RCFORGE_DIR/include"
-  SYS_LIB_DIR="$RCFORGE_DIR/src/lib"
+  SYS_LIB_DIR="$RCFORGE_DIR/lib"
 else
   # Production mode - System level
   if [[ -d "/usr/share/rcforge" ]]; then

@@ -50,7 +50,7 @@ mkdir -p "$BUILD_DIR/DEBIAN"
 mkdir -p "$BUILD_DIR/usr/share/rcforge"
 mkdir -p "$BUILD_DIR/usr/share/rcforge/core"
 mkdir -p "$BUILD_DIR/usr/share/rcforge/utils"
-mkdir -p "$BUILD_DIR/usr/share/rcforge/src/lib"
+mkdir -p "$BUILD_DIR/usr/share/rcforge/lib"
 mkdir -p "$BUILD_DIR/usr/share/rcforge/include"
 mkdir -p "$BUILD_DIR/usr/share/rcforge/examples"
 mkdir -p "$BUILD_DIR/usr/share/doc/rcforge"
@@ -74,8 +74,8 @@ if [[ -d "$REPO_DIR/utils" ]]; then
 fi
 
 # Copy library files
-if [[ -d "$REPO_DIR/src/lib" ]]; then
-    cp -r "$REPO_DIR/src/lib/"* "$BUILD_DIR/usr/share/rcforge/src/lib/"
+if [[ -d "$REPO_DIR/lib" ]]; then
+    cp -r "$REPO_DIR/lib/"* "$BUILD_DIR/usr/share/rcforge/lib/"
 fi
 
 # Copy include files (preserving directory structure) if they exist
@@ -108,7 +108,7 @@ if [[ -d "$REPO_DIR/docs" ]]; then
     if [[ -d "$REPO_DIR/docs/user-guides" ]]; then
         cp -r "$REPO_DIR/docs/user-guides/"*.md "$BUILD_DIR/usr/share/doc/rcforge/"
     fi
-    
+
     # Copy other important docs
     cp "$REPO_DIR/docs/README-includes.md" "$BUILD_DIR/usr/share/doc/rcforge/" 2>/dev/null || true
 fi
@@ -187,11 +187,11 @@ fakeroot dpkg-deb --build "$BUILD_DIR" "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all
 # Check if the package was built successfully
 if [[ -f "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb" ]]; then
     echo -e "${GREEN}✓ Package built successfully: ${YELLOW}${PACKAGE_NAME}_${VERSION}_all.deb${RESET}"
-    
+
     # Display package information
     echo -e "${CYAN}Package information:${RESET}"
     dpkg-deb --info "$REPO_DIR/${PACKAGE_NAME}_${VERSION}_all.deb"
-    
+
     # Cleanup
     echo -e "${CYAN}Cleaning up build files...${RESET}"
     rm -rf "$BUILD_DIR"

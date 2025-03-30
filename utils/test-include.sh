@@ -44,7 +44,7 @@ if [[ -n "${RCFORGE_DEV}" ]]; then
   # Development mode
   RCFORGE_DIR="$HOME/src/rcforge"
   SYS_INCLUDE_DIR="$RCFORGE_DIR/include"
-  SYS_LIB_DIR="$RCFORGE_DIR/src/lib"
+  SYS_LIB_DIR="$RCFORGE_DIR/lib"
 else
   # Production mode - Detect system installation first, then user installation
   if [[ -d "/usr/share/rcforge" ]]; then
@@ -61,7 +61,7 @@ else
     RCFORGE_SYS_DIR="$HOME/.config/rcforge"
   fi
   SYS_INCLUDE_DIR="$RCFORGE_SYS_DIR/include"
-  SYS_LIB_DIR="$RCFORGE_SYS_DIR/src/lib"
+  SYS_LIB_DIR="$RCFORGE_SYS_DIR/lib"
 fi
 
 USER_INCLUDE_DIR="$HOME/.config/rcforge/include"
@@ -137,16 +137,16 @@ echo ""
 test_include_function() {
   local category="$1"
   local function_name="$2"
-  
+
   echo -e "${YELLOW}Testing include_function $category $function_name...${RESET}"
-  
+
   if include_function "$category" "$function_name"; then
     echo -e "${GREEN}✓ Successfully included function: $function_name${RESET}"
-    
+
     # Test if the function is actually available
     if type -t "$function_name" >/dev/null 2>&1; then
       echo -e "${GREEN}✓ Function $function_name is available${RESET}"
-      
+
       # Try to run the function
       if [[ $verbose -eq 1 ]]; then
         echo -e "${CYAN}Function output:${RESET}"
@@ -158,19 +158,19 @@ test_include_function() {
   else
     echo -e "${RED}× Failed to include function: $function_name${RESET}"
   fi
-  
+
   echo ""
 }
 
 # Test category
 test_include_category() {
   local category="$1"
-  
+
   echo -e "${YELLOW}Testing include_category $category...${RESET}"
-  
+
   if include_category "$category"; then
     echo -e "${GREEN}✓ Successfully included category: $category${RESET}"
-    
+
     # List all functions in the category
     local user_functions=()
     if [[ -d "$USER_INCLUDE_DIR/$category" ]]; then
@@ -181,7 +181,7 @@ test_include_category() {
         fi
       done
     fi
-    
+
     local sys_functions=()
     if [[ -d "$SYS_INCLUDE_DIR/$category" ]]; then
       for func_file in "$SYS_INCLUDE_DIR/$category"/*.sh; do
@@ -194,7 +194,7 @@ test_include_category() {
         fi
       done
     fi
-    
+
     # Test each function
     local all_functions=("${user_functions[@]}" "${sys_functions[@]}")
     if [[ ${#all_functions[@]} -eq 0 ]]; then
@@ -204,7 +204,7 @@ test_include_category() {
       for function_name in "${all_functions[@]}"; do
         if type -t "$function_name" >/dev/null 2>&1; then
           echo -e "${GREEN}✓ Function $function_name is available${RESET}"
-          
+
           # Execute function if verbose mode
           if [[ $verbose -eq 1 ]]; then
             echo -e "${CYAN}Function $function_name output:${RESET}"
@@ -218,7 +218,7 @@ test_include_category() {
   else
     echo -e "${RED}× Failed to include category: $category${RESET}"
   fi
-  
+
   echo ""
 }
 
@@ -226,13 +226,13 @@ test_include_category() {
 create_test_includes() {
   echo -e "${CYAN}Creating temporary test includes...${RESET}"
   local test_dir="/tmp/rcforge-test-includes"
-  
+
   # Remove old test directory if it exists
   rm -rf "$test_dir"
-  
+
   # Create test include directory
   mkdir -p "$test_dir/test"
-  
+
   # Create a test function
   cat > "$test_dir/test/hello.sh" << 'EOF'
 #!/bin/bash
@@ -246,7 +246,7 @@ hello() {
 export -f hello
 EOF
   chmod +x "$test_dir/test/hello.sh"
-  
+
   # Create a test function with dependencies
   cat > "$test_dir/test/greeting.sh" << 'EOF'
 #!/bin/bash
@@ -265,11 +265,11 @@ greeting() {
 export -f greeting
 EOF
   chmod +x "$test_dir/test/greeting.sh"
-  
+
   # Update paths to include test directory
   export RCFORGE_TEST_INCLUDE="$test_dir"
   export _CATEGORY_PATHS["test"]="$test_dir/test"
-  
+
   echo -e "${GREEN}✓ Created test includes at $test_dir${RESET}"
   echo ""
 }
@@ -284,7 +284,7 @@ elif [[ -n "$category" ]]; then
 else
   # Test common functions
   echo -e "${CYAN}Testing common include functions...${RESET}"
-  
+
   # Test path functions first
   if [[ -d "$SYS_INCLUDE_DIR/path" ]]; then
     test_include_function "path" "add_to_path"
@@ -293,7 +293,7 @@ else
   else
     echo -e "${YELLOW}Path category not found, skipping...${RESET}"
   fi
-  
+
   # Test common functions
   if [[ -d "$SYS_INCLUDE_DIR/common" ]]; then
     test_include_function "common" "is_macos"
@@ -302,12 +302,12 @@ else
   else
     echo -e "${YELLOW}Common category not found, skipping...${RESET}"
   fi
-  
+
   # Create and test temporary functions with dependencies
   create_test_includes
   test_include_function "test" "hello"
   test_include_function "test" "greeting"
-  
+
   echo -e "${GREEN}Include system tests completed${RESET}"
 fi
 # EOF

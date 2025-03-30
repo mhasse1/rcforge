@@ -6,7 +6,7 @@ SHELL = /bin/bash
 
 # Directories
 PREFIX = /usr/local
-DESTDIR = 
+DESTDIR =
 SYSCONFDIR = $(PREFIX)/etc
 BINDIR = $(PREFIX)/bin
 SHAREDIR = $(PREFIX)/share/rcforge
@@ -15,7 +15,7 @@ DOCDIR = $(PREFIX)/share/doc/rcforge
 # Files
 CORE_FILES = $(wildcard core/*.sh)
 UTIL_FILES = $(wildcard utils/*.sh)
-LIB_FILES = $(wildcard src/lib/*.sh)
+LIB_FILES = $(wildcard lib/*.sh)
 INCLUDE_FILES = $(wildcard include/*/*.sh)
 DOC_FILES = README.md docs/universal-shell-guide.md docs/README-includes.md
 
@@ -26,7 +26,7 @@ all: test
 # Install rcForge to the system
 install:
 	@echo "Installing rcForge $(VERSION)..."
-	
+
 	# Create directories
 	mkdir -p $(DESTDIR)$(SHAREDIR)/core
 	mkdir -p $(DESTDIR)$(SHAREDIR)/utils
@@ -35,19 +35,19 @@ install:
 	mkdir -p $(DESTDIR)$(SHAREDIR)/examples
 	mkdir -p $(DESTDIR)$(DOCDIR)
 	mkdir -p $(DESTDIR)$(BINDIR)
-	
+
 	# Install main script
 	install -m 755 rcforge.sh $(DESTDIR)$(SHAREDIR)/
-	
+
 	# Install core files
 	$(foreach file,$(CORE_FILES),install -m 755 $(file) $(DESTDIR)$(SHAREDIR)/core/;)
-	
+
 	# Install utility files
 	$(foreach file,$(UTIL_FILES),install -m 755 $(file) $(DESTDIR)$(SHAREDIR)/utils/;)
-	
+
 	# Install library files
 	$(foreach file,$(LIB_FILES),install -m 755 $(file) $(DESTDIR)$(SHAREDIR)/lib/;)
-	
+
 	# Install include files (with directory structure)
 	@for dir in include/*; do \
 		if [ -d "$$dir" ]; then \
@@ -59,16 +59,16 @@ install:
 			done; \
 		fi; \
 	done
-	
+
 	# Install example files
 	$(foreach file,$(wildcard docs/development-docs/examples/*.sh),install -m 755 $(file) $(DESTDIR)$(SHAREDIR)/examples/;)
-	
+
 	# Install documentation
 	$(foreach file,$(DOC_FILES),install -m 644 $(file) $(DESTDIR)$(DOCDIR)/;)
-	
+
 	# Create symlink to setup script
 	ln -sf $(SHAREDIR)/utils/rcforge-setup.sh $(DESTDIR)$(BINDIR)/rcforge
-	
+
 	@echo "Installation complete."
 	@echo "To activate rcForge, add to your shell configuration:"
 	@echo "  source \"$(SHAREDIR)/rcforge.sh\""
@@ -89,17 +89,17 @@ test:
 	@test -f rcforge.sh || { echo "Error: rcforge.sh not found"; exit 1; }
 	@test -d core || { echo "Error: core directory not found"; exit 1; }
 	@test -d utils || { echo "Error: utils directory not found"; exit 1; }
-	
+
 	# Test include system if on Bash 4.0+
 	@bash --version | grep -q 'version [4-9]' && { \
 		echo "Testing include system..."; \
-		source src/lib/include-functions.sh 2>/dev/null && echo "Include system loaded successfully" || echo "Include system failed to load"; \
+		source lib/include-functions.sh 2>/dev/null && echo "Include system loaded successfully" || echo "Include system failed to load"; \
 	} || echo "Skipping include system tests (requires Bash 4.0+)"
-	
+
 	# Basic syntax check
 	@echo "Checking syntax of shell scripts..."
 	@find . -name "*.sh" -type f -exec bash -n {} \; && echo "Syntax check passed" || { echo "Syntax check failed"; exit 1; }
-	
+
 	@echo "All tests passed."
 
 # Create Debian package
@@ -109,7 +109,7 @@ deb:
 		echo "Error: debuild not found. Install with: sudo apt install devscripts debhelper dh-make"; \
 		exit 1; \
 	fi
-	
+
 	@chmod +x build-deb.sh
 	./build-deb.sh $(VERSION)
 
@@ -120,7 +120,7 @@ homebrew:
 		echo "Error: brew not found. Please install Homebrew: https://brew.sh/"; \
 		exit 1; \
 	fi
-	
+
 	@chmod +x create-homebrew.sh
 	./create-homebrew.sh $(VERSION)
 
@@ -147,7 +147,7 @@ release: clean test deb homebrew
 		echo "Error: Homebrew formula not created successfully"; \
 		exit 1; \
 	fi
-	
+
 	@echo "Release preparation complete."
 	@echo "Created:"
 	@echo "  - rcforge_$(VERSION)_all.deb"
