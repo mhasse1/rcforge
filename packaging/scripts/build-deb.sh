@@ -172,10 +172,6 @@ Description: Universal shell configuration system for Bash and Zsh
  Currently in version $VERSION (pre-release)
 EOF
 
-# Copy our fixed postinst and prerm scripts
-cp "$REPO_DIR/packaging/scripts/dpkg-postinst.sh" "$BUILD_DIR/DEBIAN/postinst"
-cp "$REPO_DIR/packaging/scripts/dpkg-prerm.sh" "$BUILD_DIR/DEBIAN/prerm"
-
 # Make sure they're executable
 chmod 755 "$BUILD_DIR/DEBIAN/postinst"
 chmod 755 "$BUILD_DIR/DEBIAN/prerm"

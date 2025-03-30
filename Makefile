@@ -1,7 +1,7 @@
 # rcForge Makefile
 # Provides commands for building, testing, and packaging
 
-VERSION = 2.0.0
+VERSION = 0.2.0
 SHELL = /bin/bash
 
 # Directories
@@ -38,6 +38,7 @@ install:
 
 	# Install main script
 	install -m 755 rcforge.sh $(DESTDIR)$(SHAREDIR)/
+	install -m 755 include-structure.sh $(DESTDIR)$(SHAREDIR)/
 
 	# Install core files
 	$(foreach file,$(CORE_FILES),install -m 755 $(file) $(DESTDIR)$(SHAREDIR)/core/;)
@@ -66,8 +67,12 @@ install:
 	# Install documentation
 	$(foreach file,$(DOC_FILES),install -m 644 $(file) $(DESTDIR)$(DOCDIR)/;)
 
-	# Create symlink to setup script
-	ln -sf $(SHAREDIR)/utils/rcforge-setup.sh $(DESTDIR)$(BINDIR)/rcforge
+	# Create symlinks to executable utilities
+	ln -sf $(SHAREDIR)/rcforge.sh $(DESTDIR)$(BINDIR)/rcforge
+	ln -sf $(SHAREDIR)/utils/rcforge-setup.sh $(DESTDIR)$(BINDIR)/rcforge-setup
+	ln -sf $(SHAREDIR)/utils/export-config.sh $(DESTDIR)$(BINDIR)/rcf-export
+	ln -sf $(SHAREDIR)/utils/diagram-config.sh $(DESTDIR)$(BINDIR)/rcf-diagram
+	ln -sf $(SHAREDIR)/utils/create-include.sh $(DESTDIR)$(BINDIR)/rcf-include
 
 	@echo "Installation complete."
 	@echo "To activate rcForge, add to your shell configuration:"
@@ -79,6 +84,10 @@ uninstall:
 	rm -rf $(DESTDIR)$(SHAREDIR)
 	rm -rf $(DESTDIR)$(DOCDIR)
 	rm -f $(DESTDIR)$(BINDIR)/rcforge
+	rm -f $(DESTDIR)$(BINDIR)/rcforge-setup
+	rm -f $(DESTDIR)$(BINDIR)/rcf-export
+	rm -f $(DESTDIR)$(BINDIR)/rcf-diagram
+	rm -f $(DESTDIR)$(BINDIR)/rcf-include
 	@echo "rcForge has been uninstalled."
 	@echo "User configuration files in ~/.config/rcforge have not been removed."
 
@@ -157,3 +166,4 @@ release: clean test deb homebrew
 	@echo "1. Tag the release: git tag -a v$(VERSION) -m 'Release v$(VERSION)'"
 	@echo "2. Push the tag: git push origin v$(VERSION)"
 	@echo "3. Create a release on GitHub with these files"
+# EOF

@@ -1,5 +1,5 @@
 #!/bin/bash
-# dpkg-prerm.sh - Pre-removal script for rcForge Debian package
+# prerm - Pre-removal script for rcForge Debian package
 # Author: Mark Hasse
 # Date: 2025-03-29
 
@@ -7,10 +7,10 @@ set -e  # Exit on error
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     echo "Removing rcForge system files..."
-    
+
     # Note: We don't remove user configuration files in ~/.config/rcforge
     # This preserves user customizations even if they reinstall later
-    
+
     if [ "$1" = "purge" ]; then
         echo "Note: User configuration files in ~/.config/rcforge are preserved."
         echo "To completely remove all rcForge files, users should manually delete:"

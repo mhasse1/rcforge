@@ -24,6 +24,9 @@ Thumbs.db
 # The tmp folder
 tmp/
 
+# Package files 
+*.deb
+
 # Runtime data
 checksums/*
 exports/*
