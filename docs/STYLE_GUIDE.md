@@ -78,6 +78,10 @@ set -o nounset  # Treat unset variables as errors
 set -o errexit  # Exit immediately if a command exits with a non-zero status
 ```
 
+### Standard Environment Variables and Functions
+
+`$RCFORGE_SYSTEM` provides the path to the 
+
 ### Output and Formatting
 
 #### Messaging
@@ -276,8 +280,9 @@ some_function() {
 - Use `local` for variables to prevent global namespace pollution
 - Avoid unnecessary subshells
 - Use built-in shell capabilities over external commands
+- Test exported functions in a separate script to verify all dependencies are properly exported.
 
-#### Testing Utility Scripts
+#### Testing Utility Scripts and Functions
 
 - Always test both direct execution and sourcing scenarios
 - Implement self-test capabilities
@@ -351,6 +356,11 @@ Add shell color utility functions
 - Prefer passing parameters and returning values
 - Use global variables sparingly and with clear documentation
 - Always consider the smallest possible scope for a variable
+
+##### Variable Export Considerations
+
+- **Exported Variable Assessment**: When creating variables, first determine if they'll need to be accessible from other scripts. If so, they should be treated as environment variables, not constants.
+- **Function Dependency Consideration**: For any function that will be exported with `export -f`, identify all variables it depends on. Those variables must also be exported and follow environment variable conventions.
 
 #### Global and Local Variable Examples
 
@@ -438,6 +448,9 @@ readonly gc_application_name="rcForge"
 # Exported environment variables (UPPERCASE)
 export PATH="/usr/local/bin:$PATH"
 export HOME="/home/username"
+
+# INCORRECT: Don't use constant naming for exported variables
+readonly c_COLOR_OUTPUT_ENABLED=true  # Wrong - mixes constant style with exported need
 ```
 
 ## Code Organization
