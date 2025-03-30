@@ -377,7 +377,11 @@ Since Bash doesn't have formal type declarations, we use consistent naming conve
 
 The most important rule when working with libraries and exported functions:
 
-**Any variable referenced inside an exported function must itself be exported and should be delcared as such when first declared.**
+**Any variable referenced inside an exported function must itself be exported and should be set as such when first declared.**
+
+- Environment variables should not be declared as readonly.
+
+- Environment variables should not use the c_ or gc_ prefix.
 
 ```bash
 # Example library with exported functions and variables
