@@ -323,9 +323,8 @@ Add shell color utility functions
 - `bugfix/issue-description`
 - `docs/documentation-update`
 
-## Naming Conventions
+## File Naming Conventions
 
-### Files
 - Use lowercase
 - Separate words with hyphens
 - Include appropriate extension
@@ -333,30 +332,113 @@ Add shell color utility functions
   - `bash-functions.sh`
   - `system-configuration.md`
 
-### Variables
+## Variable Naming
 
-- Lowercase with underscores (snake case)
-- Descriptive names
-- Examples:
-  - `install_directory`
-  - `system_configuration`
-- Use ALL CAPS only for variable names that will be exported to the parent shell, e.g. "export PATH=/usr/bin;/bin"
-- Use `true` and `false` for boolean values and conditions. E.g.
+### General Variable Naming
 
+- Use lowercase with underscores (snake_case)
+- Descriptive and clear names
+- Scope limited to the current script or function
+
+### Variable Scoping Conventions
+
+- g_: Prefix for global variables (script-level or widely accessible)
+- No prefix: Local variables (function parameters, loop counters, etc.)
+
+#### Best Practices
+
+- Minimize the use of global variables
+- Prefer passing parameters and returning values
+- Use global variables sparingly and with clear documentation
+- Always consider the smallest possible scope for a variable
+
+#### Global and Local Variable Examples
+
+``` bash
+# Global variable (script-level)
+g_total_tests=0
+g_configuration_path="/etc/myapp/config"
+
+# Function with various variable scopes
+process_data() {
+    # No prefix for local, temporary variables
+    local current_index=0
+    local result=""
+    
+    # Use g_ prefix for variables that persist beyond the function
+    g_last_processed_file=""
+    
+    # Function logic
+    while read -r line; do
+        # Very local variables, no prefix needed
+        processed_line=$(transform "$line")
+        current_index=$((current_index + 1))
+    done
+}
 ```
-bool_variable = true
 
-if [[ bool_variable ]]; then
-  echo "Yes"
-else
-  echo "No"
+### Boolean Variables
+
+- Use built-in arithmetic evaluation to handle boolean values
+- Arithmetic evaluation provides a more direct and performance-efficient boolean handling in bash
+- Assign `true` or  `false` directly.
+
+#### Boolean Variable Examples 
+
+```bash
+# Recommended
+bool_variable=true
+bool_variable=false
+
+if $bool_variable; then
+  echo "Variable is true"
+fi
+
+if ! $bool_variable"; then
+  echo "Variable is false"
+fi
+
+# Avoid these less idiomatic approaches
+if [[ "$bool_variable" == "true" ]]; then
+  echo "More verbose string comparison"
+fi
+
+if [[ "$bool_variable" -eq 1 ]]; then
+  echo "Numeric comparison is less clear"
 fi
 ```
 
-### Constants
+### In-Script Constants
 
-- Declare constants using the `readonly` keyword
-- Prefix constants with `c_`, e.g., `readonly c_max_retries=5`
+- Use `readonly` for constants
+- Prefix constants with `c_`
+
+#### Example of Constants
+
+``` bash
+# In-script local constant
+readonly c_max_retries=3
+
+# Constant used globally across a script
+readonly gc_application_name="rcForge"
+```
+
+### Environment Variables
+
+- Follow standard shell conventions for naming and case
+- Should not include `c_` prefix or be marked `readonly`
+- Use ALL_CAPS only for:
+  1. Variables exported to the parent shell
+  2. System-level environment variables
+- Do not use uppercase for local script tracking variables
+
+#### Environment Variable Examples
+
+```bash
+# Exported environment variables (UPPERCASE)
+export PATH="/usr/local/bin:$PATH"
+export HOME="/home/username"
+```
 
 ## Code Organization
 
