@@ -70,14 +70,14 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 ### Function Design
 
-1. Function Naming**
-   - Use pascal case, e.g., `FunctionName`
+1. Function Naming
+   - Use snake case, e.g., `function_name`
    - Be descriptive about the function's purpose
-   - Examples: `InstallDependencies()`, `ValidateConfiguration()`
+   - Examples: `install_dependencies()`, `validate_configuration()`
 
 2. **Function Structure**
    ```bash
-   FunctionName() {
+   function_name() {
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
    
