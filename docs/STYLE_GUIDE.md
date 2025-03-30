@@ -5,24 +5,39 @@
 - [Introduction](#introduction)
 - [General Principles](#general-principles)
 - [Shell Scripting Standards](#shell-scripting-standards)
-    - [Script Structure](#script-structure)
-    - [Output and Formatting](#output-and-formatting)
-    - [Function Design](#function-design)
-    - [Include System Development Standards](#include-system-development-standards)
+  - [Script Structure](#script-structure)
+  - [Standard Environment Variables and Functions](#standard-environment-variables-and-functions)
+  - [Output and Formatting](#output-and-formatting)
+    - [Messaging](#messaging)
+    - [Colors and Formatting](#colors-and-formatting)
+    - [Error Handling](#error-handling)
+  - [Function Design](#function-design)
+  - [Include System Development Standards](#include-system-development-standards)
+    - [Include Function File Guidelines](#include-function-file-guidelines)
+    - [Utility Script Development](#utility-script-development)
+    - [Include System Best Practices](#include-system-best-practices)
+    - [Error Handling in Utility Scripts](#error-handling-in-utility-scripts)
+    - [Utility Scripts Performance Considerations](#utility-scripts-performance-considerations)
+    - [Testing Utility Scripts and Functions](#testing-utility-scripts-and-functions)
+  - [Continuous Improvement](#continuous-improvement)
 - [Markdown Documentation](#markdown-documentation)
-    - [General Guidelines](#general-guidelines)
-    - [Documentation Structure](#documentation-structure)
+  - [General Guidelines](#general-guidelines)
+  - [Documentation Structure](#documentation-structure)
 - [Version Control](#version-control)
-    - [Commit Messages](#commit-messages)
-    - [Branch Naming](#branch-naming)
-- [Naming Conventions](#naming-conventions)
-    - [Files](#files)
-    - [Variables](#variables)
-    - [Constants](#constants)
+  - [Commit Messages](#commit-messages)
+  - [Branch Naming](#branch-naming)
+- [File Naming Conventions](#file-naming-conventions)
+- [Variable Naming Conventions](#variable-naming-conventions)
+  - [Variable Types in Shell Scripts](#variable-types-in-shell-scripts)
+  - [Key Rules for Variables in Libraries](#key-rules-for-variables-in-libraries)
+  - [Example: Before and After Refactoring](#example-before-and-after-refactoring)
+    - [Before (Inconsistent Conventions)](#before-inconsistent-conventions)
+    - [After (Following Conventions)](#after-following-conventions)
 - [Code Organization](#code-organization)
-- [Error Handling](#error-handling)
+  - [Directory Structure](#directory-structure)
+- [Error Handling](#error-handling-1)
 - [Performance Considerations](#performance-considerations)
-- [Continuous Improvement](#continuous-improvement)
+- [Continuous Improvement](#continuous-improvement-1)
 
 ## Introduction
 
@@ -337,121 +352,114 @@ Add shell color utility functions
   - `bash-functions.sh`
   - `system-configuration.md`
 
-## Variable Naming
+## Variable Naming Conventions
 
-### General Variable Naming
+### Variable Types in Shell Scripts
 
-- Use lowercase with underscores (snake_case)
-- Descriptive and clear names
-- Scope limited to the current script or function
+Since Bash doesn't have formal type declarations, we use consistent naming conventions to indicate how variables should be used.
 
-### Variable Scoping Conventions
+#### Variable Types Reference Table
 
-- g_: Prefix for global variables (script-level or widely accessible)
-- No prefix: Local variables (function parameters, loop counters, etc.)
+| Type                 | Naming Convention       | Declaration Style                   | Example                                  | Notes                                                        |
+| -------------------- | ----------------------- | ----------------------------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| Local Variable       | lowercase_snake_case    | `local var_name="value"`            | `local file_count=0`                     | Function-scoped, not available outside function              |
+| Global Variable      | g_lowercase_snake_case  | `g_var_name="value"`                | `g_total_errors=0`                       | Script-level scope, not exported                             |
+| Local Constant       | c_lowercase_snake_case  | `local readonly c_var_name="value"` | `local readonly c_max_retries=3`         | Function-scoped constant                                     |
+| Global Constant      | gc_lowercase_snake_case | `readonly gc_var_name="value"`      | `readonly gc_application_name="rcForge"` | Script-level constant                                        |
+| Environment Variable | UPPERCASE_SNAKE_CASE    | `export VAR_NAME="value"`           | `export PATH="/usr/bin:$PATH"`           | Made available to the current shell environment and child processes |
+| Boolean Variable     | is_* or has_*           | `is_var=true` or `is_var=false`     | `is_verbose=true`                        | Use true/false directly                                      |
 
-#### Best Practices
+**Please see below for further implementation and usage examples.**
 
-- Minimize the use of global variables
-- Prefer passing parameters and returning values
-- Use global variables sparingly and with clear documentation
-- Always consider the smallest possible scope for a variable
+### Key Rules for Variables in Libraries
 
-##### Variable Export Considerations
+The most important rule when working with libraries and exported functions:
 
-- **Exported Variable Assessment**: When creating variables, first determine if they'll need to be accessible from other scripts. If so, they should be treated as environment variables, not constants.
-- **Function Dependency Consideration**: For any function that will be exported with `export -f`, identify all variables it depends on. Those variables must also be exported and follow environment variable conventions.
+**Any variable referenced inside an exported function must itself be exported.**
 
-#### Global and Local Variable Examples
+```bash
+# Example library with exported functions and variables
+#!/bin/bash
+# colors.sh - Simplified color utility
 
-``` bash
-# Global variable (script-level)
-g_total_tests=0
-g_configuration_path="/etc/myapp/config"
+# CORRECT: Color variables are exported because exported functions use them
+export RED='\033[0;31m'
+export GREEN='\033[0;32m'
+export RESET='\033[0m'
+export COLOR_ENABLED=true
 
-# Function with various variable scopes
-process_data() {
-    # No prefix for local, temporary variables
-    local current_index=0
-    local result=""
-    
-    # Use g_ prefix for variables that persist beyond the function
-    g_last_processed_file=""
-    
-    # Function logic
-    while read -r line; do
-        # Very local variables, no prefix needed
-        processed_line=$(transform "$line")
-        current_index=$((current_index + 1))
-    done
+# This function will work when called from another script
+ErrorMessage() {
+    local message="$1"
+    if $COLOR_ENABLED; then
+        echo -e "${RED}ERROR:${RESET} $message" >&2
+    else
+        echo "ERROR: $message" >&2
+    fi
+}
+
+# Export the function
+export -f ErrorMessage
+
+# INCORRECT: This would fail when called from another script
+readonly gc_MAX_TRIES=3  # Not exported
+MaxTriesReached() {
+    echo "Exceeded maximum tries ($gc_MAX_TRIES)"
+}
+export -f MaxTriesReached
+```
+
+### Example: Before and After Refactoring
+
+#### Before (Inconsistent Conventions)
+
+```bash
+# Inconsistent conventions
+COLORS_ENABLED="yes"  # String instead of boolean
+maxRetries=5          # Camel case, unclear scope
+temp="/tmp/workdir"   # No indication of scope or purpose
+
+# Function that relies on global variables
+show_error() {
+    if [[ "$COLORS_ENABLED" == "yes" ]]; then
+        echo -e "\033[31mERROR: $1\033[0m"
+    else
+        echo "ERROR: $1"
+    fi
 }
 ```
 
-### Boolean Variables
-
-- Use built-in arithmetic evaluation to handle boolean values
-- Arithmetic evaluation provides a more direct and performance-efficient boolean handling in bash
-- Assign `true` or  `false` directly.
-
-#### Boolean Variable Examples 
+#### After (Following Conventions)
 
 ```bash
-# Recommended
-bool_variable=true
-bool_variable=false
+# Environment variable (will be exported)
+export COLOR_OUTPUT_ENABLED=true  # Boolean value
 
-if $bool_variable; then
-  echo "Variable is true"
-fi
+# Global constant
+readonly gc_max_retries=5
 
-if ! $bool_variable"; then
-  echo "Variable is false"
-fi
+# Local variable (inside a function)
+ProcessFiles() {
+    local temp_dir="/tmp/workdir"
+    # Using local constant inside function
+    local readonly c_max_files=100
+    # Function implementation...
+}
 
-# Avoid these less idiomatic approaches
-if [[ "$bool_variable" == "true" ]]; then
-  echo "More verbose string comparison"
-fi
-
-if [[ "$bool_variable" -eq 1 ]]; then
-  echo "Numeric comparison is less clear"
-fi
+# Function with proper local variables
+ErrorMessage() {
+    local message="$1"
+    
+    if $COLOR_OUTPUT_ENABLED; then
+        echo -e "\033[31mERROR: $message\033[0m"
+    else
+        echo "ERROR: $message"
+    fi
+}
+export -f ErrorMessage  # If needed elsewhere
 ```
 
-### In-Script Constants
-
-- Use `readonly` for constants
-- Prefix constants with `c_`
-
-#### Example of Constants
-
-``` bash
-# In-script local constant
-readonly c_max_retries=3
-
-# Constant used globally across a script
-readonly gc_application_name="rcForge"
-```
-
-### Environment Variables
-
-- Follow standard shell conventions for naming and case
-- Should not include `c_` prefix or be marked `readonly`
-- Use ALL_CAPS only for:
-  1. Variables exported to the parent shell
-  2. System-level environment variables
-- Do not use uppercase for local script tracking variables
-
-#### Environment Variable Examples
-
-```bash
-# Exported environment variables (UPPERCASE)
-export PATH="/usr/local/bin:$PATH"
-export HOME="/home/username"
-
-# INCORRECT: Don't use constant naming for exported variables
-readonly c_COLOR_OUTPUT_ENABLED=true  # Wrong - mixes constant style with exported need
-```
+By consistently following these naming conventions, scripts become more readable, maintainable, and less prone to variable scope errors.
 
 ## Code Organization
 
