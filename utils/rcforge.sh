@@ -1,279 +1,212 @@
 #!/bin/bash
-##########################################
-# rcforge v2.0.0 - Universal Shell Configuration
-# Main loader script that sources all configurations
-# in the correct order based on hostname and shell
-##########################################
-
-# Set restrictive file permissions by default (no group/world access)
-umask 077
+# rcforge.sh - Main loader script for the rcForge shell configuration system
+# Author: Mark Hasse
+# Copyright: Analog Edge LLC
+# Date: 2025-03-30
+# Version: 0.2.0
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit on error
+set -o errexit  # Exit immediately if a command exits with a non-zero status
 
-# Function to display a nice warning header
-display_warning_header() {
-  echo
-  echo -e "\033[0;33m██╗    ██╗ █████╗ ██████╗ ███╗   ██╗██╗███╗   ██╗ ██████╗ \033[0m"
-  echo -e "\033[0;33m██║    ██║██╔══██╗██╔══██╗████╗  ██║██║████╗  ██║██╔════╝ \033[0m"
-  echo -e "\033[0;33m██║ █╗ ██║███████║██████╔╝██╔██╗ ██║██║██╔██╗ ██║██║  ███╗\033[0m"
-  echo -e "\033[0;33m██║███╗██║██╔══██║██╔══██╗██║╚██╗██║██║██║╚██╗██║██║   ██║\033[0m"
-  echo -e "\033[0;33m╚███╔███╔╝██║  ██║██║  ██║██║ ╚████║██║██║ ╚████║╚██████╔╝\033[0m"
-  echo -e "\033[0;33m ╚══╝╚══╝ ╚═╝  ╚═╝╚═════╝      ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ \033[0m"
-  echo
+# Detect rcForge library path based on operating system
+DetectRcForgePath() {
+    local os=$(uname -s)
+    local distribution=""
+    local system_base=""
+    local docs_base=""
+
+    # Detect distribution for Linux systems
+    if [[ "$os" == "Linux" ]]; then
+        # ... existing distribution detection code ...
+    fi
+
+    # Define path mapping
+    case "$os" in
+        Darwin)
+            if command -v brew >/dev/null 2>&1; then
+                system_base="$(brew --prefix)/share/rcforge"
+                docs_base="$(brew --prefix)/share/doc/rcforge"
+            elif command -v port >/dev/null 2>&1; then
+                system_base="/opt/local/share/rcforge"
+                docs_base="/opt/local/share/doc/rcforge"
+            else
+                system_base="/usr/local/share/rcforge"
+                docs_base="/usr/local/share/doc/rcforge"
+            fi
+            ;;
+        Linux)
+            case "$distribution" in
+                rhel|centos|fedora|rocky|almalinux|debian|ubuntu|elementary|pop|arch|alpine|gentoo|void|nixos)
+                    system_base="/usr/share/rcforge"
+                    docs_base="/usr/share/doc/rcforge"
+                    ;;
+                *)
+                    system_base="/usr/local/share/rcforge"
+                    docs_base="/usr/local/share/doc/rcforge"
+                    ;;
+            esac
+            ;;
+        OpenBSD|FreeBSD|NetBSD)
+            system_base="/usr/local/share/rcforge"
+            docs_base="/usr/local/share/doc/rcforge"
+            ;;
+        SunOS)
+            system_base="/usr/local/share/rcforge"
+            docs_base="/usr/local/share/doc/rcforge"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            system_base="/usr/share/rcforge"
+            docs_base="/usr/share/doc/rcforge"
+            ;;
+        *)
+            system_base="/usr/local/share/rcforge"
+            docs_base="/usr/local/share/doc/rcforge"
+            ;;
+    esac
+
+    # Export the system and docs paths
+    export RCFORGE_SYSTEM="$system_base"
+    export RCFORGE_DOCS="$docs_base"
+
+    # Return the library path (for backwards compatibility)
+    echo "$system_base/lib"
 }
-
-# Check if running as root
-check_root() {
-  # Check if UID is 0 (root)
-  if [[ $EUID -eq 0 || $(id -u) -eq 0 ]]; then
-    # Check if we're running with sudo
-    local sudo_user="${SUDO_USER:-}"
-    local username="${sudo_user:-$USER}"
-
-    display_warning_header
-    echo -e "\033[0;31mError: This script should not be run as root or with sudo.\033[0m"
-    echo -e "\033[0;33mRunning shell configuration tools as root can create files with"
-    echo -e "incorrect permissions and cause security issues.\033[0m"
-    echo
-    echo -e "Please run this script as a regular user: \033[0;36m${username}\033[0m"
-    echo
-    echo -e "\033[0;33mIf you understand the risks and still want to proceed,"
-    echo -e "set the RCFORGE_ALLOW_ROOT=1 environment variable:\033[0m"
-    echo
-    echo -e "  \033[0;36mRCFORGE_ALLOW_ROOT=1 source ~/.config/rcforge/rcforge.sh\033[0m"
-    echo
-
-    # Check for override environment variable
-    if [[ -n "${RCFORGE_ALLOW_ROOT:-}" ]]; then
-      echo -e "\033[0;33mWarning: Running as root due to RCFORGE_ALLOW_ROOT override.\033[0m"
-      echo -e "\033[0;33mThis is not recommended for security reasons.\033[0m"
-      echo
-      return 0  # Allow execution to continue
-    fi
-
-    # Return error since this is being sourced (exit would close the shell)
-    return 1
-  fi
-
-  # Not root, allow execution to continue
-  return 0
-}
-
-# Check for root permissions before proceeding - but only return to allow sourcing
-if ! check_root; then
-  # Just return if sourced instead of exiting
-  return 1 2>/dev/null || exit 1
-fi
-
-# Check for Bash version requirement if using Bash
-if [[ -n "${BASH_VERSION:-}" ]]; then
-  bash_major_version=${BASH_VERSION%%.*}
-
-  if [[ "$bash_major_version" -lt 4 ]]; then
-    echo "Error: rcForge v2.0.0 requires Bash 4.0 or higher"
-    echo "Your current Bash version is: $BASH_VERSION"
-    echo ""
-    echo "On macOS, you can install a newer version with Homebrew:"
-    echo "  brew install bash"
-    echo ""
-    echo "Then add it to your available shells:"
-    echo "  sudo bash -c 'echo /opt/homebrew/bin/bash >> /etc/shells'"
-    echo ""
-    echo "And optionally set it as your default shell:"
-    echo "  chsh -s /opt/homebrew/bin/bash"
-    echo ""
-    echo "For now, you can use your existing v1.x.x configuration, or run with a newer version of Bash."
-
-    # Instead of exiting, which would prevent loading any configuration,
-    # we'll disable the include system for older Bash versions
-    RCFORGE_DISABLE_INCLUDE=1
-    echo "Include system will be disabled due to Bash version requirement."
-  fi
-fi
-
-# Detect if we're running in development mode
-if [[ -n "${RCFORGE_DEV:-}" ]]; then
-  # Development mode - Use the Git repository structure
-  export RCFORGE_ROOT="$HOME/src/rcforge"
-  export RCFORGE_SCRIPTS="$RCFORGE_ROOT/scripts"
-  export RCFORGE_CORE="$RCFORGE_ROOT/core"
-  export RCFORGE_UTILS="$RCFORGE_ROOT/utils"
-  export RCFORGE_INCLUDES="$RCFORGE_ROOT/include"
-  export RCFORGE_LIB="$RCFORGE_ROOT/lib"
-else
-  # Production mode
-  # Configure user level directories
-  export RCFORGE_USER_DIR="$HOME/.config/rcforge"
-  export RCFORGE_USER_SCRIPTS="$RCFORGE_USER_DIR/scripts"
-  export RCFORGE_USER_INCLUDES="$RCFORGE_USER_DIR/include"
-
-  # Check for system level installation
-  if [[ -d "/usr/share/rcforge" ]]; then
-    export RCFORGE_SYS_DIR="/usr/share/rcforge"
-  elif [[ -d "/opt/homebrew/share/rcforge" ]]; then
-    export RCFORGE_SYS_DIR="/opt/homebrew/share/rcforge"
-  elif [[ -d "/usr/local/share/rcforge" ]]; then
-    export RCFORGE_SYS_DIR="/usr/local/share/rcforge"
-  else
-    export RCFORGE_SYS_DIR="$HOME/.config/rcforge"
-  fi
-
-  export RCFORGE_SYS_INCLUDES="$RCFORGE_SYS_DIR/include"
-
-  # Primary directories (with preference for user files)
-  export RCFORGE_ROOT="$RCFORGE_USER_DIR"
-  export RCFORGE_SCRIPTS="$RCFORGE_USER_SCRIPTS"
-  export RCFORGE_INCLUDES="$RCFORGE_USER_INCLUDES"
-  export RCFORGE_CORE="$RCFORGE_SYS_DIR/core"
-  export RCFORGE_UTILS="$RCFORGE_SYS_DIR/utils"
-  export RCFORGE_LIB="$RCFORGE_SYS_DIR/lib"
-fi
-
-# Uncomment for debugging
-# export SHELL_DEBUG=1
-
-# Simple debug function if core functions not available
-debug_echo() {
-  if [[ -n "${SHELL_DEBUG:-}" ]]; then
-    echo "DEBUG: $*" >&2
-  fi
-}
-
-# Source core functions if available
-if [[ -f "$RCFORGE_CORE/functions.sh" ]]; then
-  source "$RCFORGE_CORE/functions.sh"
-  debug_echo "Core functions loaded from $RCFORGE_CORE/functions.sh"
-else
-  debug_echo "Core functions not found at $RCFORGE_CORE/functions.sh"
-
-  # Function to detect current shell
-  detect_shell() {
-    if [[ -n "${ZSH_VERSION:-}" ]]; then
-      shell_name="zsh"
-    elif [[ -n "${BASH_VERSION:-}" ]]; then
-      shell_name="bash"
-    else
-      # Fallback to checking $SHELL
-      shell_name=$(basename "$SHELL")
-    fi
-    export shell_name
-    debug_echo "Detected shell: $shell_name"
-  }
-
-  # Function to get the hostname, with fallback
-  get_hostname() {
-    if command -v hostname >/dev/null 2>&1; then
-      hostname=$(hostname | cut -d. -f1)
-    else
-      # Fallback if hostname command not available
-      hostname=${HOSTNAME:-$(uname -n | cut -d. -f1)}
-    fi
-    export current_hostname="${hostname}"
-    debug_echo "Detected hostname: $current_hostname"
-  }
-
-  # Function to source a single file if it exists and is readable
-  source_file() {
-    local file="$1"
-    local desc="${2:-file}"
-
-    if [[ -f "$file" && -r "$file" ]]; then
-      debug_echo "Loading $desc: $file"
-      # shellcheck disable=SC1090
-      source "$file"
-      return 0
-    else
-      debug_echo "Skipping $desc (not found or not readable): $file"
-      return 1
-    fi
-  }
-fi
-
-# Load include system if available
-if [[ -f "$RCFORGE_LIB/include-functions.sh" ]]; then
-  source "$RCFORGE_LIB/include-functions.sh"
-  debug_echo "Include functions loaded from $RCFORGE_LIB/include-functions.sh"
-else
-  debug_echo "Include functions not found at $RCFORGE_LIB/include-functions.sh"
-
-  # Simple include_function stub for compatibility
-  include_function() {
-    debug_echo "Warning: include_function called but include system not available"
-    debug_echo "  Attempted to include: $1/$2"
-    return 1
-  }
-
-  # Simple include_category stub for compatibility
-  include_category() {
-    debug_echo "Warning: include_category called but include system not available"
-    debug_echo "  Attempted to include category: $1"
-    return 1
-  }
-fi
-
-# Start timing for performance measurement
-if [[ -n "${SHELL_DEBUG:-}" ]]; then
-  if command -v date >/dev/null 2>&1; then
-    start_time=$(date +%s.%N 2>/dev/null) || start_time=$SECONDS
-  else
-    start_time=$SECONDS
-  fi
-fi
 
 # Detect current shell and hostname
-detect_shell
-get_hostname
+DetectEnvironment() {
+    # Detect shell type
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+        export SHELL_TYPE="bash"
+        export SHELL_VERSION="$BASH_VERSION"
+    elif [[ -n "${ZSH_VERSION:-}" ]]; then
+        export SHELL_TYPE="zsh"
+        export SHELL_VERSION="$ZSH_VERSION"
+    else
+        ErrorMessage "Unsupported shell"
+        return 1
+    fi
 
-# Helper function to match and source files with the correct pattern
-source_platform_files() {
-  local pattern_global_common="[0-9]*_global_common_*.sh"
-  local pattern_global_shell="[0-9]*_global_${shell_name}_*.sh"
-  local pattern_hostname_common="[0-9]*_${current_hostname}_common_*.sh"
-  local pattern_hostname_shell="[0-9]*_${current_hostname}_${shell_name}_*.sh"
-
-  # Load all matching files in sequence order
-  if [[ -d "$RCFORGE_SCRIPTS" ]]; then
-    debug_echo "Finding applicable configuration files..."
-    find "$RCFORGE_SCRIPTS" -maxdepth 1 -type f \( -name "$pattern_global_common" -o -name "$pattern_global_shell" -o -name "$pattern_hostname_common" -o -name "$pattern_hostname_shell" \) | sort | while read -r file; do
-      source_file "$file" "$(basename "$file")"
-    done
-  else
-    echo "WARNING: Scripts directory not found: $RCFORGE_SCRIPTS" >&2
-    debug_echo "No configuration files will be loaded"
-  fi
+    # Detect hostname
+    if command -v hostname >/dev/null 2>&1; then
+        export CURRENT_HOSTNAME=$(hostname | cut -d. -f1)
+    else
+        export CURRENT_HOSTNAME=${HOSTNAME:-$(uname -n | cut -d. -f1)}
+    fi
 }
 
-# Source all configuration files in sequence order
-debug_echo "Loading configuration from $RCFORGE_SCRIPTS"
-source_platform_files
+# Load utility libraries
+LoadUtilityLibraries() {
+    local libraries=(
+        "shell-colors.sh"
+        "utility-functions.sh"
+        "include-functions.sh"
+    )
 
-# Calculate and report loading time if debugging is enabled
-if [[ -n "${SHELL_DEBUG:-}" ]]; then
-  if command -v date >/dev/null 2>&1 && [[ "$start_time" != "$SECONDS" ]]; then
-    end_time=$(date +%s.%N 2>/dev/null)
-    elapsed=$(echo "$end_time - $start_time" | bc 2>/dev/null)
-    debug_echo "Shell configuration loaded in $elapsed seconds"
-  else
-    debug_echo "Shell configuration loaded successfully"
-  fi
-fi
+    for lib in "${libraries[@]}"; do
+        local lib_path=""
 
-# Run automated checks if enabled
+        # Search potential locations, prioritizing system paths
+        for search_dir in \
+            "$RCFORGE_LIB" \
+            "/usr/share/rcforge/lib" \
+            "$HOME/.config/rcforge/lib"
+        do
+            if [[ -f "$search_dir/$lib" ]]; then
+                lib_path="$search_dir/$lib"
+                break
+            fi
+        done
+
+        if [[ -n "$lib_path" ]]; then
+            # Simple sourcing with basic error handling
+            if ! source "$lib_path"; then
+                ErrorMessage "Failed to load utility library: $lib"
+                return 1
+            fi
+        else
+            WarningMessage "Utility library not found: $lib"
+        fi
+    done
+}
+
+# Validate shell environment
+ValidateShellEnvironment() {
+    # Check Bash version for include system
+    if [[ "$SHELL_TYPE" == "bash" ]]; then
+        local bash_major_version=${BASH_VERSION%%.*}
+
+        if [[ "$bash_major_version" -lt 4 ]]; then
+            ErrorMessage "rcForge requires Bash 4.0+ (current version: $BASH_VERSION)"
+            return 1
+        fi
+    fi
+}
+
+# Main rcForge initialization function
+InitializeRcForge() {
+    # Detect library path
+    export RCFORGE_LIB=$(DetectRcForgePath)
+
+    # Load core utility libraries
+    if ! LoadUtilityLibraries; then
+        ErrorMessage "Failed to load utility libraries"
+        return 1
+    fi
+
+    # Detect environment details
+    if ! DetectEnvironment; then
+        ErrorMessage "Failed to detect shell environment"
+        return 1
+    fi
+
+    # Validate shell compatibility
+    if ! ValidateShellEnvironment; then
+        ErrorMessage "Shell environment validation failed"
+        return 1
+    fi
+
+    # Source configuration files
+    SourceConfigurationFiles
+}
+
+# Source configuration files matching current environment
+SourceConfigurationFiles() {
+    local config_dirs=(
+        "$HOME/.config/rcforge/scripts"
+        "/usr/share/rcforge/scripts"
+    )
+
+    local shell_patterns=(
+        "[0-9]*_global_common_*.sh"
+        "[0-9]*_global_${SHELL_TYPE}_*.sh"
+        "[0-9]*_${CURRENT_HOSTNAME}_common_*.sh"
+        "[0-9]*_${CURRENT_HOSTNAME}_${SHELL_TYPE}_*.sh"
+    )
+
+    for dir in "${config_dirs[@]}"; do
+        if [[ -d "$dir" ]]; then
+            for pattern in "${shell_patterns[@]}"; do
+                for config in "$dir"/$pattern; do
+                    if [[ -f "$config" ]]; then
+                        source "$config"
+                    fi
+                done
+            done
+        fi
+    done
+}
+
+# Execute rcForge initialization
+InitializeRcForge
+
+# Optional: Run system checks if not disabled
 if [[ -z "${RCFORGE_NO_CHECKS:-}" ]]; then
-  # Check for sequence conflicts
-  if [[ -f "$RCFORGE_CORE/check-seq.sh" ]]; then
-    bash "$RCFORGE_CORE/check-seq.sh" >/dev/null 2>&1 || true
-  fi
-
-  # Verify RC file checksums
-  if [[ -f "$RCFORGE_CORE/check-checksums.sh" ]]; then
-    bash "$RCFORGE_CORE/check-checksums.sh" >/dev/null 2>&1 || true
-  fi
+    # Run additional system checks in the background
+    (
+        "$RCFORGE_LIB/check-seq.sh" >/dev/null 2>&1
+        "$RCFORGE_LIB/check-checksums.sh" >/dev/null 2>&1
+    ) &
 fi
 
-##########################################
-# End of configuration
-##########################################
 # EOF

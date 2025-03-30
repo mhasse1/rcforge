@@ -49,11 +49,16 @@ In many ways this document is aspirational.  All I can say is I'm working on it.
    - Implement robust error handling
    - Provide meaningful error messages that help diagnose issues
    - Never let an unexpected error crash the entire system
-5. **Stay Adaptable** 
-   - Design with flexibility in mind
-   - Create configurations and functions that can easily adjust to different environments
-   - Use abstractions and parameterization to make code more versatile
-   - Anticipate change and design for evolution, not just the current state
+
+5. **Convention over Configuration** 🏗️
+
+   - Embrace sensible defaults that work out of the box
+
+   - Reduce the need for extensive configuration by making smart, consistent design choices
+
+   - Follow established patterns in shell scripting and the rcForge ecosystem
+
+   - Minimize the number of decisions a user must make to get started
 
 ## Shell Scripting Standards
 
