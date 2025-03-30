@@ -77,10 +77,12 @@ In many ways this document is aspirational.  All I can say is I'm working on it.
 
 ## Shell Scripting Standards
 
+**Note** the use of `#!/usr/bin/env bash` instead of `#!/bin/bash`.  This ensures the greatest cross system compatibility, particularly with Darwin.
+
 ### Script Structure
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # script-name.sh - Brief description of script purpose
 # Author: Your Name
 # Date: YYYY-MM-DD
@@ -352,7 +354,7 @@ Add shell color utility functions
   - `bash-functions.sh`
   - `system-configuration.md`
 
-## Variable Naming Conventions
+## Variable Scope and Naming Conventions
 
 ### Variable Types in Shell Scripts
 
@@ -375,7 +377,7 @@ Since Bash doesn't have formal type declarations, we use consistent naming conve
 
 The most important rule when working with libraries and exported functions:
 
-**Any variable referenced inside an exported function must itself be exported.**
+**Any variable referenced inside an exported function must itself be exported and should be delcared as such when first declared.**
 
 ```bash
 # Example library with exported functions and variables
