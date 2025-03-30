@@ -32,20 +32,28 @@ In many ways this document is aspirational.  All I can say is I'm working on it.
 
 ## General Principles
 
-1. **Clarity Over Cleverness**
-   - Write code that is easy to understand
+1. **Clarity Over Cleverness** 
+   - Write code that is easy to understand, not code that makes you look smart
    - Prioritize readability over complex one-liners
    - Add comments to explain non-obvious logic
-
-2. **DRY (Don't Repeat Yourself)**
+2. **DRY (Don't Repeat Yourself)** 
    - Reuse existing functions and utilities
    - Create modular, reusable code
    - Avoid copy-pasting code blocks
-
-3. **KISS (Keep It Simple, Stupid)**
+3. **KISS (Keep It Simple, Stupid)** 
    - Prefer simple solutions
    - Break complex logic into smaller, manageable functions
    - Avoid unnecessary complexity
+4. **Fail Gracefully** 
+   - Always have a Plan B (and sometimes a Plan C)
+   - Implement robust error handling
+   - Provide meaningful error messages that help diagnose issues
+   - Never let an unexpected error crash the entire system
+5. **Stay Adaptable** 
+   - Design with flexibility in mind
+   - Create configurations and functions that can easily adjust to different environments
+   - Use abstractions and parameterization to make code more versatile
+   - Anticipate change and design for evolution, not just the current state
 
 ## Shell Scripting Standards
 
