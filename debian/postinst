@@ -5,6 +5,10 @@
 
 set -e  # Exit on error
 
+# Use the system's default locale settings
+LC_ALL=""
+LANG=""
+
 # Create directory structure for user configuration if it doesn't exist
 if [ "$1" = "configure" ]; then
     echo "Setting up rcForge..."

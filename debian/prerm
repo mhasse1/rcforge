@@ -5,6 +5,10 @@
 
 set -e  # Exit on error
 
+# Use the system's default locale settings
+LC_ALL=""
+LANG=""
+
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     echo "Removing rcForge system files..."
 
