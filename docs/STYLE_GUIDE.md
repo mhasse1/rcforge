@@ -70,17 +70,17 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 ### Function Design
 
-1. **Function Naming**
-   - Use lowercase with underscores
+1. Function Naming**
+   - Use pascal case, e.g., `FunctionName`
    - Be descriptive about the function's purpose
-   - Examples: `install_dependencies()`, `validate_configuration()`
+   - Examples: `InstallDependencies()`, `ValidateConfiguration()`
 
 2. **Function Structure**
    ```bash
-   function_name() {
+   FunctionName() {
        # Validate inputs
-       [[ $# -eq 0 ]] && error_message "No arguments provided" && return 1
-
+       [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
+   
        # Function logic
        local result
        if some_condition; then
@@ -89,7 +89,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
            error_message "Condition not met"
            return 1
        fi
-
+   
        # Return or output
        echo "$result"
    }
@@ -147,15 +147,18 @@ Add shell color utility functions
   - `system-configuration.md`
 
 ### Variables
-- Lowercase with underscores
+
+- Lowercase with underscores (snake case)
 - Descriptive names
 - Examples:
   - `install_directory`
   - `system_configuration`
+- Use ALL CAPS only for variable names that will be exported to the parent shell, e.g. "export PATH=/usr/bin;/bin"
 
 ### Constants
-- UPPERCASE with underscores
-- Example: `MAX_RETRIES`, `DEFAULT_TIMEOUT`
+
+- Declare constants using the `readonly` keyword
+- Prefix constants with `c_`, e.g., `readonly c_max_retries=5`
 
 ## Code Organization
 
