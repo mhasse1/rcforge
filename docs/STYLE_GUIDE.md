@@ -71,13 +71,13 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 ### Function Design
 
 1. Function Naming
-   - Use snake case, e.g., `function_name`
+   - Use pascal case, e.g., `FunctionName`
    - Be descriptive about the function's purpose
-   - Examples: `install_dependencies()`, `validate_configuration()`
+   - Examples: `InstallDependencies()`, `ValidateConfiguration()`
 
 2. **Function Structure**
    ```bash
-   function_name() {
+   FunctionName() {
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
    
@@ -99,6 +99,10 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
    - Check number and type of arguments
    - Validate input values
    - Provide helpful error messages
+
+4. **Return Values**
+
+   * Use `true` and `false` for boolean return values
 
 ## Markdown Documentation
 
@@ -154,6 +158,17 @@ Add shell color utility functions
   - `install_directory`
   - `system_configuration`
 - Use ALL CAPS only for variable names that will be exported to the parent shell, e.g. "export PATH=/usr/bin;/bin"
+- Use `true` and `false` for boolean values and conditions. E.g.
+
+```
+bool_variable = true
+
+if [[ bool_variable ]]; then
+  echo "Yes"
+else
+  echo "No"
+fi
+```
 
 ### Constants
 
