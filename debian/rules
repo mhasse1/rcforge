@@ -15,7 +15,7 @@ override_dh_auto_install:
 	# Install core files
 	cp -r core debian/rcforge/usr/share/rcforge/
 	cp -r utils debian/rcforge/usr/share/rcforge/
-	cp -r src debian/rcforge/usr/share/rcforge/
+	cp -r lib debian/rcforge/usr/share/rcforge/
 	cp -r include debian/rcforge/usr/share/rcforge/
 	
 	# Install main scripts
@@ -30,6 +30,9 @@ override_dh_auto_install:
 	# Create symlinks
 	ln -sf /usr/share/rcforge/rcforge.sh debian/rcforge/usr/bin/rcforge
 	ln -sf /usr/share/rcforge/utils/rcforge-setup.sh debian/rcforge/usr/bin/rcforge-setup
+	ln -sf /usr/share/rcforge/utils/export-config.sh debian/rcforge/usr/bin/rcf-export
+	ln -sf /usr/share/rcforge/utils/diagram-config.sh debian/rcforge/usr/bin/rcf-diagram
+	ln -sf /usr/share/rcforge/utils/create-include.sh debian/rcforge/usr/bin/rcf-include
 	
 	# Make scripts executable
 	find debian/rcforge -name "*.sh" -exec chmod +x {} \;
@@ -39,6 +42,9 @@ override_dh_fixperms:
 	# Set restrictive permissions on key directories and files
 	chmod 755 debian/rcforge/usr/bin/rcforge
 	chmod 755 debian/rcforge/usr/bin/rcforge-setup
+	chmod 755 debian/rcforge/usr/bin/rcf-export
+	chmod 755 debian/rcforge/usr/bin/rcf-diagram
+	chmod 755 debian/rcforge/usr/bin/rcf-include
 	chmod 755 debian/rcforge/usr/share/rcforge/rcforge.sh
 	chmod 755 debian/rcforge/usr/share/rcforge/include-structure.sh
 	find debian/rcforge/usr/share/rcforge/utils -name "*.sh" -exec chmod 755 {} \;

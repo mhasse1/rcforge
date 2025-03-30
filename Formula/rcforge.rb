@@ -23,7 +23,7 @@ class Rcforge < Formula
     prefix.install Dir["core/*"]
     prefix.install Dir["utils/*"]
 
-    # Install source files and libraries
+    # Install library files
     (prefix/"lib").mkpath
     (prefix/"lib").install Dir["lib/*"]
 
@@ -44,11 +44,19 @@ class Rcforge < Formula
     doc.install "README.md"
     doc.install "LICENSE"
 
-    # Create executable in bin
+    # Create executable symlinks in bin
     bin.install_symlink prefix/"rcforge.sh" => "rcforge"
+    bin.install_symlink prefix/"utils/rcforge-setup.sh" => "rcforge-setup"
+    bin.install_symlink prefix/"utils/export-config.sh" => "rcf-export"
+    bin.install_symlink prefix/"utils/diagram-config.sh" => "rcf-diagram"
+    bin.install_symlink prefix/"utils/create-include.sh" => "rcf-include"
 
     # Make all scripts executable
     system "chmod", "+x", "#{bin}/rcforge"
+    system "chmod", "+x", "#{bin}/rcforge-setup"
+    system "chmod", "+x", "#{bin}/rcf-export"
+    system "chmod", "+x", "#{bin}/rcf-diagram"
+    system "chmod", "+x", "#{bin}/rcf-include"
     system "find", "#{prefix}", "-name", "*.sh", "-exec", "chmod", "+x", "{}", ";"
   end
 
@@ -71,7 +79,6 @@ class Rcforge < Formula
     system "cp", "-n", "#{doc}/getting-started.md", "#{user_config_dir}/docs/" if File.exist?("#{doc}/getting-started.md")
 
     # Create a basic README in the user config directory
-    system "mkdir", "-p", "#{user_config_dir}/docs"
     readme_path = "#{user_config_dir}/docs/README.md"
     unless File.exist?(readme_path)
       File.open(readme_path, "w") do |file|
@@ -117,8 +124,12 @@ class Rcforge < Formula
       Your personal configurations should be added to:
         ~/.config/rcforge/scripts/
 
-      You can run the setup utility to initialize your configuration:
-        #{opt_bin}/rcforge --setup
+      Utility commands available:
+        rcforge        - Main rcForge script
+        rcforge-setup  - Setup utility
+        rcf-export     - Export configurations for remote servers
+        rcf-diagram    - Create visual diagrams of your configuration
+        rcf-include    - Create custom include functions
 
       For more information, see the documentation:
         #{opt_doc}
@@ -129,6 +140,9 @@ class Rcforge < Formula
     # Test 1: Binary exists and is executable
     assert_predicate bin/"rcforge", :exist?
     assert_predicate bin/"rcforge", :executable?
+    assert_predicate bin/"rcf-export", :exist?
+    assert_predicate bin/"rcf-diagram", :exist?
+    assert_predicate bin/"rcf-include", :exist?
 
     # Test 2: Core functions can be sourced
     # Use a standalone check to avoid polluting test environment
