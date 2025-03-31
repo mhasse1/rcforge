@@ -6,32 +6,42 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 
 ## System Requirements
 
-- **Bash 4.0+** (required, the include system and associative arrays depend on Bash 4.0+)
-- Zsh 5.0+ (partially supported, but some features may not work correctly)
+- **Bash 4.0+** (required for full functionality, especially the include system and associative arrays)
+- Zsh 5.0+ (partially supported)
 - Git (for version control)
 - Standard UNIX utilities (find, sort, etc.)
 
-> **Note for older Bash versions**: If you're using Bash 3.2 (default on macOS), the system will operate in a limited compatibility mode without the include system. For full functionality, install a newer version via Homebrew:
+> **Bash Version Compatibility**
+> For older Bash versions (e.g., Bash 3.2 on macOS), rcForge operates in a limited compatibility mode:
 > ```bash
+> # Install a newer Bash version via Homebrew
 > brew install bash
-> # Add to /etc/shells if you want to make it your default shell
+> 
+> # Add to available shells
 > echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
-> # Optional: Change your default shell
+> 
+> # Optional: Change default shell
 > chsh -s /opt/homebrew/bin/bash
 > ```
 
-## Features
+## Key Features
 
-- **Cross-shell compatibility**: Works with both Bash and Zsh
-- **Machine-specific configurations**: Load configs based on hostname
-- **Deterministic loading order**: Explicit sequence numbers
-- **Conflict detection**: Automatically identifies and helps resolve loading conflicts
-- **Visual diagrams**: See your configuration's loading order
-- **Checksum verification**: Detect unauthorized changes to your RC files
-- **Export functionality**: Consolidate configurations for remote servers
-- **Include system**: Modular function organization with dependency management
+- **Cross-shell Compatibility**: Seamless support for Bash and Zsh
+- **Machine-Specific Configurations**: Dynamic config loading based on hostname
+- **Deterministic Loading Order**: Explicit sequence number management
+- **Conflict Detection**: Automatic identification and resolution of configuration conflicts
+- **Visual Configuration Diagrams**: Generate loading order visualizations
+- **Checksum Verification**: Detect unauthorized changes to RC files
+- **Export Functionality**: Easily transfer configurations to remote servers
+- **Modular Include System**: Organize and manage shell functions efficiently
 
-## Installation
+## Enhanced Security Features
+
+- **Root Execution Prevention**: Protect against inadvertent root-level configuration changes
+- **Comprehensive Checksum Validation**: Ensure configuration file integrity
+- **Sequence Conflict Resolution**: Prevent configuration loading conflicts
+
+## Installation Methods
 
 ### Quick Installation (Recommended)
 
@@ -48,11 +58,11 @@ bash ~/.config/rcforge/utils/install-rcforge.sh
 #### Debian/Ubuntu
 
 ```bash
-# Download the latest release package
-sudo dpkg -i rcforge_2.0.0_all.deb
-sudo apt install -f  # Resolve any dependencies
+# Install package
+sudo dpkg -i rcforge_0.2.0_all.deb
+sudo apt install -f  # Resolve dependencies
 
-# Add to your shell configuration
+# Source in shell configuration
 echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.bashrc
 # or for Zsh
 echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.zshrc
@@ -61,73 +71,27 @@ echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.zshrc
 #### macOS with Homebrew
 
 ```bash
-# Install from Homebrew
+# Install via Homebrew
 brew tap mhasse1/rcforge
 brew install rcforge
 
-# Add to your shell configuration
+# Source in shell configuration
 echo 'source "$(brew --prefix)/share/rcforge/rcforge.sh"' >> ~/.bashrc
 # or for Zsh
 echo 'source "$(brew --prefix)/share/rcforge/rcforge.sh"' >> ~/.zshrc
 ```
 
-### Manual Installation
+## Configuration File Naming Convention
 
-If you prefer to install manually:
-
-1. Create directory structure:
-   ```bash
-   mkdir -p ~/.config/rcforge/{scripts,checksums,exports,include,docs}
-   ```
-
-2. Copy core files:
-   ```bash
-   git clone https://github.com/mhasse1/rcforge.git /tmp/rcforge
-   cp -r /tmp/rcforge/{core,utils,src} ~/.config/rcforge/
-   cp /tmp/rcforge/rcforge.sh ~/.config/rcforge/
-   cp /tmp/rcforge/include-structure.sh ~/.config/rcforge/
-   ```
-
-3. Update shell RC files:
-   ```bash
-   echo 'source "$HOME/.config/rcforge/rcforge.sh"' >> ~/.bashrc
-   # and/or for Zsh
-   echo 'source "$HOME/.config/rcforge/rcforge.sh"' >> ~/.zshrc
-   ```
-
-## Project Structure
-
-```
-~/.config/rcforge/            # User installation
-  ├── scripts/                # Your shell configuration scripts
-  ├── include/                # Your custom include functions
-  ├── rcforge.sh              # Main loader script
-  ├── exports/                # Exported configurations for remote servers
-  └── docs/                   # Documentation
-
-/usr/share/rcforge/           # System installation (package-based)
-  ├── core/                   # Core functionality
-  ├── utils/                  # Utility scripts
-  ├── src/                    # Source code
-  │   └── lib/                # Libraries
-  ├── include/                # System include functions
-  └── rcforge.sh              # Main loader script
-```
-
-For development, see the repository structure in the GitHub repository at `~/src/rcforge/`.
-
-## Basic Usage
-
-### Create a configuration file
-
-Files follow the naming pattern:
+Configuration files follow this pattern:
 ```
 ###_[hostname|global]_[environment]_[description].sh
 ```
 
-Example:
+### Example Configuration Files
+
 ```bash
-# Create a global environment file (for all machines, both shells)
+# Global environment configuration
 cat > ~/.config/rcforge/scripts/100_global_common_environment.sh << 'EOF'
 #!/bin/bash
 export EDITOR="vim"
@@ -135,22 +99,22 @@ export TERM="xterm-256color"
 export LANG="en_US.UTF-8"
 EOF
 
-# Create a bash-specific file (for all machines, bash only)
+# Bash-specific prompt configuration
 cat > ~/.config/rcforge/scripts/300_global_bash_prompt.sh << 'EOF'
 #!/bin/bash
 PS1="\n\u@\h \w\n\$ "
 EOF
 
-# Create a hostname-specific file (for 'laptop' machine only)
+# Hostname-specific configuration
 cat > ~/.config/rcforge/scripts/700_laptop_common_vpn.sh << 'EOF'
 #!/bin/bash
 alias connect-vpn="sudo openconnect vpn.company.com"
 EOF
 ```
 
-### Using the Include System
+## Utility Functions
 
-Include specific functions in your scripts:
+### Include System
 
 ```bash
 # Include a specific function
@@ -163,43 +127,42 @@ include_category common
 add_to_path "$HOME/bin"
 ```
 
-### Check for conflicts
+### Utility Commands
 
 ```bash
+# Check for configuration conflicts
 ~/.config/rcforge/utils/check-seq.sh
-```
 
-### Create a loading diagram
-
-```bash
+# Create configuration loading diagram
 ~/.config/rcforge/utils/diagram-config.sh
-```
 
-### Export consolidated configuration for a remote server
-
-```bash
+# Export configuration for remote server
 ~/.config/rcforge/utils/export-config.sh --shell=bash
 ```
 
-## Documentation
-
-See the full documentation in our guides:
-- [Getting Started](docs/getting-started.md) - Quick setup guide
-- [Universal Shell Guide](docs/universal-shell-guide.md) - For setting up and using rcForge
-- [Developer's Guide](docs/development-docs/rcforge-developer-guide.md) - For creating custom configurations
-- [Migration Guide](docs/development-docs/migration-guide.md) - For transitioning from traditional RC files
-- [Include System Guide](docs/README-includes.md) - For using the include system
-
-## Recommended File Structure
+## Recommended Configuration Sequence Ranges
 
 | Range | Purpose |
 |-------|---------|
 | 000-199 | Critical configurations (PATH, etc.) |
-| 200-399 | General configurations (Environment, Prompt, etc.) |
+| 200-399 | Environment and Prompt configurations |
 | 400-599 | Functions and aliases |
-| 600-799 | Package specific configurations (pyenv, homebrew, etc.) |
-| 800-949 | End of script info displays, clean up and closeout |
-| 950-999 | Critical end of RC scripts |
+| 600-799 | Package-specific configurations |
+| 800-949 | Cleanup and final configurations |
+| 950-999 | Critical end-of-script operations |
+
+## Documentation
+
+Comprehensive guides available:
+- [Getting Started](docs/getting-started.md)
+- [Universal Shell Guide](docs/universal-shell-guide.md)
+- [Developer's Guide](docs/development-docs/rcforge-developer-guide.md)
+- [Migration Guide](docs/development-docs/migration-guide.md)
+- [Include System Guide](docs/README-includes.md)
+
+## Version
+
+Current version: 0.2.0 (Pre-release)
 
 ## License
 
@@ -207,4 +170,8 @@ MIT License
 
 ## Contributing
 
-Contributions welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please submit pull requests or open issues on our GitHub repository.
+
+## Support
+
+For issues, questions, or feature requests, please visit our GitHub repository or open an issue.

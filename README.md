@@ -3,6 +3,8 @@
 rcForge is a flexible, modular configuration system for Bash and Zsh shells that provides a single framework for managing your shell environment across multiple machines.
 
 > **Note for restricted systems**: If you're working on a system where you don't have root access or can't install packages, we recommend using the export feature. Configure rcForge on your personal machine, then use `export-config.sh` to generate a single configuration file that can be transferred to the restricted system. This allows you to maintain a consistent environment without requiring installation privileges.
+>
+> **Note regarding include system in 0.2.x**: This system has gotten a bit out of hand. I got carried away converting my utility scripts into functions.  I'll be changing this in 0.3.x instead of some of the other refactoring I wanted to do. I am considering either a utilities folder similar to `{system_root}/rcbin/` to add to the path or a core command `rc` that would have many of these scripts built into it and would be executed similar to `rc dirsz {path}` or `rc chkdom {domain}`.  This is probably too monolithic and it will likely be a blend of the two.
 
 ## System Requirements
 

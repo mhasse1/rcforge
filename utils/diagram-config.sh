@@ -1,369 +1,326 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # diagram-config.sh - Creates a diagram of rcForge configuration loading order
 # Author: Mark Hasse
-# Date: March 29, 2025
+# Copyright: Analog Edge LLC
+# Date: 2025-03-30
+# Version: 0.2.0
+# Description: Generates visual representation of shell configuration loading sequence
 
-set -e  # Exit on error
+# Import core utility libraries
+source shell-colors.sh
 
-# Colors for better readability
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'  # Reset color
+# Set strict error handling
+set -o nounset  # Treat unset variables as errors
+set -o errexit  # Exit immediately if a command exits with a non-zero status
 
-# Check if script is being sourced or executed directly
-is_executed_directly() {
-  # Check if script is being sourced (bash-specific method)
-  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-    # Script is being sourced
-    return 1
-  else
-    # Script is being executed directly
+# Global constants
+readonly gc_app_name="rcForge"
+readonly gc_version="0.2.0"
+readonly gc_default_output_dir="${HOME}/.config/rcforge/docs"
+
+# Configuration variables
+export TARGET_HOSTNAME=""
+export TARGET_SHELL=""
+export OUTPUT_FILE=""
+export VERBOSE_MODE=false
+export FORMAT="mermaid"  # Default output format
+
+# Detect project root dynamically
+DetectProjectRoot() {
+    local possible_roots=(
+        "${RCFORGE_ROOT:-}"
+        "$HOME/src/rcforge"
+        "$HOME/Projects/rcforge"
+        "/usr/share/rcforge"
+        "/opt/homebrew/share/rcforge"
+        "$(brew --prefix 2>/dev/null)/share/rcforge"
+        "/opt/local/share/rcforge"
+        "/usr/local/share/rcforge"
+        "$HOME/.config/rcforge"
+    )
+
+    for dir in "${possible_roots[@]}"; do
+        if [[ -n "$dir" && -d "$dir" && -f "$dir/rcforge.sh" ]]; then
+            echo "$dir"
+            return 0
+        fi
+    done
+
+    # Fallback to user configuration directory
+    echo "$HOME/.config/rcforge"
+}
+
+# Validate shell type
+ValidateShellType() {
+    local shell="$1"
+    if [[ "$shell" != "bash" && "$shell" != "zsh" ]]; then
+        ErrorMessage "Invalid shell type. Must be 'bash' or 'zsh'."
+        return 1
+    fi
     return 0
-  fi
 }
 
-# Function to display version information
-show_version() {
-  echo "rcForge v0.2.0 - Configuration Diagram Utility"
-  echo "Copyright (c) 2025 Analog Edge LLC"
-  echo "Released under the MIT License"
+# Parse command-line arguments
+ParseArguments() {
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --hostname=*)
+                TARGET_HOSTNAME="${1#*=}"
+                ;;
+            --shell=*)
+                TARGET_SHELL="${1#*=}"
+                ValidateShellType "$TARGET_SHELL" || exit 1
+                ;;
+            --output=*)
+                OUTPUT_FILE="${1#*=}"
+                ;;
+            --format=*)
+                FORMAT="${1#*=}"
+                ValidateFormat "$FORMAT" || exit 1
+                ;;
+            --verbose|-v)
+                VERBOSE_MODE=true
+                ;;
+            --help|-h)
+                DisplayHelp
+                exit 0
+                ;;
+            --version)
+                DisplayVersion
+                exit 0
+                ;;
+            *)
+                ErrorMessage "Unknown parameter: $1"
+                DisplayHelp
+                exit 1
+                ;;
+        esac
+        shift
+    done
+
+    # Set defaults if not specified
+    TARGET_HOSTNAME="${TARGET_HOSTNAME:-$(hostname | cut -d. -f1)}"
+    TARGET_SHELL="${TARGET_SHELL:-$(DetectCurrentShell)}"
 }
 
-# Function to display help and usage information
-show_help() {
-  local script_name=$(basename "${BASH_SOURCE[0]}")
-  
-  # If called via a symlink, show the symlink name instead
-  if [[ "$0" != "${BASH_SOURCE[0]}" ]]; then
-    script_name=$(basename "$0")
-  fi
+# Validate output format
+ValidateFormat() {
+    local format="$1"
+    local supported_formats=("mermaid" "graphviz" "ascii")
+    
+    for supported in "${supported_formats[@]}"; do
+        if [[ "$format" == "$supported" ]]; then
+            return 0
+        fi
+    done
 
-  echo "Usage: $script_name [OPTIONS]"
-  echo ""
-  echo "Options:"
-  echo "  --hostname=HOST     Specify hostname for diagram (defaults to current)"
-  echo "  --shell=SHELL       Specify shell type (bash or zsh, defaults to current)"
-  echo "  --output=FILE       Specify output file for diagram"
-  echo "  --rcforge-dir=DIR   Use specified rcForge directory"
-  echo "  --help, -h          Show this help message"
-  echo "  --version, -v       Show version information"
-  echo ""
-  echo "Examples:"
-  echo "  $script_name                            # Current hostname and shell"
-  echo "  $script_name --hostname=server --shell=bash  # Specific hostname and shell"
-  echo "  $script_name --output=~/config-diagram.md    # Custom output file"
-  echo ""
+    ErrorMessage "Unsupported format: $format"
+    echo "Supported formats: ${supported_formats[*]}"
+    return 1
 }
 
-# Determine rcForge paths
-determine_paths() {
-  # Detect if we're running in development mode
-  if [[ -n "${RCFORGE_DEV}" ]]; then
-    # Development mode
-    RCFORGE_DIR="$HOME/src/rcforge"
-  else
-    # Production mode - Detect system installation first, then user installation
-    if [[ -n "${RCFORGE_ROOT}" ]]; then
-      # Use explicitly set RCFORGE_ROOT if available
-      RCFORGE_DIR="${RCFORGE_ROOT}"
-    elif [[ -d "$HOME/.config/rcforge" && -f "$HOME/.config/rcforge/rcforge.sh" ]]; then
-      # User installation
-      RCFORGE_DIR="$HOME/.config/rcforge"
-    elif [[ -d "/usr/share/rcforge" ]]; then
-      # System installation on Linux
-      RCFORGE_DIR="/usr/share/rcforge"
-    elif [[ -d "/opt/homebrew/share/rcforge" ]]; then
-      # Homebrew installation on Apple Silicon
-      RCFORGE_DIR="/opt/homebrew/share/rcforge"
-    elif [[ -n "$(which brew 2>/dev/null)" && -d "$(brew --prefix 2>/dev/null)/share/rcforge" ]]; then
-      # Homebrew installation (generic)
-      RCFORGE_DIR="$(brew --prefix)/share/rcforge"
+# Detect current shell
+DetectCurrentShell() {
+    if [[ -n "$BASH_VERSION" ]]; then
+        echo "bash"
+    elif [[ -n "$ZSH_VERSION" ]]; then
+        echo "zsh"
     else
-      # Fallback to expected user location
-      RCFORGE_DIR="$HOME/.config/rcforge"
-    fi
-  fi
-  
-  # Set up directory paths
-  SCRIPTS_DIR="${RCFORGE_SCRIPTS:-$RCFORGE_DIR/scripts}"
-  OUTPUT_DIR="${RCFORGE_OUTPUT:-$RCFORGE_DIR/docs}"
-  OUTPUT_FILE="$OUTPUT_DIR/loading_order_diagram.md"
-}
-
-# Parse command line arguments
-target_hostname=""
-target_shell=""
-output_file=""
-rcforge_dir=""
-
-# Process command-line arguments
-process_args() {
-  while [[ "$#" -gt 0 ]]; do
-    case $1 in
-      --hostname=*)
-        target_hostname="${1#*=}"
-        ;;
-      --shell=*)
-        target_shell="${1#*=}"
-        ;;
-      --output=*)
-        output_file="${1#*=}"
-        ;;
-      --rcforge-dir=*)
-        rcforge_dir="${1#*=}"
-        RCFORGE_DIR="${1#*=}"
-        SCRIPTS_DIR="$RCFORGE_DIR/scripts"
-        OUTPUT_DIR="$RCFORGE_DIR/docs"
-        ;;
-      --help|-h)
-        show_help
-        exit 0
-        ;;
-      --version|-v)
-        show_version
-        exit 0
-        ;;
-      *)
-        echo -e "${RED}Unknown parameter: $1${RESET}"
-        echo "Use --help for usage information."
+        ErrorMessage "Unable to detect current shell"
         exit 1
-        ;;
+    fi
+}
+
+# Display help information
+DisplayHelp() {
+    SectionHeader "${gc_app_name} Configuration Diagram Generator"
+    
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --hostname=NAME      Specify hostname (default: current hostname)"
+    echo "  --shell=TYPE         Specify shell type (bash or zsh, default: current shell)"
+    echo "  --output=FILE        Specify output file path"
+    echo "  --format=FORMAT      Output format (mermaid, graphviz, ascii)"
+    echo "  --verbose, -v        Enable verbose output"
+    echo "  --help, -h           Show this help message"
+    echo "  --version            Show version information"
+    echo ""
+    echo "Examples:"
+    echo "  $0                   Generate diagram for current shell/hostname"
+    echo "  $0 --shell=bash      Generate Bash configuration diagram"
+    echo "  $0 --hostname=laptop --shell=zsh  Diagram for laptop's Zsh config"
+}
+
+# Display version information
+DisplayVersion() {
+    TextBlock "${gc_app_name} Configuration Diagram Generator" "$CYAN"
+    echo "Version: ${gc_version}"
+    echo "Copyright: Analog Edge LLC"
+    echo "License: MIT"
+}
+
+# Find configuration files
+FindConfigFiles() {
+    local shell_type="$1"
+    local hostname="$2"
+    local scripts_dir="${RCFORGE_DIR}/scripts"
+
+    # Build file matching patterns
+    local patterns=(
+        "[0-9]*_global_common_*.sh"
+        "[0-9]*_global_${shell_type}_*.sh"
+        "[0-9]*_${hostname}_common_*.sh"
+        "[0-9]*_${hostname}_${shell_type}_*.sh"
+    )
+
+    # Find and sort matching files
+    local config_files=()
+    for pattern in "${patterns[@]}"; do
+        while IFS= read -r -d '' file; do
+            [[ -f "$file" ]] && config_files+=("$file")
+        done < <(find "$scripts_dir" -maxdepth 1 -type f -name "$pattern" -print0 2>/dev/null)
+    done
+
+    # Sort files by sequence number
+    IFS=$'\n' config_files=($(sort <<< "${config_files[*]}"))
+    unset IFS
+
+    # Validate found files
+    if [[ ${#config_files[@]} -eq 0 ]]; then
+        ErrorMessage "No configuration files found for shell: $shell_type (hostname: $hostname)"
+        return 1
+    fi
+
+    # Verbose output of found files
+    if [[ "$VERBOSE_MODE" == true ]]; then
+        InfoMessage "Found ${#config_files[@]} configuration files:"
+        printf '  %s\n' "${config_files[@]}"
+    fi
+
+    # Output files
+    printf '%s\n' "${config_files[@]}"
+}
+
+# Generate Mermaid diagram
+GenerateMermaidDiagram() {
+    local files=("$@")
+    local diagram=""
+
+    # Start of Mermaid diagram
+    diagram+="# Configuration Loading Order Diagram\n"
+    diagram+="```mermaid\n"
+    diagram+="flowchart TD\n"
+    diagram+="    classDef global fill:#f9f,stroke:#333,stroke-width:2px\n"
+    diagram+="    classDef hostname fill:#bbf,stroke:#333,stroke-width:2px\n"
+    diagram+="    classDef common fill:#dfd,stroke:#333,stroke-width:1px\n"
+    diagram+="    classDef shell fill:#ffd,stroke:#333,stroke-width:1px\n\n"
+    diagram+="    Start([Start rcForge]) --> FirstFile\n"
+
+    local prev_node="FirstFile"
+    local first_file=true
+
+    # Process each file
+    for file in "${files[@]}"; do
+        local filename
+        filename=$(basename "$file")
+        local seq_num="${filename%%_*}"
+        local parts=(${filename//_/ })
+        local hostname="${parts[1]}"
+        local environment="${parts[2]}"
+        local description="${filename#*_*_*_}"
+        description="${description%.sh}"
+
+        # Create node ID (remove special characters)
+        local node_id
+        node_id=$(echo "$filename" | tr -cd '[:alnum:]')
+
+        # Determine node class
+        local node_class=""
+        if [[ "$hostname" == "global" ]]; then
+            node_class="global"
+        else
+            node_class="hostname"
+        fi
+
+        if [[ "$environment" == "common" ]]; then
+            node_class+=",common"
+        else
+            node_class+=",shell"
+        fi
+
+        # Add node to diagram
+        if [[ "$first_file" == true ]]; then
+            diagram+="    FirstFile[$seq_num: $hostname/$environment<br>$description] --> $node_id\n"
+            first_file=false
+        else
+            diagram+="    $prev_node --> $node_id[$seq_num: $hostname/$environment<br>$description]\n"
+        fi
+
+        # Add class to node
+        diagram+="    class $node_id $node_class\n"
+
+        prev_node="$node_id"
+    done
+
+    # Add final node
+    diagram+="    $prev_node --> End([End rcForge])\n"
+    diagram+="```\n"
+
+    # Output diagram
+    echo -e "$diagram"
+}
+
+# Generate diagram in different formats
+GenerateDiagram() {
+    local files=("$@")
+
+    # Create output directory if it doesn't exist
+    mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+    # Generate diagram based on format
+    case "$FORMAT" in
+        mermaid)
+            GenerateMermaidDiagram "${files[@]}" > "$OUTPUT_FILE"
+            ;;
+        # Future format support can be added here
+        *)
+            ErrorMessage "Format $FORMAT not yet implemented"
+            return 1
+            ;;
     esac
-    shift
-  done
+
+    # Confirmation message
+    SuccessMessage "Diagram generated: $OUTPUT_FILE"
 }
 
-# Function to detect current shell
-detect_shell() {
-  if [[ -n "$ZSH_VERSION" ]]; then
-    echo "zsh"
-  elif [[ -n "$BASH_VERSION" ]]; then
-    echo "bash"
-  else
-    # Fallback to checking $SHELL
-    basename "$SHELL"
-  fi
-}
+# Main script execution
+Main() {
+    # Detect project root
+    local RCFORGE_DIR
+    RCFORGE_DIR=$(DetectProjectRoot)
 
-# Function to get the hostname, with fallback
-get_hostname() {
-  if command -v hostname >/dev/null 2>&1; then
-    hostname | cut -d. -f1
-  else
-    # Fallback if hostname command not available
-    hostname=${HOSTNAME:-$(uname -n | cut -d. -f1)}
-    echo "$hostname"
-  fi
-}
+    # Parse command-line arguments
+    ParseArguments "$@"
 
-# Function to get all applicable files
-get_applicable_files() {
-  local hostname="$1"
-  local shell="$2"
-  local files=()
-  
-  # Find all script files
-  while IFS= read -r file; do
-    # Extract target info from filename
-    local filename=$(basename "$file")
-    local parts=(${filename//_/ })
-    local file_hostname="${parts[1]}"
-    local environment="${parts[2]}"
-    
-    # Check if file applies to this execution path
-    if [[ "$environment" == "common" || "$environment" == "$shell" ]] && 
-       [[ "$file_hostname" == "global" || "$file_hostname" == "$hostname" ]]; then
-      files+=("$file")
+    # Display header
+    SectionHeader "${gc_app_name} Configuration Loading Order"
+
+    # Set default output file if not specified
+    if [[ -z "$OUTPUT_FILE" ]]; then
+        mkdir -p "$gc_default_output_dir"
+        OUTPUT_FILE="${gc_default_output_dir}/loading_order_${TARGET_HOSTNAME}_${TARGET_SHELL}.md"
     fi
-  done < <(find "$SCRIPTS_DIR" -type f -name "[0-9]*_*_*_*.sh" | sort)
-  
-  echo "${files[@]}"
+
+    # Find configuration files
+    local config_files
+    mapfile -t config_files < <(FindConfigFiles "$TARGET_SHELL" "$TARGET_HOSTNAME")
+
+    # Generate diagram
+    GenerateDiagram "${config_files[@]}"
 }
 
-# Function to generate Mermaid diagram
-generate_mermaid_diagram() {
-  local files=($@)
-  local num_files=${#files[@]}
-  
-  # Create output directory if it doesn't exist
-  mkdir -p "$(dirname "$OUTPUT_FILE")"
-  
-  # Start the diagram
-  cat > "$OUTPUT_FILE" << EOF
-# rcForge Loading Order Diagram for $target_hostname/$target_shell
-
-This diagram shows the loading order of configuration files for the current execution path.
-
-## Execution Path Information
-- **Hostname:** $target_hostname
-- **Shell:** $target_shell
-- **Total Configuration Files:** $num_files
-- **Generated:** $(date)
-
-## Loading Order Diagram
-
-\`\`\`mermaid
-flowchart TD
-    classDef global fill:#f9f,stroke:#333,stroke-width:2px
-    classDef hostname fill:#bbf,stroke:#333,stroke-width:2px
-    classDef common fill:#dfd,stroke:#333,stroke-width:1px
-    classDef shell fill:#ffd,stroke:#333,stroke-width:1px
-    
-    Start([Start rcForge]) --> FirstFile
-EOF
-
-  # Add each file to the diagram
-  local prev_node="FirstFile"
-  local first_file=true
-  
-  for file in "${files[@]}"; do
-    local filename=$(basename "$file")
-    local seq_num="${filename%%_*}"
-    local parts=(${filename//_/ })
-    local hostname="${parts[1]}"
-    local environment="${parts[2]}"
-    local description="${filename#*_*_*_}"
-    description="${description%.sh}"
-    
-    # Create node ID from filename (remove special chars)
-    local node_id="${filename//[^a-zA-Z0-9]/}"
-    
-    # Set appropriate class based on hostname and environment
-    local node_class=""
-    if [[ "$hostname" == "global" ]]; then
-      node_class="global"
-    else
-      node_class="hostname"
-    fi
-    
-    if [[ "$environment" == "common" ]]; then
-      node_class="${node_class},common"
-    else
-      node_class="${node_class},shell"
-    fi
-    
-    # Add node to diagram
-    if [[ "$first_file" == true ]]; then
-      echo "    FirstFile[$seq_num: $hostname/$environment<br>$description] --> $node_id" >> "$OUTPUT_FILE"
-      first_file=false
-    else
-      echo "    $prev_node --> $node_id[$seq_num: $hostname/$environment<br>$description]" >> "$OUTPUT_FILE"
-    fi
-    
-    # Add class to node
-    echo "    class $node_id $node_class" >> "$OUTPUT_FILE"
-    
-    prev_node="$node_id"
-  done
-  
-  # Add the final node
-  echo "    $prev_node --> End([End rcForge])" >> "$OUTPUT_FILE"
-  
-  # End the diagram
-  cat >> "$OUTPUT_FILE" << 'EOF'
-```
-
-## Legend
-- **Pink Nodes**: Global configurations (apply to all machines)
-- **Blue Nodes**: Machine-specific configurations (only apply to this hostname)
-- **Green Background**: Common configurations (apply to both Bash and Zsh)
-- **Yellow Background**: Shell-specific configurations (only apply to the current shell)
-
-## File Details
-
-| Sequence | Hostname | Environment | Description | Full Path |
-|----------|----------|-------------|-------------|-----------|
-EOF
-
-  # Add file details to the table
-  for file in "${files[@]}"; do
-    local filename=$(basename "$file")
-    local seq_num="${filename%%_*}"
-    local parts=(${filename//_/ })
-    local hostname="${parts[1]}"
-    local environment="${parts[2]}"
-    local description="${filename#*_*_*_}"
-    description="${description%.sh}"
-    
-    echo "| $seq_num | $hostname | $environment | $description | \`$file\` |" >> "$OUTPUT_FILE"
-  done
-}
-
-# Main function
-main() {
-  # Determine paths
-  determine_paths
-  
-  # Process command line arguments
-  process_args "$@"
-  
-  # Override output file if specified
-  if [[ -n "$output_file" ]]; then
-    OUTPUT_FILE="$output_file"
-  fi
-  
-  echo -e "${BLUE}┌──────────────────────────────────────────────────────┐${RESET}"
-  echo -e "${BLUE}│ Generating rcForge Loading Order Diagram             │${RESET}"
-  echo -e "${BLUE}└──────────────────────────────────────────────────────┘${RESET}"
-  echo ""
-  
-  # Check if the scripts directory exists
-  if [[ ! -d "$SCRIPTS_DIR" ]]; then
-    echo -e "${RED}Error: Scripts directory not found.${RESET}"
-    echo "Expected location: $SCRIPTS_DIR"
-    echo "Please run the installation script first."
-    exit 1
-  fi
-  
-  # Determine which shell and hostname to diagram
-  if [[ -z "$target_shell" ]]; then
-    target_shell=$(detect_shell)
-    echo -e "${CYAN}No shell specified, using current shell: $target_shell${RESET}"
-  else
-    echo -e "${CYAN}Using specified shell: $target_shell${RESET}"
-  fi
-  
-  if [[ -z "$target_hostname" ]]; then
-    target_hostname=$(get_hostname)
-    echo -e "${CYAN}No hostname specified, using current hostname: $target_hostname${RESET}"
-  else
-    echo -e "${CYAN}Using specified hostname: $target_hostname${RESET}"
-  fi
-  
-  # Validate shell
-  if [[ "$target_shell" != "bash" && "$target_shell" != "zsh" ]]; then
-    echo -e "${RED}Error: Unsupported shell: $target_shell${RESET}"
-    echo "Supported shells: bash, zsh"
-    exit 1
-  fi
-  
-  # Get applicable files and generate the diagram
-  applicable_files=($(get_applicable_files "$target_hostname" "$target_shell"))
-  file_count=${#applicable_files[@]}
-  
-  if [[ $file_count -eq 0 ]]; then
-    echo -e "${RED}Error: No applicable configuration files found for $target_hostname/$target_shell.${RESET}"
-    exit 1
-  fi
-  
-  echo -e "${GREEN}Found $file_count applicable configuration files.${RESET}"
-  generate_mermaid_diagram "${applicable_files[@]}"
-  
-  echo -e "${GREEN}✓ Configuration diagram generated: $OUTPUT_FILE${RESET}"
-  echo ""
-  echo -e "${YELLOW}To view this diagram:${RESET}"
-  echo "  • Use a Markdown viewer that supports Mermaid diagrams"
-  echo "  • Import it into a tool that supports Mermaid (like GitHub, GitLab, VS Code)"
-  echo ""
-  echo -e "${YELLOW}If you're using VS Code, you can install the Markdown Preview Mermaid Support extension${RESET}"
-  echo ""
-}
-
-# Run main function if executed directly
-if is_executed_directly; then
-  main "$@"
+# Entry point - execute only if run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    Main "$@"
 fi
-# EOF

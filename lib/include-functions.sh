@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # include-functions.sh - Core functions for the rcForge include system
 # Author: Mark Hasse
-# Date: March 30, 2025
+# Date: March 31, 2025
 #
 # This file provides the core functionality for the include system,
 # enabling efficient loading and management of modular shell functions.
@@ -13,13 +13,14 @@ set -o errexit  # Exit on error
 # ============================================================================
 # BOOTSTRAP COLORS
 # Minimalist color definitions directly embedded to avoid circular dependencies
+# These MUST be exported since they're used in exported functions
 # ============================================================================
-readonly c_RED='\033[0;31m'
-readonly c_GREEN='\033[0;32m'
-readonly c_YELLOW='\033[0;33m'
-readonly c_BLUE='\033[0;34m'
-readonly c_CYAN='\033[0;36m'
-readonly c_RESET='\033[0m'
+export RED='\033[0;31m'
+export GREEN='\033[0;32m'
+export YELLOW='\033[0;33m'
+export BLUE='\033[0;34m'
+export CYAN='\033[0;36m'
+export RESET='\033[0m'
 
 # ============================================================================
 # INITIALIZATIONS AND DECLARATIONS
@@ -29,19 +30,19 @@ readonly c_RESET='\033[0m'
 if [[ "${BASH_VERSION:-0}" =~ ^[4-9] ]]; then
     # Only declare associative array if using Bash 4.0+
     declare -A RCFORGE_INCLUDE_HASH
-    RCFORGE_INCLUDE_SYSTEM_ENABLED=true
+    export RCFORGE_INCLUDE_SYSTEM_ENABLED=true
 else
     # For older Bash versions, we'll use a fallback approach
-    RCFORGE_INCLUDE_SYSTEM_ENABLED=false
+    export RCFORGE_INCLUDE_SYSTEM_ENABLED=false
 fi
 
 # Path variables - these will be set by DetectBasePaths()
-RCFORGE_BASE=""
-RCFORGE_USER_INCLUDE=""
-RCFORGE_SYS_INCLUDE=""
-RCFORGE_LIB=""
-RCFORGE_UTILS=""
-RCFORGE_CORE=""
+export RCFORGE_BASE=""
+export RCFORGE_USER_INCLUDE=""
+export RCFORGE_SYS_INCLUDE=""
+export RCFORGE_LIB=""
+export RCFORGE_UTILS=""
+export RCFORGE_CORE=""
 
 # ============================================================================
 # ERROR HANDLING AND UTILITY FUNCTIONS
@@ -50,26 +51,26 @@ RCFORGE_CORE=""
 # Display an error message
 # Usage: ErrorMessage "Error message text"
 ErrorMessage() {
-    echo -e "${c_RED}ERROR: $1${c_RESET}" >&2
+    echo -e "${RED}ERROR: $1${RESET}" >&2
 }
 
 # Display a warning message
 # Usage: WarningMessage "Warning message text"
 WarningMessage() {
-    echo -e "${c_YELLOW}WARNING: $1${c_RESET}" >&2
+    echo -e "${YELLOW}WARNING: $1${RESET}" >&2
 }
 
 # Display an info message
 # Usage: InfoMessage "Informational message text"
 InfoMessage() {
-    echo -e "${c_BLUE}INFO: $1${c_RESET}" >&2
+    echo -e "${BLUE}INFO: $1${RESET}" >&2
 }
 
 # Display a debug message if debug mode is enabled
 # Usage: DebugMessage "Debug message text"
 DebugMessage() {
     if [[ -n "${SHELL_DEBUG:-}" ]]; then
-        echo -e "${c_CYAN}DEBUG: $1${c_RESET}" >&2
+        echo -e "${CYAN}DEBUG: $1${RESET}" >&2
     fi
 }
 
@@ -232,12 +233,18 @@ BuildIncludeHash() {
 
 # Source a include function by category and name
 # This uses the hash table for O(1) lookups
-# Usage: SourceInclude category function_name
+# Usage: SourceInclude category function_name [quiet]
 SourceInclude() {
     local category="$1"
     local function_name="$2"
     local quiet="${3:-false}"
     
+    # Validate inputs
+    if [[ -z "$category" || -z "$function_name" ]]; then
+        [[ "$quiet" == "false" ]] && ErrorMessage "SourceInclude requires both category and function name"
+        return 1
+    }
+
     # Skip if include system is disabled (older Bash)
     if [[ "$RCFORGE_INCLUDE_SYSTEM_ENABLED" != "true" ]]; then
         [[ "$quiet" == "false" ]] && WarningMessage "Include system is disabled (requires Bash 4.0+)"
@@ -267,10 +274,16 @@ SourceInclude() {
 }
 
 # Source a utility script from the rcforge utility directory
-# Usage: SourceUtil util_name
+# Usage: SourceUtil util_name [quiet]
 SourceUtil() {
     local util_name="$1"
     local quiet="${2:-false}"
+    
+    # Validate inputs
+    if [[ -z "$util_name" ]]; then
+        [[ "$quiet" == "false" ]] && ErrorMessage "SourceUtil requires a utility name"
+        return 1
+    }
     
     # Build the file path
     local util_file="${RCFORGE_UTILS}/${util_name}"
@@ -299,7 +312,7 @@ SourceUtil() {
 
 # Include a specific function from the include system
 # This is the primary function that users will call
-# Usage: IncludeFunction category function_name
+# Usage: IncludeFunction category function_name [quiet]
 IncludeFunction() {
     local category="$1"
     local function_name="$2"
@@ -324,7 +337,7 @@ IncludeFunction() {
 }
 
 # Include all functions in a category
-# Usage: IncludeCategory category
+# Usage: IncludeCategory category [quiet]
 IncludeCategory() {
     local category="$1"
     local quiet="${2:-false}"
@@ -465,6 +478,7 @@ source_util() { SourceUtil "$@"; }
 # ============================================================================
 
 # Initialize the include system
+# Usage: InitializeIncludeSystem
 InitializeIncludeSystem() {
     # Check if we're running in Bash
     if [[ -z "${BASH_VERSION:-}" ]]; then

@@ -1,324 +1,361 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # create-include.sh - Create a new include function file
 # Author: Mark Hasse
-# Date: March 29, 2025
+# Copyright: Analog Edge LLC
+# Date: 2025-03-30
+# Version: 0.2.0
+# Description: Interactive utility to create new include functions for rcForge
 
-set -e  # Exit on error
+# Import core utility libraries
+source shell-colors.sh
 
-# Colors for better readability
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'  # Reset color
+# Set strict error handling
+set -o nounset  # Treat unset variables as errors
+set -o errexit  # Exit immediately if a command exits with a non-zero status
 
-# Check if script is being sourced or executed directly
-is_executed_directly() {
-  # Check if script is being sourced (bash-specific method)
-  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-    # Script is being sourced
-    return 1
-  else
-    # Script is being executed directly
-    return 0
-  fi
-}
+# Global constants
+readonly gc_app_name="rcForge"
+readonly gc_version="0.2.0"
+readonly gc_default_categories=(
+    "path"
+    "common"
+    "git"
+    "network"
+    "system"
+    "text"
+    "web"
+    "dev"
+    "security"
+    "tools"
+)
 
-# Function to display version information
-show_version() {
-  echo "rcForge v0.2.0 - Include Function Creator"
-  echo "Copyright (c) 2025 Analog Edge LLC"
-  echo "Released under the MIT License"
-}
+# Configuration variables
+export FUNCTION_NAME=""
+export CATEGORY=""
+export DESCRIPTION=""
+export ARGUMENTS=""
+export USE_SYSTEM_DIR=false
+export FORCE_OVERWRITE=false
+export VERBOSE_MODE=false
 
-# Function to display help and usage information
-show_help() {
-  local script_name=$(basename "${BASH_SOURCE[0]}")
-  
-  # If called via a symlink, show the symlink name instead
-  if [[ "$0" != "${BASH_SOURCE[0]}" ]]; then
-    script_name=$(basename "$0")
-  fi
+# Detect project root dynamically
+DetectProjectRoot() {
+    local possible_roots=(
+        "${RCFORGE_ROOT:-}"
+        "$HOME/src/rcforge"
+        "$HOME/Projects/rcforge"
+        "/usr/share/rcforge"
+        "/opt/homebrew/share/rcforge"
+        "$(brew --prefix 2>/dev/null)/share/rcforge"
+        "/opt/local/share/rcforge"
+        "/usr/local/share/rcforge"
+        "$HOME/.config/rcforge"
+    )
 
-  echo "Usage: $script_name [OPTIONS]"
-  echo ""
-  echo "Options:"
-  echo "  --name=NAME          Function name"
-  echo "  --category=CATEGORY  Function category"
-  echo "  --desc=DESCRIPTION   Function description"
-  echo "  --args=ARGUMENTS     Function arguments"
-  echo "  --system             Create in system include directory (requires admin permission)"
-  echo "  --force              Overwrite existing function"
-  echo "  --help, -h           Show this help message"
-  echo "  --version, -v        Show version information"
-  echo ""
-  echo "Examples:"
-  echo "  $script_name                       # Interactive mode"
-  echo "  $script_name --name=my_function --category=common  # Specify basic options"
-  echo "  $script_name --name=parse_json --category=text --desc=\"Parse JSON data\" --args=\"json_string\" # Full specification"
-  echo ""
-}
-
-# Parse command line arguments
-function_name=""
-category=""
-description=""
-arguments=""
-force=0
-use_system=0
-
-# Process command-line arguments
-process_args() {
-  while [[ "$#" -gt 0 ]]; do
-    case $1 in
-      --name=*)
-        function_name="${1#*=}"
-        ;;
-      --category=*)
-        category="${1#*=}"
-        ;;
-      --desc=*|--description=*)
-        description="${1#*=}"
-        ;;
-      --args=*|--arguments=*)
-        arguments="${1#*=}"
-        ;;
-      --system)
-        use_system=1
-        ;;
-      --force)
-        force=1
-        ;;
-      --help|-h)
-        show_help
-        exit 0
-        ;;
-      --version|-v)
-        show_version
-        exit 0
-        ;;
-      *)
-        echo -e "${RED}Unknown parameter: $1${RESET}"
-        show_help
-        exit 1
-        ;;
-    esac
-    shift
-  done
-}
-
-# Determine rcForge paths
-determine_paths() {
-  # Detect if we're running in development mode
-  if [[ -n "${RCFORGE_DEV}" ]]; then
-    # Development mode
-    RCFORGE_DIR="$HOME/src/rcforge"
-    SYS_INCLUDE_DIR="$RCFORGE_DIR/include"
-  else
-    # Production mode - Detect system installation
-    if [[ -d "/usr/share/rcforge" ]]; then
-      RCFORGE_SYS_DIR="/usr/share/rcforge"
-    elif [[ -d "/opt/homebrew/share/rcforge" ]]; then
-      RCFORGE_SYS_DIR="/opt/homebrew/share/rcforge"
-    elif [[ -n "$(which brew 2>/dev/null)" && -d "$(brew --prefix 2>/dev/null)/share/rcforge" ]]; then
-      RCFORGE_SYS_DIR="$(brew --prefix)/share/rcforge"
-    else
-      RCFORGE_SYS_DIR="$HOME/.config/rcforge"
-    fi
-    SYS_INCLUDE_DIR="$RCFORGE_SYS_DIR/include"
-  fi
-
-  # User level directories
-  USER_DIR="$HOME/.config/rcforge"
-  USER_INCLUDE_DIR="$USER_DIR/include"
-}
-
-# Interactive mode
-run_interactive_mode() {
-  # Display header
-  echo -e "${BLUE}┌──────────────────────────────────────────────────────┐${RESET}"
-  echo -e "${BLUE}│ rcForge Include File Creator                         │${RESET}"
-  echo -e "${BLUE}└──────────────────────────────────────────────────────┘${RESET}"
-  echo ""
-  
-  # Determine which include directory to use
-  if [[ $use_system -eq 1 ]]; then
-    INCLUDE_DIR="$SYS_INCLUDE_DIR"
-    echo -e "${CYAN}Using system include directory: ${YELLOW}$INCLUDE_DIR${RESET}"
-  else
-    INCLUDE_DIR="$USER_INCLUDE_DIR"
-    echo -e "${CYAN}Using user include directory: ${YELLOW}$INCLUDE_DIR${RESET}"
-  
-    # Ask if the user wants to use the system directory instead
-    if [[ -d "$SYS_INCLUDE_DIR" && -z "$category" ]]; then
-      echo -e "${YELLOW}Which include directory do you want to use?${RESET}"
-      echo "1) User directory: $USER_INCLUDE_DIR (default)"
-      echo "2) System directory: $SYS_INCLUDE_DIR"
-      read -r choice
-  
-      if [[ "$choice" == "2" ]]; then
-        INCLUDE_DIR="$SYS_INCLUDE_DIR"
-        echo -e "${CYAN}Switched to system include directory: ${YELLOW}$INCLUDE_DIR${RESET}"
-      fi
-    fi
-  fi
-  
-  # Ask for category if not provided
-  if [[ -z "$category" ]]; then
-    echo -e "${CYAN}Available categories:${RESET}"
-    categories=()
-  
-    # Get existing categories from both user and system directories
-    for dir in "$INCLUDE_DIR"/*/; do
-      if [[ -d "$dir" ]]; then
-        local category_name=$(basename "$dir")
-        categories+=("$category_name")
-        echo "  $category_name"
-      fi
-    done
-  
-    # Also check system directory if we're using user directory
-    if [[ "$INCLUDE_DIR" == "$USER_INCLUDE_DIR" && "$INCLUDE_DIR" != "$SYS_INCLUDE_DIR" ]]; then
-      for dir in "$SYS_INCLUDE_DIR"/*/; do
-        if [[ -d "$dir" ]]; then
-          local category_name=$(basename "$dir")
-          # Only add if not already in the list
-          if [[ ! " ${categories[@]} " =~ " $category_name " ]]; then
-            categories+=("$category_name")
-            echo "  $category_name (system)"
-          fi
+    for dir in "${possible_roots[@]}"; do
+        if [[ -n "$dir" && -d "$dir" && -f "$dir/rcforge.sh" ]]; then
+            echo "$dir"
+            return 0
         fi
-      done
+    done
+
+    # Fallback to user configuration directory
+    echo "$HOME/.config/rcforge"
+}
+
+# Validate function name
+ValidateFunctionName() {
+    local name="$1"
+    
+    # Check if name is empty
+    if [[ -z "$name" ]]; then
+        ErrorMessage "Function name cannot be empty"
+        return 1
     fi
-  
-    if [[ ${#categories[@]} -eq 0 ]]; then
-      echo "  No categories found."
-      echo -e "${YELLOW}Creating a new category...${RESET}"
+
+    # Check for valid characters (lowercase with underscores)
+    if [[ ! "$name" =~ ^[a-z_][a-z0-9_]*$ ]]; then
+        ErrorMessage "Invalid function name. Use lowercase letters, numbers, and underscores. Must start with a letter or underscore."
+        return 1
     fi
-  
+
+    return 0
+}
+
+# Validate category
+ValidateCategory() {
+    local category="$1"
+    
+    # Check if category is empty
+    if [[ -z "$category" ]]; then
+        ErrorMessage "Category cannot be empty"
+        return 1
+    fi
+
+    # Check for valid characters (lowercase)
+    if [[ ! "$category" =~ ^[a-z][a-z0-9_]*$ ]]; then
+        ErrorMessage "Invalid category. Use lowercase letters, numbers, and underscores. Must start with a letter."
+        return 1
+    fi
+
+    return 0
+}
+
+# Parse command-line arguments
+ParseArguments() {
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --name=*)
+                FUNCTION_NAME="${1#*=}"
+                ;;
+            --category=*)
+                CATEGORY="${1#*=}"
+                ;;
+            --desc=*|--description=*)
+                DESCRIPTION="${1#*=}"
+                ;;
+            --args=*|--arguments=*)
+                ARGUMENTS="${1#*=}"
+                ;;
+            --system)
+                USE_SYSTEM_DIR=true
+                ;;
+            --force|-f)
+                FORCE_OVERWRITE=true
+                ;;
+            --verbose|-v)
+                VERBOSE_MODE=true
+                ;;
+            --help|-h)
+                DisplayHelp
+                exit 0
+                ;;
+            --version)
+                DisplayVersion
+                exit 0
+                ;;
+            *)
+                ErrorMessage "Unknown parameter: $1"
+                DisplayHelp
+                exit 1
+                ;;
+        esac
+        shift
+    done
+}
+
+# Display help information
+DisplayHelp() {
+    SectionHeader "${gc_app_name} Include Function Creator"
+    
+    echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo -e "${YELLOW}Enter category (existing or new):${RESET}"
-    read -r category
-  fi
-  
-  # Ask for function name if not provided
-  if [[ -z "$function_name" ]]; then
-    echo -e "${YELLOW}Enter function name:${RESET}"
-    read -r function_name
-  fi
-  
-  # Ask for function description if not provided
-  if [[ -z "$description" ]]; then
-    echo -e "${YELLOW}Enter function description:${RESET}"
-    read -r description
-  fi
-  
-  # Ask for function arguments if not provided
-  if [[ -z "$arguments" ]]; then
-    echo -e "${YELLOW}Enter function arguments (e.g., 'filepath' or 'url name'):${RESET}"
-    read -r arguments
-  fi
+    echo "Options:"
+    echo "  --name=NAME          Function name (lowercase, underscore-separated)"
+    echo "  --category=CATEGORY  Function category"
+    echo "  --desc=DESCRIPTION   Function description"
+    echo "  --args=ARGUMENTS     Function arguments (optional)"
+    echo "  --system             Create in system include directory"
+    echo "  --force, -f          Overwrite existing function"
+    echo "  --verbose, -v        Show detailed output"
+    echo "  --help, -h           Show this help message"
+    echo "  --version            Show version information"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --name=add_to_path --category=path --desc=\"Add directory to PATH\""
+    echo "  $0 --name=is_macos --category=common --desc=\"Check if running on macOS\""
+}
+
+# Display version information
+DisplayVersion() {
+    TextBlock "${gc_app_name} Include Function Creator" "$CYAN"
+    echo "Version: ${gc_version}"
+    echo "Copyright: Analog Edge LLC"
+    echo "License: MIT"
+}
+
+# Interactive mode for missing arguments
+InteractiveMode() {
+    # Detect current user's name
+    local author
+    author=$(git config user.name 2>/dev/null || whoami)
+
+    # Prompt for function name if not provided
+    if [[ -z "$FUNCTION_NAME" ]]; then
+        while true; do
+            read -r -p "Enter function name (lowercase, underscore-separated): " FUNCTION_NAME
+            if ValidateFunctionName "$FUNCTION_NAME"; then
+                break
+            fi
+        done
+    fi
+
+    # Prompt for category if not provided
+    if [[ -z "$CATEGORY" ]]; then
+        echo "Available categories:"
+        printf '  %s\n' "${gc_default_categories[@]}"
+        
+        while true; do
+            read -r -p "Enter category: " CATEGORY
+            if ValidateCategory "$CATEGORY"; then
+                break
+            fi
+        fi
+    fi
+
+    # Prompt for description if not provided
+    if [[ -z "$DESCRIPTION" ]]; then
+        read -r -p "Enter function description: " DESCRIPTION
+    fi
+
+    # Prompt for arguments if not provided
+    if [[ -z "$ARGUMENTS" ]]; then
+        read -r -p "Enter function arguments (optional, space-separated): " ARGUMENTS
+    fi
+
+    # Ask about system vs user directory
+    if [[ "$USE_SYSTEM_DIR" == false ]]; then
+        read -r -p "Create in system include directory? (y/N): " system_choice
+        if [[ "$system_choice" =~ ^[Yy]$ ]]; then
+            USE_SYSTEM_DIR=true
+        fi
+    fi
+}
+
+# Determine include directory
+DetermineIncludeDirectory() {
+    local base_dir="$1"
+    local user_include_dir="$HOME/.config/rcforge/include"
+    local system_include_dir="${base_dir}/include"
+
+    if [[ "$USE_SYSTEM_DIR" == true ]]; then
+        # Require root/sudo for system directory
+        if [[ $EUID -ne 0 ]]; then
+            ErrorMessage "System include directory requires root/sudo privileges"
+            return 1
+        fi
+        echo "$system_include_dir"
+    else
+        echo "$user_include_dir"
+    fi
 }
 
 # Create the include function file
-create_include_file() {
-  # Create category if it doesn't exist
-  category_dir="$INCLUDE_DIR/$category"
-  if [[ ! -d "$category_dir" ]]; then
+CreateIncludeFile() {
+    local include_dir="$1"
+    local category_dir="$include_dir/$CATEGORY"
+    
+    # Create category directory if it doesn't exist
     mkdir -p "$category_dir"
-    echo -e "${GREEN}✓ Created new category: $category${RESET}"
-  fi
-  
-  # Create function file path
-  function_file="$category_dir/$function_name.sh"
-  
-  # Check if function already exists
-  if [[ -f "$function_file" && "$force" -eq 0 ]]; then
-    echo -e "${RED}Function already exists: $function_file${RESET}"
-    echo -e "${YELLOW}Do you want to overwrite it? (y/n)${RESET}"
-    read -r overwrite
-  
-    if [[ ! "$overwrite" =~ ^[Yy] ]]; then
-      echo -e "${RED}Operation cancelled.${RESET}"
-      exit 1
+
+    # Determine file path
+    local function_file="$category_dir/${FUNCTION_NAME}.sh"
+
+    # Check for existing file
+    if [[ -f "$function_file" && "$FORCE_OVERWRITE" == false ]]; then
+        ErrorMessage "Function file already exists: $function_file"
+        echo "Use --force to overwrite."
+        return 1
     fi
-  fi
-  
-  # Get author name
-  author=${AUTHOR:-"$(git config user.name 2>/dev/null || echo 'Your Name')"}
-  
-  # Create function file
-  cat > "$function_file" << EOF
-#!/bin/bash
-# $function_name.sh - $description
-# Category: $category
+
+    # Prepare author name
+    local author
+    author=$(git config user.name 2>/dev/null || whoami)
+
+    # Create function file content
+    cat > "$function_file" << EOF
+#!/usr/bin/env bash
+# ${FUNCTION_NAME}.sh - ${DESCRIPTION}
+# Category: $CATEGORY
 # Author: $author
 # Date: $(date +%F)
 
-# Function: $function_name
-# Description: $description
-# Usage: $function_name $arguments
-$function_name() {
-  # Function implementation
-  echo "Function $function_name not implemented yet"
-}
-
-# Export the function
-export -f $function_name
-EOF
-  
-  # Make it executable
-  chmod +x "$function_file"
-  
-  echo -e "${GREEN}✓ Created function file: $function_file${RESET}"
-  echo ""
-  echo -e "${YELLOW}Edit the file to implement the function:${RESET}"
-  echo "  \$EDITOR $function_file"
-  echo ""
-  echo -e "${YELLOW}To include this function in your scripts, use:${RESET}"
-  echo "  include_function $category $function_name"
-  echo ""
-}
-
-# Offer to edit the file
-offer_to_edit() {
-  echo -e "${YELLOW}Do you want to edit the file now? (y/n)${RESET}"
-  read -r edit_now
-  
-  if [[ "$edit_now" =~ ^[Yy] ]]; then
-    # Try to determine the best editor
-    editor=${EDITOR:-$(which vim || which nano || which vi)}
-    if [[ -n "$editor" ]]; then
-      $editor "$function_file"
-    else
-      echo -e "${RED}No editor found. Please edit the file manually.${RESET}"
+# Function: ${FUNCTION_NAME}
+# Description: ${DESCRIPTION}
+# Usage: ${FUNCTION_NAME} ${ARGUMENTS}
+${FUNCTION_NAME}() {
+    # Input validation
+    if [[ \$# -eq 0 ]]; then
+        ErrorMessage "No arguments provided"
+        return 1
     fi
-  fi
+
+    # Function implementation
+    local result=""
+    
+    # TODO: Implement function logic
+    ErrorMessage "Function not implemented yet"
+    return 1
 }
 
-# Main function
-main() {
-  # Determine paths
-  determine_paths
-  
-  # Process command line arguments
-  process_args "$@"
-  
-  # Run in interactive mode if not all parameters are specified
-  if [[ -z "$function_name" || -z "$category" ]]; then
-    run_interactive_mode
-  fi
-  
-  # Create the include function file
-  create_include_file
-  
-  # Offer to edit the file
-  offer_to_edit
+# Export the function to make it available in other scripts
+export -f ${FUNCTION_NAME}
+EOF
+
+    # Make file executable
+    chmod +x "$function_file"
+
+    # Verbose output
+    if [[ "$VERBOSE_MODE" == true ]]; then
+        SuccessMessage "Created function file: $function_file"
+        echo "  Category:     $CATEGORY"
+        echo "  Description: $DESCRIPTION"
+        echo "  Arguments:   $ARGUMENTS"
+    fi
 }
 
-# Run main function if executed directly
-if is_executed_directly; then
-  main "$@"
+# Offer to edit the newly created file
+OfferToEdit() {
+    local function_file="$1"
+    
+    read -r -p "Do you want to edit the file now? (y/N): " edit_choice
+    
+    if [[ "$edit_choice" =~ ^[Yy]$ ]]; then
+        # Try to determine the best editor
+        local editor
+        editor=$(command -v code || command -v vim || command -v nano)
+        
+        if [[ -n "$editor" ]]; then
+            "$editor" "$function_file"
+        else
+            ErrorMessage "No editor found. Please edit the file manually."
+        fi
+    fi
+}
+
+# Main script execution
+Main() {
+    # Detect project root
+    local RCFORGE_DIR
+    RCFORGE_DIR=$(DetectProjectRoot)
+
+    # Parse command-line arguments
+    ParseArguments "$@"
+
+    # Display header
+    SectionHeader "${gc_app_name} Include Function Creator"
+
+    # Run interactive mode if not all parameters are provided
+    if [[ -z "$FUNCTION_NAME" || -z "$CATEGORY" ]]; then
+        InteractiveMode
+    fi
+
+    # Validate inputs
+    ValidateFunctionName "$FUNCTION_NAME" || exit 1
+    ValidateCategory "$CATEGORY" || exit 1
+
+    # Determine include directory
+    local include_dir
+    include_dir=$(DetermineIncludeDirectory "$RCFORGE_DIR") || exit 1
+
+    # Create the include function file
+    CreateIncludeFile "$include_dir" || exit 1
+
+    # Offer to edit the file
+    OfferToEdit "$include_dir/$CATEGORY/${FUNCTION_NAME}.sh"
+}
+
+# Entry point - execute only if run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    Main "$@"
 fi
-# EOF
