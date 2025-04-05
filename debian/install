@@ -1,0 +1,25 @@
+rcforge.sh usr/share/rcforge
+include-structure.sh usr/share/rcforge
+core/* usr/share/rcforge/core
+utils/* usr/share/rcforge/utils
+lib/* usr/share/rcforge/lib
+include/* usr/share/rcforge/include
+src/* usr/share/rcforge/src
+scripts/*.sh usr/share/rcforge/examples
+
+# Documentation
+README.md usr/share/doc/rcforge
+LICENSE usr/share/doc/rcforge
+CHANGELOG.md usr/share/doc/rcforge
+docs/* usr/share/doc/rcforge/docs
+
+# Skeleton directory for new user setup
+scripts/*.sh usr/share/rcforge/skel/scripts
+docs/user-guides/README.md usr/share/rcforge/skel/docs
+docs/user-guides/getting-started.md usr/share/rcforge/skel/docs
+debian/skel-readme usr/share/rcforge/skel/README.md
+
+# Create necessary empty directories in skel
+debian/empty-dir usr/share/rcforge/skel/include
+debian/empty-dir usr/share/rcforge/skel/exports
+debian/empty-dir usr/share/rcforge/skel/checksums

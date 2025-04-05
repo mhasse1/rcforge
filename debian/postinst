@@ -1,7 +1,8 @@
 #!/bin/bash
 # postinst - Post-installation script for rcForge Debian package
 # Author: Mark Hasse
-# Date: 2025-03-29
+# Date: 2025-04-05
+# Version: 0.2.0
 
 set -e  # Exit on error
 
@@ -9,54 +10,91 @@ set -e  # Exit on error
 LC_ALL=""
 LANG=""
 
-# Create directory structure for user configuration if it doesn't exist
-if [ "$1" = "configure" ]; then
-    echo "Setting up rcForge..."
+# Process arguments
+case "$1" in
+    configure)
+        echo "Configuring rcForge user environment..."
 
-    # Create user configuration examples
-    for user_home in /home/*; do
-        # Skip if not a directory
-        [ ! -d "$user_home" ] && continue
+        # Ensure the skeleton directory exists and has correct permissions
+        if [ -d "/usr/share/rcforge/skel" ]; then
+            chmod -R 755 /usr/share/rcforge/skel
+            find /usr/share/rcforge/skel -type f -name "*.sh" -exec chmod 644 {} \;
+            find /usr/share/rcforge/skel -type f -name "*.md" -exec chmod 644 {} \;
+        else
+            echo "Warning: Skeleton directory not found at /usr/share/rcforge/skel"
+        fi
 
-        user=$(basename "$user_home")
+        # Set up user configuration for each normal user
+        for user_home in /home/*; do
+            # Skip if not a directory
+            [ ! -d "$user_home" ] && continue
 
-        # Skip system users
-        if [ $(id -u "$user" 2>/dev/null || echo 0) -ge 1000 ]; then
-            USER_DIR="$user_home/.config/rcforge"
+            user=$(basename "$user_home")
 
-            # Create user directories only if they don't exist
-            if [ ! -d "$USER_DIR" ]; then
-                echo "Creating configuration directory for user: $user"
+            # Skip system users
+            if [ $(id -u "$user" 2>/dev/null || echo 0) -ge 1000 ]; then
+                USER_DIR="$user_home/.config/rcforge"
 
-                # Create with proper permissions
-                mkdir -p "$USER_DIR/scripts" "$USER_DIR/include" "$USER_DIR/exports" "$USER_DIR/docs"
-                chown -R "$user:$user" "$USER_DIR"
+                # Create user directories with proper permissions
+                if [ ! -d "$USER_DIR" ]; then
+                    echo "Creating configuration directory for user: $user"
 
-                # Create README
-                cp /usr/share/doc/rcforge/README.md "$USER_DIR/docs/"
-                chown "$user:$user" "$USER_DIR/docs/README.md"
+                    # Copy the skeleton directory structure
+                    mkdir -p "$USER_DIR"
+                    cp -R /usr/share/rcforge/skel/* "$USER_DIR/" 2>/dev/null || true
+                    
+                    # Set appropriate ownership and permissions
+                    chown -R "$user:$user" "$USER_DIR"
+                    chmod -R 700 "$USER_DIR"
+                    find "$USER_DIR" -type f -name "*.sh" -exec chmod 700 {} \; 2>/dev/null || true
+                    find "$USER_DIR" -type f -name "*.md" -exec chmod 600 {} \; 2>/dev/null || true
+                    
+                    # Create a README in the scripts directory if it doesn't exist
+                    if [ ! -f "$USER_DIR/scripts/README.md" ]; then
+                        cat > "$USER_DIR/scripts/README.md" << 'EOFREADME'
+# rcForge Shell Configuration Scripts
 
-                # Copy example configurations if they don't exist
-                if [ ! -f "$USER_DIR/scripts/100_global_common_environment.sh" ]; then
-                    cp /usr/share/rcforge/examples/*.sh "$USER_DIR/scripts/" 2>/dev/null || true
-                    if [ -d "$USER_DIR/scripts" ] && [ "$(ls -A /usr/share/rcforge/examples/*.sh 2>/dev/null)" ]; then
-                        chown "$user:$user" "$USER_DIR/scripts/"*.sh
-                        chmod +x "$USER_DIR/scripts/"*.sh
+This directory contains your rcForge shell configuration scripts. Files follow
+the naming convention:
+
+```
+###_[hostname|global]_[environment]_[description].sh
+```
+
+Example: `100_global_common_environment.sh` will set environment variables for
+all hosts and all shells.
+
+Refer to the documentation in the docs directory for more information.
+EOFREADME
+                        chown "$user:$user" "$USER_DIR/scripts/README.md"
+                        chmod 600 "$USER_DIR/scripts/README.md"
                     fi
                 fi
             fi
-        fi
-    done
+        done
 
-    echo "rcForge installation complete."
-    echo ""
-    echo "To activate rcForge in your shell:"
-    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
-    echo "  # or for Zsh"
-    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"
-    echo ""
-    echo "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
-fi
+        echo "rcForge installation complete."
+        echo ""
+        echo "To activate rcForge in your shell:"
+        echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
+        echo "  # or for Zsh"
+        echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"
+        echo ""
+        echo "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        # Nothing to do here
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+# dh_installdeb will replace this with shell code automatically
+# generated by other debhelper scripts.
+#DEBHELPER#
 
 exit 0
-# EOF
