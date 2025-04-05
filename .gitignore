@@ -22,10 +22,10 @@ Thumbs.db
 *.log
 
 # The tmp folder
-tmp/*
+tmp/
 
 # Resource folders
-res/*
+res/
 
 # Package files 
 *.deb
