@@ -32,7 +32,7 @@ This guide explains how to build and install rcForge using Debian packages or Ho
 
 3. **Run the Build Script**
    ```bash
-   ./build-deb.sh 2.0.0
+   ./build-deb.sh 0.2.1
    ```
    This will:
    - Create a temporary build directory
@@ -43,7 +43,7 @@ This guide explains how to build and install rcForge using Debian packages or Ho
 
 4. **Install the Package**
    ```bash
-   sudo dpkg -i rcforge_2.0.0_all.deb
+   sudo dpkg -i rcforge_0.2.1_all.deb
    sudo apt install -f  # Resolve any dependencies
    ```
 
@@ -57,7 +57,7 @@ This guide explains how to build and install rcForge using Debian packages or Ho
 
 2. **Run the Homebrew Formula Script**
    ```bash
-   ./create-homebrew.sh 2.0.0
+   ./create-homebrew.sh 0.2.1
    ```
    This will:
    - Create a source tarball
@@ -89,7 +89,7 @@ This guide explains how to build and install rcForge using Debian packages or Ho
 ### Testing the Debian Package
 ```bash
 # Install the package
-sudo dpkg -i rcforge_2.0.0_all.deb
+sudo dpkg -i rcforge_0.2.1_all.deb
 sudo apt install -f
 
 # Verify installation

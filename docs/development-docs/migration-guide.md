@@ -212,7 +212,7 @@ If you encounter "command not found" errors for functions:
 
 2. **Check loading order**: Functions should be defined in files with lower sequence numbers
 
-3. **Use the include system**: For v2.0.0+, use the include system to access common functions:
+3. **Use the include system**: For v0.2.1+, use the include system to access common functions:
    ```bash
    include_function path add_to_path
    include_function common is_macos

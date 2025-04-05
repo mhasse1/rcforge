@@ -1,6 +1,6 @@
 # rcForge Include System
 
-The rcForge Include System in v2.0.0 brings modular shell functions to rcForge, allowing you to create, manage, and use shell functions in a modular, maintainable way.
+The rcForge Include System in v0.2.1 brings modular shell functions to rcForge, allowing you to create, manage, and use shell functions in a modular, maintainable way.
 
 ## Features
 

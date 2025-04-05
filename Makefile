@@ -1,5 +1,5 @@
 # Variables
-VERSION := 2.0.0 # Replace with your project's version
+VERSION := 0.2.1 # Replace with your project's version
 TARBALL := rcforge-$(VERSION).tar.gz
 FORMULA := rcforge.rb
 GITHUB_URL := https://github.com/mhasse1/rcforge # Replace with your GitHub URL

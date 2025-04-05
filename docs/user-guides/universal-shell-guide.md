@@ -121,7 +121,7 @@ source ~/.bashrc  # or ~/.zshrc
 
 ```bash
 # Install the package
-sudo dpkg -i rcforge_2.0.0_all.deb
+sudo dpkg -i rcforge_0.2.1_all.deb
 sudo apt install -f  # Resolve dependencies
 
 # Add to your shell configuration
@@ -348,7 +348,7 @@ This creates a diagram in `~/.config/rcforge/docs/loading_order_diagram.md` that
 
 ## Using the Include System
 
-rcForge v2.0.0+ includes a modular function system that lets you include only the functions you need:
+rcForge v0.2.1+ includes a modular function system that lets you include only the functions you need:
 
 ```bash
 # Include specific functions

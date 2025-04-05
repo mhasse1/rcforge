@@ -1,6 +1,6 @@
 # rcForge Security Guide
 
-This guide explains the security features in rcForge v2.0.0 and provides best practices for maintaining a secure shell configuration environment.
+This guide explains the security features in rcForge v0.2.1 and provides best practices for maintaining a secure shell configuration environment.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ This guide explains the security features in rcForge v2.0.0 and provides best pr
 
 ## Security Features
 
-rcForge v2.0.0 includes several key security features:
+rcForge v0.2.1 includes several key security features:
 
 1. **Root permission checks**: Prevents scripts from running with elevated privileges
 2. **Secure file permissions**: Protects your configuration files from other users
@@ -241,7 +241,7 @@ chmod 600 ~/.zshrc
 
 ## Conclusion
 
-The security enhancements in rcForge v2.0.0 are designed to protect your shell configurations from common security issues while maintaining usability. By following the best practices in this guide, you can ensure your shell environment remains secure and private.
+The security enhancements in rcForge v0.2.1 are designed to protect your shell configurations from common security issues while maintaining usability. By following the best practices in this guide, you can ensure your shell environment remains secure and private.
 
 Remember: good security is as much about user practices as it is about system features. Always be mindful of what information you include in your shell configurations and how you manage access to that information.
 # EOF

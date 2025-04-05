@@ -476,7 +476,7 @@ source_file "$HOME/.config/custom/settings.sh" "Custom settings"
 source_files "$HOME/.config/custom" "*.sh" "Custom scripts"
 ```
 
-### Include System (v2.0.0+)
+### Include System (v0.2.1+)
 
 ```bash
 # Include a specific function from a category

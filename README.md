@@ -53,7 +53,7 @@ All rcForge scripts now include security checks that prevent execution with root
 
 ### Secure File Permissions
 
-rcForge v2.0.0 implements a comprehensive security model with:
+rcForge v0.2.1 implements a comprehensive security model with:
 
 - Restrictive file permissions (`umask 077`) for all created files
 - Directory permissions set to 700 (user-only access)
@@ -80,7 +80,7 @@ bash ~/.config/rcforge/utils/install-rcforge.sh
 
 ```bash
 # Download the latest release package
-sudo dpkg -i rcforge_2.0.0_all.deb
+sudo dpkg -i rcforge_0.2.1_all.deb
 sudo apt install -f  # Resolve any dependencies
 
 # Add to your shell configuration (must be run as regular user, not root)
