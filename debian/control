@@ -15,7 +15,7 @@ Architecture: all
 Depends: ${misc:Depends}, bash (>= 4.0)
 Recommends: zsh
 Description: Modular shell configuration framework for Bash and other POSIX shells.
- rcForge's core functionality is written in Bash and requires Bash >=4.0
+ rcforge's core functionality is written in Bash and requires Bash >=4.0
  for full functionality. The entire system is written using shell
  scripts and standard *NIX commands, so should run on most systems.
  It provides a robust and flexible framework for managing shell
@@ -25,14 +25,14 @@ Description: Modular shell configuration framework for Bash and other POSIX shel
  order, ensuring a consistent and reproducible shell experience across
  different machines.
  .
- rcForge supports features such as machine-specific configurations,
+ rcforge supports features such as machine-specific configurations,
  enabling users to tailor their shell environment to individual
  systems. It also includes a modular inclusion system for code reuse,
  conflict detection to prevent configuration clashes, and export
  functionality for easy deployment to remote servers or to systems
- that do not have rcForge installed.
+ that do not have rcforge installed.
  .
- This package provides the core utilities and scripts for rcForge.
+ This package provides the core utilities and scripts for rcforge.
  .
  Key features:
   * Cross-shell compatibility

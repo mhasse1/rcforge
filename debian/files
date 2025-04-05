@@ -1,7 +1,7 @@
 ./rules:
 --------------- ./rules START
 #!/usr/bin/make -f
-# Simplified debian/rules file for rcForge
+# Simplified debian/rules file for rcforge
 
 export DH_COMPAT = 13
 
@@ -16,13 +16,13 @@ override_dh_install:
 --------------- ./rules END
 ./README.Debian:
 --------------- ./README.Debian START
-rcForge for Debian
+rcforge for Debian
 ------------------
 
-rcForge is a modular shell configuration framework, installed system-wide
+rcforge is a modular shell configuration framework, installed system-wide
 under /usr/share/rcforge and linked into /usr/bin/ for convenient use.
 
-This package integrates rcForge into Debian-based systems with additional
+This package integrates rcforge into Debian-based systems with additional
 post-install configuration logic and safe uninstall behavior.
 
 Key Details
@@ -42,7 +42,7 @@ Key Details
    These are symlinked from their source locations in `/usr/share/rcforge/`.
 
 2. User Configuration:
-   After installation, the `postinst` script creates a per-user rcForge configuration
+   After installation, the `postinst` script creates a per-user rcforge configuration
    directory at:
 
        ~/.config/rcforge/
@@ -51,7 +51,7 @@ Key Details
 
        /usr/share/rcforge/skel/
 
-   To enable rcForge in your shell, add the following to your shell profile:
+   To enable rcforge in your shell, add the following to your shell profile:
 
        # For Bash
        echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.bashrc
@@ -101,7 +101,7 @@ usr/share/rcforge/utils/check-checksums.sh  usr/bin/rcf-checksums
 --------------- ./links END
 ./changelog:
 --------------- ./changelog START
-rcForge (0.2.1-1) UNRELEASED; urgency=low
+rcforge (0.2.1-1) UNRELEASED; urgency=low
 
   * Initial release.
 
@@ -174,7 +174,7 @@ Architecture: all
 Depends: ${misc:Depends}, bash (>= 4.0)
 Recommends: zsh
 Description: Modular shell configuration framework for Bash and other POSIX shells.
- rcForge's core functionality is written in Bash and requires Bash >=4.0
+ rcforge's core functionality is written in Bash and requires Bash >=4.0
  for full functionality. The entire system is written using shell
  scripts and standard *NIX commands, so should run on most systems.
  It provides a robust and flexible framework for managing shell
@@ -184,14 +184,14 @@ Description: Modular shell configuration framework for Bash and other POSIX shel
  order, ensuring a consistent and reproducible shell experience across
  different machines.
  .
- rcForge supports features such as machine-specific configurations,
+ rcforge supports features such as machine-specific configurations,
  enabling users to tailor their shell environment to individual
  systems. It also includes a modular inclusion system for code reuse,
  conflict detection to prevent configuration clashes, and export
  functionality for easy deployment to remote servers or to systems
- that do not have rcForge installed.
+ that do not have rcforge installed.
  .
- This package provides the core utilities and scripts for rcForge.
+ This package provides the core utilities and scripts for rcforge.
  .
  Key features:
   * Cross-shell compatibility
@@ -228,7 +228,7 @@ docs/user-guides/skel-readme                    usr/share/rcforge/skel/README.md
 ./prerm:
 --------------- ./prerm START
 #!/bin/bash
-# prerm - Pre-removal script for rcForge Debian package
+# prerm - Pre-removal script for rcforge Debian package
 # Author: Mark Hasse
 # Date: 2025-03-29
 
@@ -239,14 +239,14 @@ LC_ALL=""
 LANG=""
 
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    echo "Removing rcForge system files..."
+    echo "Removing rcforge system files..."
 
     # Note: We don't remove user configuration files in ~/.config/rcforge
     # This preserves user customizations even if they reinstall later
 
     if [ "$1" = "purge" ]; then
         echo "Note: User configuration files in ~/.config/rcforge are preserved."
-        echo "To completely remove all rcForge files, users should manually delete:"
+        echo "To completely remove all rcforge files, users should manually delete:"
         echo "  ~/.config/rcforge"
     fi
 fi
@@ -256,7 +256,7 @@ exit 0
 ./postinst:
 --------------- ./postinst START
 #!/bin/bash
-# postinst - Post-installation script for rcForge Debian package
+# postinst - Post-installation script for rcforge Debian package
 # Author: Mark Hasse
 # Date: 2025-04-05
 # Version: 0.2.1
@@ -270,7 +270,7 @@ LANG=""
 # Process arguments
 case "$1" in
   configure)
-    echo "Configuring rcForge user environment..."
+    echo "Configuring rcforge user environment..."
 
     # Ensure the skeleton directory exists and has correct permissions
     if [ -d "/usr/share/rcforge/skel" ]; then
@@ -310,7 +310,7 @@ case "$1" in
 
           # Create a README in the scripts directory if it doesn't exist
           if [ ! -f "$USER_DIR/scripts/README.md" ]; then
-            printf "# rcForge Shell Configuration Scripts\n\nThis directory contains your rcForge shell configuration scripts. Files follow\nthe naming convention:\n\n\`\`\`\n###_[hostname|global]_[environment]_[description].sh\n\`\`\`\n\nExample: \`100_global_common_environment.sh\` will set environment variables for\nall hosts and all shells.\n\nRefer to the documentation in the docs directory for more information.\n" > "$USER_DIR/scripts/README.md"
+            printf "# rcforge Shell Configuration Scripts\n\nThis directory contains your rcforge shell configuration scripts. Files follow\nthe naming convention:\n\n\`\`\`\n###_[hostname|global]_[environment]_[description].sh\n\`\`\`\n\nExample: \`100_global_common_environment.sh\` will set environment variables for\nall hosts and all shells.\n\nRefer to the documentation in the docs directory for more information.\n" > "$USER_DIR/scripts/README.md"
             chown "$user:$user" "$USER_DIR/scripts/README.md"
             chmod 600 "$USER_DIR/scripts/README.md"
           fi
@@ -318,9 +318,9 @@ case "$1" in
       fi
     done
 
-    echo "rcForge installation complete."
+    echo "rcforge installation complete."
     echo ""
-    echo "To activate rcForge in your shell:"
+    echo "To activate rcforge in your shell:"
     echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
     echo "  # or for Zsh"
     echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"

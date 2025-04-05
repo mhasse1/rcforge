@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# Simplified debian/rules file for rcForge
+# Simplified debian/rules file for rcforge
 
 export DH_COMPAT = 13
 

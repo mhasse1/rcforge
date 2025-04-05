@@ -1,10 +1,10 @@
-rcForge for Debian
+rcforge for Debian
 ------------------
 
-rcForge is a modular shell configuration framework, installed system-wide
+rcforge is a modular shell configuration framework, installed system-wide
 under /usr/share/rcforge and linked into /usr/bin/ for convenient use.
 
-This package integrates rcForge into Debian-based systems with additional
+This package integrates rcforge into Debian-based systems with additional
 post-install configuration logic and safe uninstall behavior.
 
 Key Details
@@ -24,7 +24,7 @@ Key Details
    These are symlinked from their source locations in `/usr/share/rcforge/`.
 
 2. User Configuration:
-   After installation, the `postinst` script creates a per-user rcForge configuration
+   After installation, the `postinst` script creates a per-user rcforge configuration
    directory at:
 
        ~/.config/rcforge/
@@ -33,7 +33,7 @@ Key Details
 
        /usr/share/rcforge/skel/
 
-   To enable rcForge in your shell, add the following to your shell profile:
+   To enable rcforge in your shell, add the following to your shell profile:
 
        # For Bash
        echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.bashrc

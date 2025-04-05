@@ -1,5 +1,5 @@
 #!/bin/bash
-# postinst - Post-installation script for rcForge Debian package
+# postinst - Post-installation script for rcforge Debian package
 # Author: Mark Hasse
 # Date: 2025-04-05
 # Version: 0.2.1
@@ -13,7 +13,7 @@ LANG=""
 # Process arguments
 case "$1" in
   configure)
-    echo "Configuring rcForge user environment..."
+    echo "Configuring rcforge user environment..."
 
     # Ensure the skeleton directory exists and has correct permissions
     if [ -d "/usr/share/rcforge/skel" ]; then
@@ -53,7 +53,7 @@ case "$1" in
 
           # Create a README in the scripts directory if it doesn't exist
           if [ ! -f "$USER_DIR/scripts/README.md" ]; then
-            printf "# rcForge Shell Configuration Scripts\n\nThis directory contains your rcForge shell configuration scripts. Files follow\nthe naming convention:\n\n\`\`\`\n###_[hostname|global]_[environment]_[description].sh\n\`\`\`\n\nExample: \`100_global_common_environment.sh\` will set environment variables for\nall hosts and all shells.\n\nRefer to the documentation in the docs directory for more information.\n" > "$USER_DIR/scripts/README.md"
+            printf "# rcforge Shell Configuration Scripts\n\nThis directory contains your rcforge shell configuration scripts. Files follow\nthe naming convention:\n\n\`\`\`\n###_[hostname|global]_[environment]_[description].sh\n\`\`\`\n\nExample: \`100_global_common_environment.sh\` will set environment variables for\nall hosts and all shells.\n\nRefer to the documentation in the docs directory for more information.\n" > "$USER_DIR/scripts/README.md"
             chown "$user:$user" "$USER_DIR/scripts/README.md"
             chmod 600 "$USER_DIR/scripts/README.md"
           fi
@@ -61,9 +61,9 @@ case "$1" in
       fi
     done
 
-    echo "rcForge installation complete."
+    echo "rcforge installation complete."
     echo ""
-    echo "To activate rcForge in your shell:"
+    echo "To activate rcforge in your shell:"
     echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
     echo "  # or for Zsh"
     echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"
