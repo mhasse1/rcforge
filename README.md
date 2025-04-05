@@ -149,6 +149,7 @@ If you prefer to install manually:
   ├── src/                    # Source code
   │   └── lib/                # Libraries
   ├── include/                # System include functions
+  ├── skel/...                # Skel folder for user installation
   └── rcforge.sh              # Main loader script
 ```
 
