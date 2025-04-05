@@ -1,20 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##########################################
-# rcforge v2.0.0 - Universal Shell Configuration
+# rcforge v0.2.0 - Universal Shell Configuration
 # Main loader script that sources all configurations
 # in the correct order based on hostname and shell
+# Author: Mark Hasse
+# Date: 2025-04-05
 ##########################################
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit on error
+set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Check for Bash version requirement if using Bash
 if [[ -n "${BASH_VERSION:-}" ]]; then
   bash_major_version=${BASH_VERSION%%.*}
 
   if [[ "$bash_major_version" -lt 4 ]]; then
-    echo "Error: rcForge v2.0.0 requires Bash 4.0 or higher"
+    echo "Error: rcForge v0.2.0 requires Bash 4.0 or higher"
     echo "Your current Bash version is: $BASH_VERSION"
     echo ""
     echo "On macOS, you can install a newer version with Homebrew:"
@@ -26,12 +28,24 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     echo "And optionally set it as your default shell:"
     echo "  chsh -s /opt/homebrew/bin/bash"
     echo ""
-    echo "For now, you can use your existing v1.x.x configuration, or run with a newer version of Bash."
+    echo "For now, you can use your existing v0.1.x configuration, or run with a newer version of Bash."
 
     # Instead of exiting, which would prevent loading any configuration,
     # we'll disable the include system for older Bash versions
     RCFORGE_DISABLE_INCLUDE=1
     echo "Include system will be disabled due to Bash version requirement."
+  fi
+fi
+
+# Check for root execution (security feature)
+if [[ $EUID -eq 0 ]]; then
+  if [[ -z "${RCFORGE_ALLOW_ROOT:-}" ]]; then
+    echo "WARNING: rcForge should not be run as root for security reasons."
+    echo "If you must proceed, set RCFORGE_ALLOW_ROOT=1 in your environment."
+    echo "See the security guide for more information."
+    # We don't exit here to maintain backward compatibility
+  else
+    echo "WARNING: Running as root with RCFORGE_ALLOW_ROOT override. This is not recommended."
   fi
 fi
 
@@ -44,6 +58,7 @@ if [[ -n "${RCFORGE_DEV:-}" ]]; then
   export RCFORGE_UTILS="$RCFORGE_ROOT/utils"
   export RCFORGE_INCLUDES="$RCFORGE_ROOT/include"
   export RCFORGE_LIB="$RCFORGE_ROOT/lib"
+  export RCFORGE_SKEL="$RCFORGE_ROOT/skel"
 else
   # Production mode
   # Configure user level directories
@@ -63,6 +78,7 @@ else
   fi
 
   export RCFORGE_SYS_INCLUDES="$RCFORGE_SYS_DIR/include"
+  export RCFORGE_SKEL="$RCFORGE_SYS_DIR/skel"
 
   # Primary directories (with preference for user files)
   export RCFORGE_ROOT="$RCFORGE_USER_DIR"
@@ -71,6 +87,25 @@ else
   export RCFORGE_CORE="$RCFORGE_SYS_DIR/core"
   export RCFORGE_UTILS="$RCFORGE_SYS_DIR/utils"
   export RCFORGE_LIB="$RCFORGE_SYS_DIR/lib"
+  
+  # Check if user directories exist, if not try to create them
+  if [[ ! -d "$RCFORGE_USER_DIR" ]]; then
+    # Try to create user config directory and populate from skel if available
+    if [[ -d "$RCFORGE_SKEL" ]]; then
+      echo "Initializing new rcForge user configuration from skeleton..."
+      mkdir -p "$RCFORGE_USER_DIR"
+      cp -R "$RCFORGE_SKEL"/* "$RCFORGE_USER_DIR"/ 2>/dev/null || true
+      # Set appropriate permissions
+      chmod -R 700 "$RCFORGE_USER_DIR"
+      find "$RCFORGE_USER_DIR" -type f -name "*.sh" -exec chmod 700 {} \; 2>/dev/null || true
+      find "$RCFORGE_USER_DIR" -type f -not -name "*.sh" -exec chmod 600 {} \; 2>/dev/null || true
+    else
+      # Create basic directory structure if skel not available
+      mkdir -p "$RCFORGE_USER_SCRIPTS" "$RCFORGE_USER_INCLUDES"
+      mkdir -p "$RCFORGE_USER_DIR/exports" "$RCFORGE_USER_DIR/checksums" "$RCFORGE_USER_DIR/docs"
+      chmod -R 700 "$RCFORGE_USER_DIR"
+    fi
+  fi
 fi
 
 # Uncomment for debugging
@@ -218,3 +253,4 @@ fi
 ##########################################
 # End of configuration
 ##########################################
+# EOF
