@@ -1,0 +1,8 @@
+usr/share/rcforge/rcforge.sh                usr/bin/rcforge
+usr/share/rcforge/utils/rcforge-setup.sh    usr/bin/rcforge-setup
+usr/share/rcforge/utils/export-config.sh    usr/bin/rcf-export
+usr/share/rcforge/utils/diagram-config.sh   usr/bin/rcf-diagram
+usr/share/rcforge/utils/create-include.sh   usr/bin/rcf-include
+usr/share/rcforge/utils/test-include.sh     usr/bin/rcf-test
+usr/share/rcforge/utils/check-seq.sh        usr/bin/rcf-seq
+usr/share/rcforge/utils/check-checksums.sh  usr/bin/rcf-checksums

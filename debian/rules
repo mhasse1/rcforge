@@ -1,51 +1,13 @@
 #!/usr/bin/make -f
-# Minimal debian/rules file for rcForge
+# Simplified debian/rules file for rcForge
 
-export DH_VERBOSE = 1
+export DH_COMPAT = 13
 
 %:
-	dh $@
+  dh $@
 
-override_dh_auto_install:
-	# Create directory structure
-	mkdir -p debian/rcforge/usr/share/rcforge
-	mkdir -p debian/rcforge/usr/share/doc/rcforge
-	mkdir -p debian/rcforge/usr/bin
-	
-	# Install core files
-	cp -r core debian/rcforge/usr/share/rcforge/
-	cp -r utils debian/rcforge/usr/share/rcforge/
-	cp -r lib debian/rcforge/usr/share/rcforge/
-	cp -r include debian/rcforge/usr/share/rcforge/
-	
-	# Install main scripts
-	cp rcforge.sh debian/rcforge/usr/share/rcforge/
-	cp include-structure.sh debian/rcforge/usr/share/rcforge/
-	
-	# Install documentation
-	cp -r docs/* debian/rcforge/usr/share/doc/rcforge/
-	cp LICENSE debian/rcforge/usr/share/doc/rcforge/
-	cp README.md debian/rcforge/usr/share/doc/rcforge/
-	
-	# Create symlinks
-	ln -sf /usr/share/rcforge/rcforge.sh debian/rcforge/usr/bin/rcforge
-	ln -sf /usr/share/rcforge/utils/rcforge-setup.sh debian/rcforge/usr/bin/rcforge-setup
-	ln -sf /usr/share/rcforge/utils/export-config.sh debian/rcforge/usr/bin/rcf-export
-	ln -sf /usr/share/rcforge/utils/diagram-config.sh debian/rcforge/usr/bin/rcf-diagram
-	ln -sf /usr/share/rcforge/utils/create-include.sh debian/rcforge/usr/bin/rcf-include
-	
-	# Make scripts executable
-	find debian/rcforge -name "*.sh" -exec chmod +x {} \;
-
-override_dh_fixperms:
-	dh_fixperms
-	# Set restrictive permissions on key directories and files
-	chmod 755 debian/rcforge/usr/bin/rcforge
-	chmod 755 debian/rcforge/usr/bin/rcforge-setup
-	chmod 755 debian/rcforge/usr/bin/rcf-export
-	chmod 755 debian/rcforge/usr/bin/rcf-diagram
-	chmod 755 debian/rcforge/usr/bin/rcf-include
-	chmod 755 debian/rcforge/usr/share/rcforge/rcforge.sh
-	chmod 755 debian/rcforge/usr/share/rcforge/include-structure.sh
-	find debian/rcforge/usr/share/rcforge/utils -name "*.sh" -exec chmod 755 {} \;
-# EOF
+override_dh_install:
+  dh_install
+  # Example: If you need to do something *after* basic installation, do it here
+  # For example, create a specific directory that dh_install doesn't handle
+  # mkdir -p $(CURDIR)/debian/tmp/usr/share/rcforge/mydir

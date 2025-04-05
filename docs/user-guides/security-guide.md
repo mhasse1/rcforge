@@ -56,19 +56,28 @@ RCFORGE_ALLOW_ROOT=1 source ~/.config/rcforge/rcforge.sh
 
 ### Default Permissions Model
 
-rcForge v2.0.0 uses a restrictive permission model to protect your configuration files:
+rcForge v0.2.0 employs a restrictive permission model to protect user configuration files and sensitive data, such as API keys.  This ensures that only the user can access and modify their rcForge configuration.
 
-- **Directories**: 700 permissions (rwx------)
-  - Only the owner can read, write, and access the directories
-  - No permissions for group or world
+- **Ownership:** All rcForge files and directories within the user's `~/.config/rcforge/` directory are owned by the user.
 
-- **Data files**: 600 permissions (rw-------)
-  - Only the owner can read and write the files
-  - No permissions for group or world
+- **Configuration and Data Files:** 600 permissions (rw-------)
+    -   Only the owner can read and write these files.
+    -   No permissions for group or world.
 
-- **Executable scripts**: 700 permissions (rwx------)
-  - Only the owner can read, write, and execute the scripts
-  - No permissions for group or world
+-   **Executable Shell Scripts:** 700 permissions (rwx------)
+    -   Only the owner can read, write, and execute these scripts.
+    -   No permissions for group or world.
+
+**Example:**
+
+After installation, the files in the user's `~/.config/rcforge/scripts/` directory will have the following ownership and permissions:
+
+```
+rw------- 1 user user  123 Apr  5 10:00 100_global_common.sh  # Configuration file
+-rwx------ 1 user user  456 Apr  5 10:00 my_function.sh       # Executable script
+```
+
+This means that only `user` can read and write `100_global_common.sh`, and only `user` can read, write, and execute `my_function.sh`. Other users and processes running as the same user cannot access these files.
 
 ### Umask Setting
 
