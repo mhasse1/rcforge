@@ -2,11 +2,33 @@
 VERSION := 0.2.1 # Replace with your project's version
 TARBALL := rcforge-$(VERSION).tar.gz
 FORMULA := rcforge.rb
-GITHUB_URL := https://github.com/mhasse1/rcforge # Replace with your GitHub URL
+GITHUB_URL := https://github.com/mhasse1/rcforge
 RELEASE_URL := $(GITHUB_URL)/archive/refs/tags/v$(VERSION).tar.gz
 
 # Default target
 all: tarball checksum formula
+
+# Debian-specific variables
+DEB_NAME := rcforge_$(VERSION)_all.deb
+DEB_BUILD_DIR := debian/tmp # Temporary build directory
+
+# Default target (extended)
+all: tarball checksum formula deb
+
+# Debian packaging target
+deb:
+	@echo "Building Debian package: $(DEB_NAME)"
+	# Ensure dependencies are installed (in the build environment)
+	# Adjust this based on your needs
+	#sudo apt-get install -y debhelper
+
+	# Use dpkg-buildpackage (non-interactive)
+	dpkg-buildpackage -uc -us -b
+
+	# Move the .deb file to the current directory
+	mv ../$(DEB_NAME) .
+
+	@echo "Debian package created: $(DEB_NAME)"
 
 # Create the release tarball
 tarball:
