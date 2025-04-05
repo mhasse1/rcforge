@@ -1,0 +1,71 @@
+rcForge for Debian
+------------------
+
+rcForge is a modular shell configuration framework, installed system-wide
+under /usr/share/rcforge and linked into /usr/bin/ for convenient use.
+
+This package integrates rcForge into Debian-based systems with additional
+post-install configuration logic and safe uninstall behavior.
+
+Key Details
+===========
+
+1. Executables:
+   The following commands are made available system-wide:
+     - rcforge
+     - rcforge-setup
+     - rcf-export
+     - rcf-diagram
+     - rcf-include
+     - rcf-test
+     - rcf-seq
+     - rcf-checksums
+
+   These are symlinked from their source locations in `/usr/share/rcforge/`.
+
+2. User Configuration:
+   After installation, the `postinst` script creates a per-user rcForge configuration
+   directory at:
+
+       ~/.config/rcforge/
+
+   This is populated from the system-wide skeleton at:
+
+       /usr/share/rcforge/skel/
+
+   To enable rcForge in your shell, add the following to your shell profile:
+
+       # For Bash
+       echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.bashrc
+
+       # For Zsh
+       echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.zshrc
+
+3. Preservation of User Data:
+   User configurations under `~/.config/rcforge/` are **not removed** during uninstall.
+   To completely purge user data, users must remove that directory manually.
+
+4. Logs:
+   Install-time actions and any permission issues are logged to:
+
+       /var/log/rcforge-install.log
+
+5. Compatibility:
+   - Requires Bash >= 4.0
+   - Recommends Zsh for multi-shell support
+   - All scripts are POSIX-compliant and use standard UNIX tools
+
+6. Filesystem Layout Summary:
+   - `/usr/share/rcforge/` - Core scripts, utilities, skel
+   - `/usr/bin/` - CLI tools (symlinked)
+   - `/usr/share/doc/rcforge/` - Documentation and user guides
+
+Upstream Source
+===============
+Upstream source and issue tracking:  
+  https://github.com/mhasse1/rcforge
+
+Maintainer
+==========
+Mark Hasse <mark@analogedge.com>
+Analog Edge LLC

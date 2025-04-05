@@ -1,0 +1,346 @@
+./rules:
+--------------- ./rules START
+#!/usr/bin/make -f
+# Simplified debian/rules file for rcForge
+
+export DH_COMPAT = 13
+
+%:
+  dh $@
+
+override_dh_install:
+  dh_install
+  # Example: If you need to do something *after* basic installation, do it here
+  # For example, create a specific directory that dh_install doesn't handle
+  # mkdir -p $(CURDIR)/debian/tmp/usr/share/rcforge/mydir
+--------------- ./rules END
+./README.Debian:
+--------------- ./README.Debian START
+rcForge for Debian
+------------------
+
+rcForge is a modular shell configuration framework, installed system-wide
+under /usr/share/rcforge and linked into /usr/bin/ for convenient use.
+
+This package integrates rcForge into Debian-based systems with additional
+post-install configuration logic and safe uninstall behavior.
+
+Key Details
+===========
+
+1. Executables:
+   The following commands are made available system-wide:
+     - rcforge
+     - rcforge-setup
+     - rcf-export
+     - rcf-diagram
+     - rcf-include
+     - rcf-test
+     - rcf-seq
+     - rcf-checksums
+
+   These are symlinked from their source locations in `/usr/share/rcforge/`.
+
+2. User Configuration:
+   After installation, the `postinst` script creates a per-user rcForge configuration
+   directory at:
+
+       ~/.config/rcforge/
+
+   This is populated from the system-wide skeleton at:
+
+       /usr/share/rcforge/skel/
+
+   To enable rcForge in your shell, add the following to your shell profile:
+
+       # For Bash
+       echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.bashrc
+
+       # For Zsh
+       echo 'source "/usr/share/rcforge/rcforge.sh"' >> ~/.zshrc
+
+3. Preservation of User Data:
+   User configurations under `~/.config/rcforge/` are **not removed** during uninstall.
+   To completely purge user data, users must remove that directory manually.
+
+4. Logs:
+   Install-time actions and any permission issues are logged to:
+
+       /var/log/rcforge-install.log
+
+5. Compatibility:
+   - Requires Bash >= 4.0
+   - Recommends Zsh for multi-shell support
+   - All scripts are POSIX-compliant and use standard UNIX tools
+
+6. Filesystem Layout Summary:
+   - `/usr/share/rcforge/` - Core scripts, utilities, skel
+   - `/usr/bin/` - CLI tools (symlinked)
+   - `/usr/share/doc/rcforge/` - Documentation and user guides
+
+Upstream Source
+===============
+Upstream source and issue tracking:  
+  https://github.com/mhasse1/rcforge
+
+Maintainer
+==========
+Mark Hasse <mark@analogedge.com>
+Analog Edge LLC
+--------------- ./README.Debian END
+./links:
+--------------- ./links START
+usr/share/rcforge/rcforge.sh                usr/bin/rcforge
+usr/share/rcforge/utils/rcforge-setup.sh    usr/bin/rcforge-setup
+usr/share/rcforge/utils/export-config.sh    usr/bin/rcf-export
+usr/share/rcforge/utils/diagram-config.sh   usr/bin/rcf-diagram
+usr/share/rcforge/utils/create-include.sh   usr/bin/rcf-include
+usr/share/rcforge/utils/test-include.sh     usr/bin/rcf-test
+usr/share/rcforge/utils/check-seq.sh        usr/bin/rcf-seq
+usr/share/rcforge/utils/check-checksums.sh  usr/bin/rcf-checksums
+--------------- ./links END
+./changelog:
+--------------- ./changelog START
+rcForge (0.2.1-1) UNRELEASED; urgency=low
+
+  * Initial release.
+
+ -- mark <mark@analogedge.com>  Sat, 05 Apr 2025 19:23:43 +0000
+--------------- ./changelog END
+./dirs:
+--------------- ./dirs START
+usr/share/rcforge/examples
+usr/share/rcforge/core
+usr/share/rcforge/utils
+usr/share/rcforge/lib
+usr/share/rcforge/include
+usr/share/rcforge/src
+usr/share/doc/rcforge
+usr/share/rcforge/skel/scripts
+usr/share/rcforge/skel/docs
+usr/share/rcforge/skel/include
+usr/share/rcforge/skel/exports
+usr/share/rcforge/skel/checksums
+--------------- ./dirs END
+./copyright:
+--------------- ./copyright START
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rcforge
+Source: https://github.com/mhasse1/rcforge.git
+
+Files: *
+Copyright: 2025 Analog Edge LLC
+License: MIT
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+--------------- ./copyright END
+./source/format:
+--------------- ./source/format START
+3.0 (quilt)
+--------------- ./source/format END
+./control:
+--------------- ./control START
+Source: rcforge
+Section: shells
+Priority: optional
+Maintainer: Mark Hasse <mark@analogedge.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.2.0
+Homepage: https://github.com/mhasse1/rcforge
+Installed-Size: 1178
+Vcs-Browser: https://github.com/mhasse1/rcforge
+Vcs-Git: https://github.com/mhasse1/rcforge.git
+Rules-Requires-Root: no
+
+Package: rcforge
+Architecture: all
+Depends: ${misc:Depends}, bash (>= 4.0)
+Recommends: zsh
+Description: Modular shell configuration framework for Bash and other POSIX shells.
+ rcForge's core functionality is written in Bash and requires Bash >=4.0
+ for full functionality. The entire system is written using shell
+ scripts and standard *NIX commands, so should run on most systems.
+ It provides a robust and flexible framework for managing shell
+ configurations and is equipped with an extensive set of support
+ scripts and functions. It allows users to define their shell
+ environment using modular scripts organized by purpose and loading
+ order, ensuring a consistent and reproducible shell experience across
+ different machines.
+ .
+ rcForge supports features such as machine-specific configurations,
+ enabling users to tailor their shell environment to individual
+ systems. It also includes a modular inclusion system for code reuse,
+ conflict detection to prevent configuration clashes, and export
+ functionality for easy deployment to remote servers or to systems
+ that do not have rcForge installed.
+ .
+ This package provides the core utilities and scripts for rcForge.
+ .
+ Key features:
+  * Cross-shell compatibility
+  * Machine-specific configurations
+  * Deterministic loading order
+  * Conflict detection
+  * Include system for modular functions
+ .
+ Currently in version 0.2.0 (pre-release)
+--------------- ./control END
+./install:
+--------------- ./install START
+# Core system
+rcforge.sh                                      usr/share/rcforge
+include-structure.sh                            usr/share/rcforge
+core/*                                          usr/share/rcforge/core
+utils/*                                         usr/share/rcforge/utils
+lib/*                                           usr/share/rcforge/lib
+include/*                                       usr/share/rcforge/include
+scripts/*.sh                                    usr/share/rcforge/examples
+
+# Documentation
+README.md                                       usr/share/doc/rcforge
+LICENSE                                         usr/share/doc/rcforge
+CHANGELOG.md                                    usr/share/doc/rcforge
+docs/*                                          usr/share/doc/rcforge/docs
+
+# Skeleton directory for new user setup
+scripts/*                                       usr/share/rcforge/skel/scripts
+docs/user-guides/README.md                      usr/share/rcforge/skel/docs
+docs/user-guides/getting-started.md             usr/share/rcforge/skel/docs
+docs/user-guides/skel-readme                    usr/share/rcforge/skel/README.md
+--------------- ./install END
+./prerm:
+--------------- ./prerm START
+#!/bin/bash
+# prerm - Pre-removal script for rcForge Debian package
+# Author: Mark Hasse
+# Date: 2025-03-29
+
+set -e  # Exit on error
+
+# Use the system's default locale settings
+LC_ALL=""
+LANG=""
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    echo "Removing rcForge system files..."
+
+    # Note: We don't remove user configuration files in ~/.config/rcforge
+    # This preserves user customizations even if they reinstall later
+
+    if [ "$1" = "purge" ]; then
+        echo "Note: User configuration files in ~/.config/rcforge are preserved."
+        echo "To completely remove all rcForge files, users should manually delete:"
+        echo "  ~/.config/rcforge"
+    fi
+fi
+
+exit 0
+--------------- ./prerm END
+./postinst:
+--------------- ./postinst START
+#!/bin/bash
+# postinst - Post-installation script for rcForge Debian package
+# Author: Mark Hasse
+# Date: 2025-04-05
+# Version: 0.2.0
+
+set -e  # Exit on error
+
+# Use the system's default locale settings
+LC_ALL=""
+LANG=""
+
+# Process arguments
+case "$1" in
+  configure)
+    echo "Configuring rcForge user environment..."
+
+    # Ensure the skeleton directory exists and has correct permissions
+    if [ -d "/usr/share/rcforge/skel" ]; then
+      chmod 755 /usr/share/rcforge/skel
+      find /usr/share/rcforge/skel -type d -exec chmod 755 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting directory permissions in /usr/share/rcforge/skel" >>/var/log/rcforge-install.log
+      find /usr/share/rcforge/skel -type f -name "*.sh" -exec chmod 644 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting script permissions in /usr/share/rcforge/skel" >>/var/log/rcforge-install.log
+      find /usr/share/rcforge/skel -type f -name "*.md" -exec chmod 644 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting markdown file permissions in /usr/share/rcforge/skel" >>/var/log/rcforge-install.log
+    else
+      echo "Warning: Skeleton directory not found at /usr/share/rcforge/skel"
+    fi
+
+    # Set up user configuration for each normal user
+    for user_home in /home/*; do
+      # Skip if not a directory
+      [ ! -d "$user_home" ] && continue
+
+      user=$(basename "$user_home")
+
+      # Skip system users
+      if [ $(id -u "$user" 2>/dev/null || echo 0) -ge 1000 ]; then
+        USER_DIR="$user_home/.config/rcforge"
+
+        # Create user directories with proper permissions
+        if [ ! -d "$USER_DIR" ]; then
+          echo "Creating configuration directory for user: $user"
+
+          # Copy the skeleton directory structure
+          mkdir -p "$USER_DIR"
+          cp -R /usr/share/rcforge/skel/* "$USER_DIR/" 2>>/var/log/rcforge-install.log || echo "Error copying skel to $USER_DIR" >>/var/log/rcforge-install.log
+
+          # Set appropriate ownership and permissions
+          chown -R "$user:$user" "$USER_DIR"
+          chmod 755 "$USER_DIR"
+          find "$USER_DIR" -type d -exec chmod 755 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting directory permissions in $USER_DIR" >>/var/log/rcforge-install.log
+          find "$USER_DIR" -type f -exec chmod 600 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting file permissions in $USER_DIR" >>/var/log/rcforge-install.log
+          find "$USER_DIR" -type f -name "*.sh" -exec chmod 700 {} \; 2>>/var/log/rcforge-install.log || echo "Error setting script permissions in $USER_DIR" >>/var/log/rcforge-install.log
+
+          # Create a README in the scripts directory if it doesn't exist
+          if [ ! -f "$USER_DIR/scripts/README.md" ]; then
+            printf "# rcForge Shell Configuration Scripts\n\nThis directory contains your rcForge shell configuration scripts. Files follow\nthe naming convention:\n\n\`\`\`\n###_[hostname|global]_[environment]_[description].sh\n\`\`\`\n\nExample: \`100_global_common_environment.sh\` will set environment variables for\nall hosts and all shells.\n\nRefer to the documentation in the docs directory for more information.\n" > "$USER_DIR/scripts/README.md"
+            chown "$user:$user" "$USER_DIR/scripts/README.md"
+            chmod 600 "$USER_DIR/scripts/README.md"
+          fi
+        fi
+      fi
+    done
+
+    echo "rcForge installation complete."
+    echo ""
+    echo "To activate rcForge in your shell:"
+    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.bashrc"
+    echo "  # or for Zsh"
+    echo "  echo 'source \"/usr/share/rcforge/rcforge.sh\"' >> ~/.zshrc"
+    echo ""
+    echo "Then restart your shell or run: source ~/.bashrc (or ~/.zshrc)"
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
+    # Nothing to do here
+    ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1\'" >&2
+    exit 1
+    ;;
+esac
+
+# dh_installdeb will replace this with shell code automatically
+# generated by other debhelper scripts.
+#DEBHELPER#
+
+exit 0
+--------------- ./postinst END
