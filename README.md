@@ -8,12 +8,13 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 
 ## System Requirements
 
-- **Bash 4.0+** (required, the include system and associative arrays depend on Bash 4.0+)
-- Zsh 5.0+ (partially supported, but some features may not work correctly)
+- Bash 4.0+ (required for rcForge's internal core functionality)
+- Zsh 5.0+ (fully supported)
 - Git (for version control)
 - Standard UNIX utilities (find, sort, etc.)
 
 > **Note for older Bash versions**: If you're using Bash 3.2 (default on macOS), the system will operate in a limited compatibility mode without the include system. For full functionality, install a newer version via Homebrew:
+>
 > ```bash
 > brew install bash
 > # Add to /etc/shells if you want to make it your default shell

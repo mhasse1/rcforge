@@ -27,6 +27,8 @@ rcForge is a modular shell configuration system that allows you to organize your
 
 This guide will show you how to create scripts that leverage these functions to build robust shell configurations.
 
+The core system is written in Bash due to its wider availability across Unix-like systems. Zsh and Bash are heavily tested as end-user interactive shells. Other POSIX shells may work as well, but are untested.  More exotic shells like Fish also have not been tested.
+
 ## Development Environment
 
 As a developer working on rcForge itself, you'll want to use the development environment setup:
