@@ -14,7 +14,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants
 readonly gc_app_name="rcForge"
-readonly gc_version="0.2.0"
+readonly gc_version="0.2.1"
 
 # CheckRoot: Prevent execution of shell configuration scripts as root
 # Usage: CheckRoot [--skip-interactive]

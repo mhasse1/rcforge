@@ -59,7 +59,7 @@ bash ~/.config/rcforge/utils/install-rcforge.sh
 
 ```bash
 # Install package
-sudo dpkg -i rcforge_0.2.0_all.deb
+sudo dpkg -i rcforge_0.2.1_all.deb
 sudo apt install -f  # Resolve dependencies
 
 # Source in shell configuration
@@ -162,7 +162,7 @@ Comprehensive guides available:
 
 ## Version
 
-Current version: 0.2.0 (Pre-release)
+Current version: 0.2.1 (Pre-release)
 
 ## License
 

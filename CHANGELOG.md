@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.2.1
 
 ## [Unreleased]
 
-## [0.2.0] - 2025-03-29
+## [0.2.1] - 2025-03-29
 ### Changed
-- Adopted new versioning scheme - what was previously known as v2.0 is now v0.2.0
+- Adopted new versioning scheme - what was previously known as v2.0 is now v0.2.1
 - Changed all version references throughout the codebase
 - Updated documentation to reflect pre-release status
 
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v0.2.1
 - Sequence-based loading system
 - Early version of conflict detection
 
-[Unreleased]: https://github.com/mhasse1/rcforge/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/mhasse1/rcforge/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/mhasse1/rcforge/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mhasse1/rcforge/compare/v0.1.0...v0.2.1
 [0.1.0]: https://github.com/mhasse1/rcforge/releases/tag/v0.1.0
 # EOF

@@ -33,7 +33,7 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 
 ## Version Status
 
-> **Development Status**: rcForge is currently in pre-release stage (v0.2.0). This means it's still under active development and testing. While the core features are stable, you may encounter bugs or incomplete functionality.
+> **Development Status**: rcForge is currently in pre-release stage (v0.2.1). This means it's still under active development and testing. While the core features are stable, you may encounter bugs or incomplete functionality.
 
 ## Installation
 
@@ -53,7 +53,7 @@ bash ~/.config/rcforge/utils/install-rcforge.sh
 
 ```bash
 # Download the latest release package
-sudo dpkg -i rcforge_0.2.0_all.deb
+sudo dpkg -i rcforge_0.2.1_all.deb
 sudo apt install -f  # Resolve any dependencies
 
 # Add to your shell configuration

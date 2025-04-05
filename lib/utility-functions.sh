@@ -25,7 +25,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Exported variables (for use in exported functions)
 export UTILITY_DEBUG_MODE=false
-export UTILITY_VERSION="0.2.0"
+export UTILITY_VERSION="0.2.1"
 
 # Global constants (not exported)
 readonly gc_copyright="Copyright (c) 2025 Analog Edge LLC"

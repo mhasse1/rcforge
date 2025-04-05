@@ -14,7 +14,7 @@ CYAN='\033[0;36m'
 RESET='\033[0m'  # Reset color
 
 # Default version if not specified
-VERSION=${1:-"0.2.0"}
+VERSION=${1:-"0.2.1"}
 PACKAGE_NAME="rcforge"
 BUILD_DIR="/tmp/rcforge-build-$VERSION"
 REPO_DIR=$(pwd)

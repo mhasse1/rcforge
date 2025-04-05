@@ -3,7 +3,7 @@
 # Author: Mark Hasse
 # Copyright: Analog Edge LLC
 # Date: 2025-03-30
-# Version: 0.2.0
+# Version: 0.2.1
 # Description: Comprehensive testing tool for the rcForge include system functionality
 
 # Import core utility libraries
@@ -15,7 +15,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants
 readonly gc_app_name="rcForge"
-readonly gc_version="0.2.0"
+readonly gc_version="0.2.1"
 readonly gc_min_bash_version="4.0"
 
 # Configuration variables

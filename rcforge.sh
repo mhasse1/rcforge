@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##########################################
-# rcforge v0.2.0 - Universal Shell Configuration
+# rcforge v0.2.1 - Universal Shell Configuration
 # Main loader script that sources all configurations
 # in the correct order based on hostname and shell
 # Author: Mark Hasse
@@ -16,7 +16,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
   bash_major_version=${BASH_VERSION%%.*}
 
   if [[ "$bash_major_version" -lt 4 ]]; then
-    echo "Error: rcForge v0.2.0 requires Bash 4.0 or higher"
+    echo "Error: rcForge v0.2.1 requires Bash 4.0 or higher"
     echo "Your current Bash version is: $BASH_VERSION"
     echo ""
     echo "On macOS, you can install a newer version with Homebrew:"

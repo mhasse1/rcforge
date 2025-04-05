@@ -16,7 +16,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 # Global constants
 readonly gc_required_bash_version=4
 readonly gc_app_name="rcForge"
-readonly gc_version="0.2.0"
+readonly gc_version="0.2.1"
 
 # CheckBashVersion: Validate Bash version compatibility
 # Usage: CheckBashVersion [optional_minimum_version]

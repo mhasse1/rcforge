@@ -41,4 +41,4 @@ Description: Modular shell configuration framework for Bash and other POSIX shel
   * Conflict detection
   * Include system for modular functions
  .
- Currently in version 0.2.0 (pre-release)
+ Currently in version 0.2.1 (pre-release)

@@ -2,7 +2,7 @@
 # postinst - Post-installation script for rcForge Debian package
 # Author: Mark Hasse
 # Date: 2025-04-05
-# Version: 0.2.0
+# Version: 0.2.1
 
 set -e  # Exit on error
 

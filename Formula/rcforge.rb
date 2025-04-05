@@ -1,7 +1,7 @@
 class Rcforge < Formula
   desc "Universal shell configuration system for Bash and Zsh"
   homepage "https://github.com/mhasse1/rcforge"
-  url "https://github.com/mhasse1/rcforge/archive/refs/tags/v0.2.0.tar.gz"
+  url "https://github.com/mhasse1/rcforge/archive/refs/tags/v0.2.1.tar.gz"
   sha256 "REPLACE_WITH_ACTUAL_SHA256"  # Replace with actual SHA256 when available
   license "MIT"
   head "https://github.com/mhasse1/rcforge.git", branch: "main"

@@ -45,7 +45,7 @@ if [[ -z "$PROJECT_ROOT" ]]; then
 fi
 
 BUILD_DIR="/tmp/rcforge-build"
-VERSION="0.2.0"  # Should be kept in sync with project version
+VERSION="0.2.1"  # Should be kept in sync with project version
 TAP_NAME="analog-edge/homebrew-rcforge"
 FORMULA_NAME="rcforge"
 FORMULA_PATH="Formula/rcforge.rb"

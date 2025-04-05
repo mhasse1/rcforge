@@ -14,7 +14,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants
 readonly gc_app_name="rcForge"
-readonly gc_version="0.2.0"
+readonly gc_version="0.2.1"
 readonly gc_supported_rc_files=(
     ".bashrc"
     ".zshrc"

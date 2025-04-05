@@ -29,7 +29,7 @@
 ## Project Information
 
 - **Name**: rcForge
-- **Version**: 0.2.0 (first release candidate in preparation)
+- **Version**: 0.2.1 (first release candidate in preparation)
 - **Repository**: Recently established new GitHub repository
 
 ## Standards Adherence

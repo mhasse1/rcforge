@@ -56,7 +56,7 @@ RCFORGE_ALLOW_ROOT=1 source ~/.config/rcforge/rcforge.sh
 
 ### Default Permissions Model
 
-rcForge v0.2.0 employs a restrictive permission model to protect user configuration files and sensitive data, such as API keys.  This ensures that only the user can access and modify their rcForge configuration.
+rcForge v0.2.1 employs a restrictive permission model to protect user configuration files and sensitive data, such as API keys.  This ensures that only the user can access and modify their rcForge configuration.
 
 - **Ownership:** All rcForge files and directories within the user's `~/.config/rcforge/` directory are owned by the user.
 

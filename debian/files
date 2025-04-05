@@ -200,7 +200,7 @@ Description: Modular shell configuration framework for Bash and other POSIX shel
   * Conflict detection
   * Include system for modular functions
  .
- Currently in version 0.2.0 (pre-release)
+ Currently in version 0.2.1 (pre-release)
 --------------- ./control END
 ./install:
 --------------- ./install START
@@ -259,7 +259,7 @@ exit 0
 # postinst - Post-installation script for rcForge Debian package
 # Author: Mark Hasse
 # Date: 2025-04-05
-# Version: 0.2.0
+# Version: 0.2.1
 
 set -e  # Exit on error
 
