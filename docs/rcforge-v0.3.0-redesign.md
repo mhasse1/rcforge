@@ -12,21 +12,20 @@ The rcForge project has evolved through multiple iterations, with each version a
    - Prioritize individual user experience
    - Minimize system-level dependencies
    - Provide maximum flexibility
-
 2. **Simplicity**
    - Every component must justify its existence
    - Minimize complexity
    - Optimize for readability and maintainability
-
 3. **Security**
    - Implement security by design
    - Minimal privilege principle
    - Prevent potential vulnerabilities
-
 4. **Modularity**
    - Easy to extend
    - Clear separation of concerns
    - Support diverse use cases
+5. **Space conservation**
+   * Documentaton will be primarily online (cuts storage by 75%)
 
 ## Architectural Changes
 
@@ -186,16 +185,15 @@ This design provides a unified, user-friendly interface for discovering and usin
 
 ```bash
 ~/.config/rcforge/
-├── rc-utils         # User utility scripts
+├── utils            # User utility scripts
 ├── rc-scripts/      # User shell configuration scripts
 │   ├── bash/
 │   └── zsh/
-├── docs             # User documentation
 ├── backups          # Upgrade tarballs
-└── rc-system        # Managed system files
+└── system        # Managed system files
     ├── lib          # System libraries
     ├── include      # System include files
-    └── rc-utils     # System utility scripts
+    └── utils     # System utility scripts
 ```
 
 ### Installation Script Key Features

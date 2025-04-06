@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <!-- Background -->
+  <rect width="1280" height="640" fill="#1e2124" />
+  
+  <!-- Terminal window frame -->
+  <rect x="240" y="120" width="800" height="400" rx="10" ry="10" fill="#2f3437" stroke="#4d5256" stroke-width="4" />
+  
+  <!-- Terminal window header -->
+  <rect x="240" y="120" width="800" height="40" rx="10" ry="10" fill="#383c42" />
+  <circle cx="270" cy="140" r="8" fill="#fc625d" />
+  <circle cx="300" cy="140" r="8" fill="#fdbc40" />
+  <circle cx="330" cy="140" r="8" fill="#34c749" />
+  
+  <!-- rcForge text and elements -->
+  <g transform="translate(320, 240)">
+    <!-- Gear symbol behind text -->
+    <path d="M280,0 L300,40 L340,46 L310,80 L320,120 L280,100 L240,120 L250,80 L220,46 L260,40 Z" fill="#4a76b9" opacity="0.3" transform="rotate(20)" />
+    
+    <!-- Terminal prompt and rc text -->
+    <text x="0" y="0" font-family="Consolas, Monaco, 'Courier New', monospace" font-size="90" font-weight="bold" fill="#c5c8c6">
+      <tspan x="0" y="0" fill="#8abeb7">$</tspan>
+      <tspan x="80" y="0" fill="#b294bb">rc</tspan>
+      <tspan x="170" y="0" fill="#de935f">Forge</tspan>
+    </text>
+    
+    <!-- Tagline -->
+    <text x="12" y="60" font-family="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" font-size="28" fill="#81a2be">
+      Shell Configuration Management
+    </text>
+    
+    <!-- Underline with code pattern -->
+    <rect x="0" y="80" width="620" height="4" fill="#cc6666" />
+    
+    <!-- Shell script sample -->
+    <text font-family="Consolas, Monaco, 'Courier New', monospace" font-size="20" fill="#c5c8c6">
+      <tspan x="0" y="120" fill="#8abeb7">include_function</tspan>
+      <tspan fill="#c5c8c6"> path add_to_path</tspan>
+    </text>
+    <text font-family="Consolas, Monaco, 'Courier New', monospace" font-size="20" fill="#c5c8c6">
+      <tspan x="0" y="150" fill="#b294bb">add_to_path</tspan>
+      <tspan fill="#c5c8c6"> </tspan>
+      <tspan fill="#cc6666">"$HOME/bin"</tspan>
+    </text>
+  </g>
+  
+  <!-- Small terminal window in bottom right -->
+  <g transform="translate(880, 480)">
+    <rect x="0" y="0" width="120" height="80" rx="5" ry="5" fill="#2d3033" stroke="#4d5256" stroke-width="2" />
+    <text x="10" y="20" font-family="Consolas, Monaco, 'Courier New', monospace" font-size="12" fill="#81a2be">v2.0.0</text>
+    <text x="10" y="40" font-family="Consolas, Monaco, 'Courier New', monospace" font-size="12" fill="#b5bd68">❯ bash</text>
+    <text x="10" y="60" font-family="Consolas, Monaco, 'Courier New', monospace" font-size="12" fill="#8abeb7">❯ zsh</text>
+  </g>
+  
+  <!-- Version tag -->
+  <g transform="translate(240, 540)">
+    <rect x="0" y="0" width="120" height="30" rx="15" ry="15" fill="#81a2be" />
+    <text x="60" y="20" font-family="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" font-size="16" fill="#1e2124" text-anchor="middle" dominant-baseline="middle">v2.0.0</text>
+  </g>
+  
+  <!-- MIT License tag -->
+  <g transform="translate(380, 540)">
+    <rect x="0" y="0" width="120" height="30" rx="15" ry="15" fill="#b5bd68" />
+    <text x="60" y="20" font-family="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" font-size="16" fill="#1e2124" text-anchor="middle" dominant-baseline="middle">MIT License</text>
+  </g>
+</svg>
