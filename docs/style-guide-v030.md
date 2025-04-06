@@ -7,6 +7,7 @@
 - [Shell Scripting Standards](#shell-scripting-standards)
   - [Script Structure](#script-structure)
   - [Standard Environment Variables](#standard-environment-variables)
+  - [Main Function Standards](#main-function-standards)
   - [Output and Formatting](#output-and-formatting)
     - [Messaging](#messaging)
     - [Colors and Formatting](#colors-and-formatting)
@@ -50,24 +51,24 @@ This style guide defines the coding standards, best practices, and conventions f
 
 ## General Principles
 
-1. **Clarity Over Cleverness** 
+1. **Clarity Over Cleverness**
    - Write code that is easy to understand, not code that makes you look smart
    - Prioritize readability over complex one-liners
    - Add comments to explain non-obvious logic
-2. **DRY (Don't Repeat Yourself)** 
+2. **DRY (Don't Repeat Yourself)**
    - Reuse existing functions and utilities
    - Create modular, reusable code
    - Avoid copy-pasting code blocks
-3. **KISS (Keep It Simple, Stupid)** 
+3. **KISS (Keep It Simple, Stupid)**
    - Prefer simple solutions
    - Break complex logic into smaller, manageable functions
    - Avoid unnecessary complexity
-4. **Fail Gracefully** 
+4. **Fail Gracefully**
    - Always have a Plan B (and sometimes a Plan C)
    - Implement robust error handling
    - Provide meaningful error messages that help diagnose issues
    - Never let an unexpected error crash the entire system
-5. **Convention over Configuration** 
+5. **Convention over Configuration**
    - Embrace sensible defaults that work out of the box
    - Reduce the need for extensive configuration by making smart, consistent design choices
    - Follow established patterns in shell scripting and the rcForge ecosystem
@@ -119,6 +120,121 @@ The following environment variables are standard in rcForge v0.3.0:
 - `$RCFORGE_UTILS`: Location of system utilities
 - `$RCFORGE_SCRIPTS`: Location of user RC scripts
 - `$RCFORGE_USER_UTILS`: Location of user utilities
+
+### Main Function Standards
+
+#### Purpose
+
+Main functions serve as the primary entry point for script execution, providing a clean, organized structure for script logic and improving readability, testability, and maintainability.
+
+#### Requirements
+
+##### Function Definition
+
+- For scripts longer than approximately 50-100 lines, implement a `main()` function
+
+- Place the `main()` function near the end of the script, before the final execution block
+
+- The
+
+  ```
+  main()
+  ```
+
+   function should:
+
+  - Encapsulate the primary script logic
+  - Handle high-level flow control
+  - Coordinate calls to other functions
+  - Manage command-line argument processing
+  - Return appropriate exit codes
+
+##### Execution Pattern
+
+Implement an execution pattern that allows the script to be both sourced and run directly:
+
+```bash
+# Execute main function if run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+  exit $?
+elif [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
+  # Also execute if called via the rc command
+  main "$@"
+  exit $?
+fi
+```
+
+##### Best Practices
+
+- Break complex logic into smaller, focused functions
+- Use local variables within the main function
+- Handle errors and provide meaningful exit codes
+- Support common subcommands like `help`, `version`, or `summary`
+- Implement argument parsing within the main function
+- Provide clear, descriptive error messages
+
+##### Example Structure
+
+```bash
+#!/usr/bin/env bash
+# Example script demonstrating main function standards
+# Function comments shortened for readability
+
+# Function: show_help
+# Description: Display help information
+show_help() {
+  echo "Usage: $0 [options]"
+  echo "Options:"
+  echo "  --help, -h    Show this help message"
+}
+
+# Function: process_arguments
+# Description: Parse and validate command-line arguments
+process_arguments() {
+  # Argument processing logic
+}
+
+# Main function
+main() {
+  # Argument processing
+  process_arguments "$@"
+
+  # Core script logic
+  # Coordinate function calls
+  # Handle primary workflow
+
+  # Return appropriate exit code
+  return 0
+}
+
+# Execution pattern
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+  exit $?
+fi
+```
+
+##### Rationale
+
+- Improves script modularity
+- Enhances testability by separating logic into functions
+- Provides a consistent structure across scripts
+- Allows for easier debugging and maintenance
+- Supports both direct execution and sourcing
+- Aligns with rcForge's design philosophy of clarity and maintainability
+
+##### Exceptions
+
+- Very short, single-purpose scripts may not require a full `main()` function
+- Use developer discretion, prioritizing readability and maintainability
+
+#### Related Best Practices
+
+- Use `set -o nounset` and `set -o errexit` for stricter error handling
+- Implement comprehensive error checking
+- Add meaningful comments explaining complex logic
+- Consider using shellcheck for additional code quality verification
 
 ### Output and Formatting
 
@@ -185,18 +301,31 @@ fi
    - Examples: `InstallDependencies()`, `validate_configuration()`
    - Include function headings as demonstrated in 2. Function Structure below.
    - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
-   
+
 2. **Function Structure**
    ```bash
    # ============================================================================
-   # FunctionName
-   # Function to perform system integrity checks
-   # parameter 1: description
-   # parameter 2: description
+   # Function: FunctionName
+   # Description: Clear, concise description of what the function does
+   # Usage: Demonstrate how to call the function [Optional, not required for simple implementations or if no arguments]
+   # Arguments: ["None" if no arguments]
+   #   arg1 (required) - Description of first argument
+   #   arg2 (optional) - Description of second argument (if applicable)
+   # Options: [Optional, if present]
+   #   --option1 Description of option
+   #   --option2 Description of option
+   # Environment Variables: [Optional, if present]
+   #   ENV_VAR1 - Impact or requirement of environment variable
+   # Returns: [Optional, if present]
+   #   0 on success
+   #   1 on error
+   #   Specific exit codes if applicable
+   # Exits: [Optional, if present]
+   #   May exit with specific codes in error conditions
    # ============================================================================
    FunctionName() {
        # Documentation comment describing function purpose and args
-       
+   
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
    
@@ -213,7 +342,7 @@ fi
        echo "$result"
    }
    ```
-   
+
 3. **Input Validation**
    - Check number and type of arguments
    - Validate input values
@@ -380,7 +509,7 @@ Usage:
 Options:
   -v, --verbose    Enable verbose output
   -h, --help       Show this help message
-  
+
 Examples:
   rc utility-name example.com
   rc utility-name --verbose /path/to/file
@@ -406,7 +535,7 @@ main() {
             ;;
         # Add other argument handling here
     esac
-    
+
     # Main functionality
 }
 
@@ -486,7 +615,7 @@ For performance-critical utilities or complex commands:
 utility_name() {
     # Unset this function to prevent recursion
     unset -f utility_name
-    
+
     # Load full implementation
     if [[ -f "${RCFORGE_ROOT:-$HOME/.config/rcforge}/system/utils/utility_name.sh" ]]; then
         source "${RCFORGE_ROOT:-$HOME/.config/rcforge}/system/utils/utility_name.sh"
@@ -525,7 +654,7 @@ The most important rule when working with libraries and exported functions:
 #### Exported Variables
 
 > **⚠️ WARNING: EXPORTED VARIABLES**
-> When creating libraries with exported functions, any variables used within 
+> When creating libraries with exported functions, any variables used within
 > those functions MUST be exported and MUST use UPPERCASE_SNAKE_CASE naming.
 > Never use c_ or gc_ prefixes for exported variables!
 
@@ -629,7 +758,7 @@ ProcessFiles() {
 # Function with proper local variables
 ErrorMessage() {
     local message="$1"
-    
+
     if $COLOR_OUTPUT_ENABLED; then
         echo -e "\033[31mERROR: $message\033[0m"
     else
