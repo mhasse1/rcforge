@@ -1,179 +1,217 @@
 #!/usr/bin/env bash
 # 050_global_common_path.sh - Smart PATH management
 # Author: rcForge Team
-# Date: 2025-04-05
-# Version: 0.3.0
-# Description: Conditionally adds directories to PATH if they exist
+# Date: 2025-04-06 # Updated Date
+# Category: rc-script/common
+# Description: Conditionally adds directories to PATH if they exist, managing order.
 
 # ============================================================================
-# PATH UTILITY FUNCTIONS
+# PATH UTILITY FUNCTIONS (PascalCase)
 # ============================================================================
 
-# Function: add_to_path
-# Description: Add directory to PATH if it exists and isn't already there
-# Usage: add_to_path directory [prepend|append]
-add_to_path() {
+# ============================================================================
+# Function: AddToPath
+# Description: Add directory to PATH if it exists and isn't already there.
+# Usage: AddToPath directory [prepend|append]
+# Arguments:
+#   directory (required) - The directory path to add.
+#   position (optional) - 'prepend' (default) or 'append'.
+# Returns: 0. Modifies PATH environment variable.
+# ============================================================================
+AddToPath() {
   local dir="$1"
-  local position="${2:-prepend}"
-  
-  # Skip if directory doesn't exist
+  local position="${2:-prepend}" # Default to prepend
+
+  # Resolve potential ~ or other expansions, handle non-existent dir gracefully
+  # Use eval to expand ~ but be cautious
+  # dir=$(eval echo "$dir") # Use cautiously or avoid if possible
+
+  # Better: Check existence *before* modifying PATH
   if [[ ! -d "$dir" ]]; then
+    # Optionally print verbose message if dir doesn't exist
+    # [[ -n "${SHELL_DEBUG:-}" ]] && echo "rcForge PATH: Directory not found, skipping: $dir"
     return 0
   fi
-  
-  # Skip if already in PATH
-  if [[ ":$PATH:" == *":$dir:"* ]]; then
-    return 0
-  fi
-  
-  # Add to PATH based on position
+
+  # Check if directory is already effectively in PATH (handles trailing slashes)
+  case ":${PATH}:" in
+    *":${dir}:"*) return 0 ;; # Exact match
+    *":${dir}/:"*) return 0 ;; # Match with trailing slash
+  esac
+
+  # Add to PATH
   if [[ "$position" == "append" ]]; then
-    export PATH="$PATH:$dir"
+    export PATH="${PATH:+$PATH:}$dir" # Append, handle empty initial PATH
   else
-    export PATH="$dir:$PATH"
+    export PATH="$dir${PATH:+:$PATH}" # Prepend, handle empty initial PATH
   fi
+  # Optionally print verbose message
+  # [[ -n "${SHELL_DEBUG:-}" ]] && echo "rcForge PATH: Added ($position): $dir"
+  return 0
 }
 
-# Function: append_to_path
-# Description: Add directory to end of PATH if it exists
-# Usage: append_to_path directory
-append_to_path() {
-  add_to_path "$1" "append"
+# ============================================================================
+# Function: AppendToPath
+# Description: Add directory to the END of PATH if it exists and isn't already there.
+# Usage: AppendToPath directory
+# Returns: 0. Modifies PATH environment variable.
+# ============================================================================
+AppendToPath() {
+  AddToPath "$1" "append" # Call PascalCase
 }
 
-# Function: show_path
-# Description: Display PATH entries one per line
-# Usage: show_path
-show_path() {
-  echo "$PATH" | tr ':' '\n'
+# ============================================================================
+# Function: ShowPath
+# Description: Display current PATH entries, one per line.
+# Usage: ShowPath
+# Returns: None. Prints PATH entries to stdout.
+# ============================================================================
+ShowPath() {
+  # Use printf for safer handling of potential special characters if PATH was manipulated externally
+  printf '%s\n' "${PATH//:/$'\n'}"
 }
 
 # ============================================================================
 # PATH CONFIGURATION
 # ============================================================================
 
-# Start with a clean PATH that includes essential system directories
-# This ensures your PATH has a reliable foundation
-system_path="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-if [[ "$PATH" != *"$system_path"* ]]; then
-  export PATH="$system_path"
+# Initialize PATH with essential system directories if they aren't present
+# This provides a baseline. Order matters.
+local base_system_paths="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+if [[ ":${PATH}:" != *":/usr/local/bin:"* && ":${PATH}:" != *":/usr/bin:"* ]]; then
+     # If core paths seem missing, prepend them carefully
+     export PATH="$base_system_paths${PATH:+:$PATH}"
 fi
 
-# Add all common directories to PATH in order of priority (highest first)
-# Personal bin directory should come first
-add_to_path "$HOME/bin"
-add_to_path "$HOME/.local/bin"
+# --- User Specific Bins ---
+AddToPath "$HOME/bin"          # User's custom scripts (prepend)
+AddToPath "$HOME/.local/bin"   # Common location for pip user installs (prepend)
 
-# Homebrew paths
-if [[ -f /opt/homebrew/bin/brew ]]; then
-  # Homebrew on Apple Silicon Mac
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+# --- Package Managers ---
 
-  # Ruby from Homebrew if it exists
-  if [[ -d "/opt/homebrew/opt/ruby/bin" ]]; then
-    add_to_path "/opt/homebrew/opt/ruby/bin"
-    gemdir=$(gem environment gemdir 2>/dev/null)
-    if [[ -n "$gemdir" && -d "$gemdir/bin" ]]; then
-      add_to_path "$gemdir/bin"
+# Homebrew (macOS / Linux) - Let brew's shellenv handle PATH setup
+if command -v brew &>/dev/null; then
+    # Check common locations or rely on brew command itself
+    # This assumes 'brew shellenv' correctly sets PATH and other vars
+    eval "$(brew shellenv 2>/dev/null)" || WarningMessage "brew shellenv failed. Homebrew paths may not be set."
+
+    # Optional: Add specific brew package bins if needed and not handled by shellenv
+    # Example for Ruby (often needs specific path addition)
+    local brew_prefix
+    brew_prefix=$(brew --prefix 2>/dev/null || echo "")
+    if [[ -n "$brew_prefix" && -d "$brew_prefix/opt/ruby/bin" ]]; then
+        AddToPath "$brew_prefix/opt/ruby/bin"
+        # Add gem bin path if gem command exists
+        if command -v gem &>/dev/null; then
+             local gem_user_dir
+             gem_user_dir=$(gem environment user_gemhome 2>/dev/null || echo "")
+             if [[ -n "$gem_user_dir" && -d "$gem_user_dir/bin" ]]; then
+                  AddToPath "$gem_user_dir/bin"
+             fi
+        fi
     fi
-  fi
-elif [[ -f /usr/local/bin/brew ]]; then
-  # Homebrew on Intel Mac or Linux
-  eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-# Python - pyenv
+# --- Language Version Managers ---
+
+# pyenv (Python)
 if [[ -d "$HOME/.pyenv" ]]; then
   export PYENV_ROOT="$HOME/.pyenv"
-  add_to_path "$PYENV_ROOT/bin"
-  if command -v pyenv >/dev/null; then
-    eval "$(pyenv init -)"
-    # Only init pyenv-virtualenv if it's installed
-    if [[ -d "$PYENV_ROOT/plugins/pyenv-virtualenv" ]]; then
-      eval "$(pyenv virtualenv-init -)"
+  # Add shims and bin dirs first for pyenv command access
+  AddToPath "$PYENV_ROOT/shims"
+  AddToPath "$PYENV_ROOT/bin"
+  # Initialize pyenv (adds python versions to PATH) only if command exists now
+  if command -v pyenv &>/dev/null; then
+    eval "$(pyenv init --path)" # Use --path for PATH only modification
+    eval "$(pyenv init -)"      # For shell integration, shims, etc.
+    # Initialize pyenv-virtualenv if plugin exists
+    if command -v pyenv-virtualenv-init &>/dev/null; then
+         eval "$(pyenv virtualenv-init -)"
     fi
   fi
 fi
-
-# Pipenv configuration - Keep virtualenvs in project
+# Pipenv: Use virtualenvs within project directories
 export PIPENV_VENV_IN_PROJECT=1
 
-# Python user packages
-if [[ -d "$HOME/.local/lib/python"* ]]; then
-  for pydir in "$HOME/.local/lib/python"*/site-packages; do
-    # Add Python's bin directory if it exists
-    pyver=$(basename "$(dirname "$pydir")")
-    if [[ -d "$HOME/.local/lib/$pyver/bin" ]]; then
-      add_to_path "$HOME/.local/lib/$pyver/bin"
-    fi
-  done
-fi
-
-# Node.js - nvm
+# nvm (Node.js) - Sourcing its script handles PATH
 if [[ -d "$HOME/.nvm" ]]; then
   export NVM_DIR="$HOME/.nvm"
-  # Load nvm if present
-  [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
-  # Load bash completion for nvm
-  [[ -s "$NVM_DIR/bash_completion" ]] && source "$NVM_DIR/bash_completion"
+  # Lazy load NVM script to improve shell startup speed? Or source directly?
+  # Sourcing directly:
+  [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"  # Load nvm
+  [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"  # Load nvm bash_completion (Bash specific)
 fi
 
-# Node.js - fnm (Fast Node Manager)
-if command -v fnm >/dev/null 2>&1; then
+# fnm (Node.js) - Sourcing its script handles PATH
+if command -v fnm &>/dev/null; then
   eval "$(fnm env --use-on-cd)"
 fi
 
-# Yarn configuration
-if command -v yarn >/dev/null 2>&1; then
-  add_to_path "$HOME/.yarn/bin"
-  add_to_path "$HOME/.config/yarn/global/node_modules/.bin"
+# Yarn (Node.js package manager) - Add global bin paths
+if command -v yarn &>/dev/null; then
+  AddToPath "$HOME/.yarn/bin" # Yarn 1 global path
+  AddToPath "$(yarn global bin 2>/dev/null || echo "$HOME/.config/yarn/global/node_modules/.bin")" # Yarn Berry+ global path
 fi
 
-# Rust - Cargo
+# Cargo (Rust)
 if [[ -d "$HOME/.cargo" ]]; then
-  add_to_path "$HOME/.cargo/bin"
+  AddToPath "$HOME/.cargo/bin"
 fi
 
 # Go
-if [[ -d "/usr/local/go" ]]; then
-  add_to_path "/usr/local/go/bin"
-  # Add GOPATH if needed
-  if [[ -d "$HOME/go" ]]; then
-    export GOPATH="$HOME/go"
-    add_to_path "$GOPATH/bin"
-  fi
+if [[ -d "/usr/local/go/bin" ]]; then # Common install path
+  AddToPath "/usr/local/go/bin"
+fi
+# User GOPATH (legacy or specific setup)
+export GOPATH="${GOPATH:-$HOME/go}" # Set default GOPATH if not set
+if [[ -d "$GOPATH/bin" ]]; then
+     AddToPath "$GOPATH/bin"
 fi
 
-# Java - SDKMAN
+# SDKMAN (Java, etc.) - Sourcing its script handles PATH
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
   export SDKMAN_DIR="$HOME/.sdkman"
-  source "$HOME/.sdkman/bin/sdkman-init.sh"
+  # shellcheck disable=SC1090
+  source "$SDKMAN_DIR/bin/sdkman-init.sh"
 fi
 
-# Editor tools
-for editor_path in \
-  "/Applications/Sublime Text.app/Contents/SharedSupport/bin" \
-  "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" \
-  "/Applications/Sublime Text 3.app/Contents/SharedSupport/bin" \
-  "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin"; do
-  if [[ -d "$editor_path" ]]; then
-    append_to_path "$editor_path"
-  fi
-done
+# --- Application Specific Paths ---
 
-# Add rcForge utilities to path
-add_to_path "$HOME/.config/rcforge/utils"
+# Add common paths for GUI editor command-line tools (macOS)
+if [[ "$(uname)" == "Darwin" ]]; then
+    local editor_path="" # Loop variable
+    for editor_path in \
+        "/Applications/Sublime Text.app/Contents/SharedSupport/bin" \
+        "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" \
+        # Add others if needed
+        ; do
+        AppendToPath "$editor_path" # Append editor paths
+    done
+fi
 
-# Debug output - Show the current PATH if debugging is enabled
+# --- rcForge Utilities ---
+# Add user and system utility directories (user takes precedence)
+AddToPath "$RCFORGE_USER_UTILS" # Add user utils first (prepend)
+AddToPath "$RCFORGE_UTILS"      # Add system utils after (prepend)
+
+# ============================================================================
+# FINAL PATH CLEANUP & DEBUG
+# ============================================================================
+
+# Optional: Remove duplicate entries (though AddToPath helps prevent them)
+# Can be slow; uncomment if necessary
+# export PATH=$(echo "$PATH" | awk -v RS=: -v ORS=: '!a[$0]++{print $0}' | sed 's/:$//')
+
+# Debug output - Show the final PATH if debugging is enabled
 if [[ -n "${SHELL_DEBUG:-}" ]]; then
-  echo "========== PATH CONFIGURATION =========="
-  show_path
+  echo -e "\n${BOLD}${CYAN}Final PATH Configuration:${RESET}"
+  ShowPath # Call PascalCase
   echo "========================================"
 fi
 
-# Export utility functions
-export -f add_to_path
-export -f append_to_path
-export -f show_path
+# Export utility functions if they are intended for user use (e.g., in other scripts)
+export -f AddToPath
+export -f AppendToPath
+export -f ShowPath
 
 # EOF

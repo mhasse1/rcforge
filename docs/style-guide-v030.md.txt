@@ -302,12 +302,13 @@ fi
 ### Function Design
 
 1. Function Naming
-   - Other than `main`, use pascal case for core system functions, e.g., `FunctionName`
+   - Use pascal case for core system functions, e.g., `FunctionName`
+   - Use lowercase with underscores for utility functions, e.g., `utility_function`
    - Be descriptive about the function's purpose
    - Examples: `InstallDependencies()`, `validate_configuration()`
    - Include function headings as demonstrated in 2. Function Structure below.
    - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
-   
+
 2. **Function Structure**
 
    ```bash
@@ -703,8 +704,8 @@ export RCFORGE_APP_NAME="rcForge"
 export RCFORGE_VERSION="0.3.0"
 
 # For local use in a script
-readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+readonly gc_app_name="$RCFORGE_APP_NAME"
+readonly gc_version="$RCFORGE_VERSION"
 ```
 
 #### Example Library with Exported Functions and Variables

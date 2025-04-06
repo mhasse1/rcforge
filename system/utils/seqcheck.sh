@@ -3,495 +3,605 @@
 # Author: rcForge Team
 # Date: 2025-04-06
 # Version: 0.3.0
+# Category: system/utility
 # RC Summary: Checks for sequence number conflicts in rcForge configuration scripts
 # Description: Identifies and offers to resolve sequence number conflicts in shell configuration scripts
 
 # Source necessary libraries
-if [[ -f "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh" ]]; then
-  source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
-else
-  # Minimal color definitions if shell-colors.sh is not available
-  export RED='\033[0;31m'
-  export GREEN='\033[0;32m'
-  export YELLOW='\033[0;33m'
-  export BLUE='\033[0;34m'
-  export CYAN='\033[0;36m'
-  export RESET='\033[0m'
-  
-  # Minimal message functions
-  ErrorMessage() { echo -e "${RED}ERROR:${RESET} $1" >&2; }
-  WarningMessage() { echo -e "${YELLOW}WARNING:${RESET} $1" >&2; }
-  InfoMessage() { echo -e "${BLUE}INFO:${RESET} $1"; }
-  SuccessMessage() { echo -e "${GREEN}SUCCESS:${RESET} $1"; }
-fi
-
-if [[ -f "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh" ]]; then
-  source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
-fi
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh" # Assuming SectionHeader is here
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
 set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # ============================================================================
-# CONFIGURATION VARIABLES
+# GLOBAL CONSTANTS
 # ============================================================================
-
-# List of supported shells
+readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 readonly gc_supported_shells=("bash" "zsh")
 
-# Configuration variables
-TARGET_HOSTNAME=""
-TARGET_SHELL=""
-CHECK_ALL=false
-FIX_CONFLICTS=false
-INTERACTIVE=true
-DRY_RUN=false
-
 # ============================================================================
-# UTILITY FUNCTIONS
+# UTILITY FUNCTIONS (PascalCase)
 # ============================================================================
 
+# ============================================================================
 # Function: ShowSummary
-# Description: Display one-line summary for rc help
+# Description: Display one-line summary for rc help command.
 # Usage: ShowSummary
+# Returns: Echoes summary string.
+# ============================================================================
 ShowSummary() {
-  echo "Checks for sequence number conflicts in rcForge configuration scripts"
+    grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
 }
 
+# ============================================================================
 # Function: ShowHelp
-# Description: Display help information
+# Description: Display detailed help information for the seqcheck command.
 # Usage: ShowHelp
+# Returns: None. Prints help text to stdout.
+# ============================================================================
 ShowHelp() {
-  echo "seqcheck - rcForge Sequence Conflict Detection Utility"
-  echo ""
-  echo "Description:"
-  echo "  Identifies and offers to resolve sequence number conflicts in"
-  echo "  shell configuration scripts based on hostname and shell."
-  echo ""
-  echo "Usage:"
-  echo "  rc seqcheck [options]"
-  echo ""
-  echo "Options:"
-  echo "  --hostname=NAME      Check conflicts for specific hostname"
-  echo "  --shell=bash|zsh     Check conflicts for specific shell"
-  echo "  --all                Check all possible execution paths"
-  echo "  --fix                Interactively fix conflicts"
-  echo "  --non-interactive    Run without user interaction"
-  echo "  --dry-run            Show what would be done without making changes"
-  echo "  --help, -h           Show this help message"
-  echo "  --summary            Show a one-line description (for rc help)"
-  echo ""
-  echo "Examples:"
-  echo "  rc seqcheck                           # Check current hostname and shell"
-  echo "  rc seqcheck --hostname=laptop         # Check conflicts for 'laptop'"
-  echo "  rc seqcheck --shell=bash              # Check Bash configuration conflicts"
-  echo "  rc seqcheck --all                     # Check all possible execution paths"
-  echo "  rc seqcheck --fix                     # Interactively fix conflicts"
-}
-
-# Function: DetectProjectRoot
-# Description: Dynamically detect the rcForge base directory
-# Usage: DetectProjectRoot
-# Returns: Path to the project root directory
-DetectProjectRoot() {
-  echo "${RCFORGE_ROOT:-$HOME/.config/rcforge}"
-}
-
-# Function: ValidateShell
-# Description: Validate the provided shell
-# Usage: ValidateShell shell_name
-# Returns: 0 if valid, 1 if invalid
-ValidateShell() {
-  local shell="$1"
-  for supported_shell in "${gc_supported_shells[@]}"; do
-    if [[ "$shell" == "$supported_shell" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-# Function: DetectCurrentShell
-# Description: Determine the current shell
-# Usage: DetectCurrentShell
-# Returns: Name of the current shell
-DetectCurrentShell() {
-  if [[ -n "${ZSH_VERSION:-}" ]]; then
-    echo "zsh"
-  elif [[ -n "${BASH_VERSION:-}" ]]; then
-    echo "bash"
-  else
-    # Fallback to $SHELL
-    basename "$SHELL"
-  fi
-}
-
-# Function: DetectCurrentHostname
-# Description: Get the current hostname
-# Usage: DetectCurrentHostname
-# Returns: Current hostname
-DetectCurrentHostname() {
-  if command -v hostname >/dev/null 2>&1; then
-    hostname | cut -d. -f1
-  else
-    # Fallback if hostname command not available
-    echo "${HOSTNAME:-$(uname -n | cut -d. -f1)}"
-  fi
-}
-
-# Function: GetSequenceNumber
-# Description: Extract sequence number from a filename
-# Usage: GetSequenceNumber filename
-# Returns: Sequence number as string
-GetSequenceNumber() {
-  local filename="$1"
-  echo "${filename%%_*}"
-}
-
-# Function: FindConfigFiles
-# Description: Find configuration files for a given shell and hostname
-# Usage: FindConfigFiles shell hostname
-# Returns: List of files
-FindConfigFiles() {
-  local shell="$1"
-  local hostname="$2"
-  local scripts_dir="${RCFORGE_DIR}/rc-scripts"
-
-  # Build file matching patterns
-  local patterns=(
-    "[0-9]*_global_common_*.sh"
-    "[0-9]*_global_${shell}_*.sh"
-    "[0-9]*_${hostname}_common_*.sh"
-    "[0-9]*_${hostname}_${shell}_*.sh"
-  )
-
-  # Find and sort matching files
-  local config_files=()
-  for pattern in "${patterns[@]}"; do
-    while IFS= read -r -d '' file; do
-      [[ -f "$file" ]] && config_files+=("$file")
-    done < <(find "$scripts_dir" -maxdepth 1 -type f -name "$pattern" -print0 2>/dev/null)
-  done
-
-  # Sort files by sequence number
-  IFS=$'\n' config_files=($(sort <<< "${config_files[*]}"))
-  unset IFS
-
-  # Output files
-  printf '%s\n' "${config_files[@]}"
-}
-
-# Function: CheckSeqConflicts
-# Description: Check for sequence number conflicts
-# Usage: CheckSeqConflicts shell hostname
-# Returns: 0 if no conflicts, 1 if conflicts found
-CheckSeqConflicts() {
-  local shell="$1"
-  local hostname="$2"
-  local scripts_dir="${RCFORGE_DIR}/rc-scripts"
-  local has_conflicts=false
-  local seq_counts=()
-  local conflict_groups=()
-  
-  # Get config files
-  local config_files
-  mapfile -t config_files < <(FindConfigFiles "$shell" "$hostname")
-  
-  # Check for sequence conflicts
-  InfoMessage "Checking sequence conflicts for ${hostname}/${shell}"
-  
-  # Create an associative array to track sequence numbers
-  declare -A sequence_map
-  
-  for file in "${config_files[@]}"; do
-    local filename=$(basename "$file")
-    local seq_num=$(GetSequenceNumber "$filename")
-    
-    if [[ -n "${sequence_map[$seq_num]:-}" ]]; then
-      # Conflict found
-      sequence_map["$seq_num"]="${sequence_map["$seq_num"]},$filename"
-      has_conflicts=true
-    else
-      # First occurrence of this sequence
-      sequence_map["$seq_num"]="$filename"
-    fi
-  done
-  
-  # Output results
-  if [[ "$has_conflicts" == "false" ]]; then
-    SuccessMessage "No sequence conflicts found for ${hostname}/${shell}"
-    return 0
-  else
-    # Display conflicts
-    TextBlock "Sequence Conflicts Detected" "$RED" "$BG_WHITE"
+    echo "seqcheck - rcForge Sequence Conflict Detection Utility (v${gc_version})"
     echo ""
-    
-    # Print each conflict group
-    for seq_num in "${!sequence_map[@]}"; do
-      local files="${sequence_map[$seq_num]}"
-      if [[ "$files" == *,* ]]; then
-        echo -e "${RED}Conflict at sequence ${BOLD}$seq_num${RESET}${RED}:${RESET}"
-        echo "$files" | tr ',' '\n' | sed 's/^/  /'
-        echo ""
-      fi
-    done
-    
-    # Offer to fix if requested
-    if [[ "$FIX_CONFLICTS" == "true" ]]; then
-      FixSeqConflicts "$shell" "$hostname" sequence_map
+    echo "Description:"
+    echo "  Identifies and offers to resolve sequence number conflicts in"
+    echo "  shell configuration scripts based on hostname and shell."
+    echo ""
+    echo "Usage:"
+    echo "  rc seqcheck [options]"
+    echo "  $0 [options]" # Direct usage
+    echo ""
+    echo "Options:"
+    echo "  --hostname=NAME   Check conflicts for specific hostname (default: current)"
+    echo "  --shell=bash|zsh  Check conflicts for specific shell (default: current)"
+    echo "  --all             Check all detected hostnames and both shells"
+    echo "  --fix             Interactively offer to fix detected conflicts"
+    echo "  --non-interactive Run checks without user interaction (no fixing)"
+    echo "  --dry-run         Show what fixing would do without making changes"
+    echo "  --help, -h        Show this help message"
+    echo "  --summary         Show a one-line description (for rc help)"
+    echo ""
+    echo "Examples:"
+    echo "  rc seqcheck                    # Check current hostname and shell"
+    echo "  rc seqcheck --hostname=laptop  # Check conflicts for 'laptop'"
+    echo "  rc seqcheck --shell=bash       # Check Bash configuration conflicts"
+    echo "  rc seqcheck --all              # Check all possible execution paths"
+    echo "  rc seqcheck --fix              # Interactively fix conflicts for current context"
+    echo "  rc seqcheck --all --dry-run    # Show potential conflicts everywhere"
+}
+
+# ============================================================================
+# Function: DetermineRcforgeDir
+# Description: Determine the effective rcForge root directory.
+# Usage: DetermineRcforgeDir
+# Returns: Echoes the path to the rcForge configuration directory.
+# ============================================================================
+DetermineRcforgeDir() {
+    if [[ -n "${RCFORGE_ROOT:-}" && -d "${RCFORGE_ROOT}" ]]; then
+        echo "${RCFORGE_ROOT}"
     else
-      echo "To fix conflicts, run: rc seqcheck --fix --hostname=$hostname --shell=$shell"
+        echo "$HOME/.config/rcforge"
     fi
-    
-    return 1
-  fi
-}
-
-# Function: CheckAllSeqConflicts
-# Description: Check all possible execution paths for conflicts
-# Usage: CheckAllSeqConflicts
-# Returns: 0 if no conflicts, 1 if any conflicts found
-CheckAllSeqConflicts() {
-  local any_conflicts=false
-  local hostnames=()
-  local shells=("bash" "zsh")
-  
-  # Get list of hostnames from scripts
-  while IFS= read -r -d '' file; do
-    local filename=$(basename "$file")
-    local hostname=$(echo "$filename" | cut -d '_' -f 2)
-    if [[ "$hostname" != "global" && ! " ${hostnames[*]} " =~ " ${hostname} " ]]; then
-      hostnames+=("$hostname")
-    fi
-  done < <(find "${RCFORGE_DIR}/rc-scripts" -maxdepth 1 -type f -name "[0-9]*_*_*_*.sh" -print0 2>/dev/null)
-  
-  # Always add the current hostname and "global"
-  hostnames+=("global" "$(DetectCurrentHostname)")
-  # Remove duplicates
-  hostnames=($(echo "${hostnames[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-  
-  # Check each shell/hostname combination
-  for shell in "${shells[@]}"; do
-    for hostname in "${hostnames[@]}"; do
-      if ! CheckSeqConflicts "$shell" "$hostname"; then
-        any_conflicts=true
-      fi
-      echo ""
-    done
-  done
-  
-  if [[ "$any_conflicts" == "true" ]]; then
-    return 1
-  else
-    SuccessMessage "No sequence conflicts found in any execution paths"
-    return 0
-  fi
-}
-
-# Function: SuggestNewSeqNum
-# Description: Suggest a new, unused sequence number in the same range
-# Usage: SuggestNewSeqNum current_seq used_seqs
-# Returns: New sequence number
-SuggestNewSeqNum() {
-  local current_seq="$1"
-  local used_seqs="$2"
-  
-  # Determine range (first digit indicates range)
-  local range="${current_seq:0:1}"
-  local lower=$((range * 100))
-  local upper=$((lower + 99))
-  
-  # Find available numbers in the range
-  for ((i=lower; i<=upper; i++)); do
-    # Check if this number is used
-    if [[ ! "$used_seqs" =~ (^|,)$i(,|$) ]]; then
-      echo "$i"
-      return 0
-    fi
-  done
-  
-  # If no number is available in the preferred range, suggest the next range
-  local next_range=$(( (range + 1) % 10 ))
-  local next_lower=$((next_range * 100))
-  
-  echo "$next_lower"
-  return 0
-}
-
-# Function: FixSeqConflicts
-# Description: Interactively fix sequence conflicts
-# Usage: FixSeqConflicts shell hostname sequence_map
-# Returns: 0 if fixed, 1 if not fixed
-FixSeqConflicts() {
-  local shell="$1"
-  local hostname="$2"
-  local -n seq_map="$3"
-  
-  if [[ "$INTERACTIVE" == "false" ]]; then
-    WarningMessage "Automatic conflict resolution not implemented"
-    echo "Use --fix without --non-interactive to fix conflicts"
-    return 1
-  fi
-  
-  SectionHeader "Conflict Resolution"
-  
-  # Gather all used sequence numbers
-  local all_used_seqs=""
-  for seq in "${!seq_map[@]}"; do
-    all_used_seqs+="$seq,"
-  done
-  all_used_seqs="${all_used_seqs%,}"
-  
-  # Process each conflict
-  for seq_num in "${!seq_map[@]}"; do
-    local files="${seq_map[$seq_num]}"
-    if [[ "$files" != *,* ]]; then
-      continue  # Not a conflict
-    fi
-    
-    echo -e "\n${CYAN}Resolving conflict for sequence $seq_num:${RESET}"
-    
-    # Convert comma-separated list to array
-    IFS=',' read -ra conflict_files <<< "$files"
-    
-    # Keep the first file at the original sequence, prompt for others
-    echo "Keeping ${conflict_files[0]} at sequence $seq_num"
-    
-    for ((i=1; i<${#conflict_files[@]}; i++)); do
-      local file="${conflict_files[$i]}"
-      local suggested=$(SuggestNewSeqNum "$seq_num" "$all_used_seqs")
-      
-      echo -e "\nFile: ${CYAN}$file${RESET}"
-      echo -e "Current sequence: ${RED}$seq_num${RESET}"
-      echo -e "Suggested new sequence: ${GREEN}$suggested${RESET}"
-      
-      if [[ "$DRY_RUN" == "true" ]]; then
-        echo "[DRY RUN] Would change $file sequence to $suggested"
-        continue
-      fi
-      
-      read -p "Enter new sequence number or press Enter to use suggested [$suggested]: " new_seq
-      new_seq="${new_seq:-$suggested}"
-      
-      # Validate input is a number
-      if ! [[ "$new_seq" =~ ^[0-9]+$ ]]; then
-        WarningMessage "Invalid input. Using suggested sequence $suggested instead."
-        new_seq="$suggested"
-      fi
-      
-      # Update the file
-      local full_path="${RCFORGE_DIR}/rc-scripts/$file"
-      local new_file="${new_seq}_${file#*_}"
-      local new_path="${RCFORGE_DIR}/rc-scripts/$new_file"
-      
-      echo "Renaming to: $new_file"
-      mv "$full_path" "$new_path"
-      
-      # Add the new sequence to used sequences
-      all_used_seqs+=",$new_seq"
-      
-      SuccessMessage "File renamed successfully"
-    done
-  done
-  
-  SuccessMessage "All conflicts resolved"
-  return 0
 }
 
 # ============================================================================
-# MAIN FUNCTIONALITY
+# Function: ValidateShell
+# Description: Validate if the provided shell name is supported ('bash' or 'zsh').
+# Usage: ValidateShell shell_name
+# Returns: 0 if valid, 1 if invalid.
 # ============================================================================
-
-# Parse command-line arguments
-# Usage: ParseArguments "$@"
-ParseArguments() {
-  while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-      --help|-h)
-        ShowHelp
-        return 0
-        ;;
-      --summary)
-        ShowSummary
-        return 0
-        ;;
-      --hostname=*)
-        TARGET_HOSTNAME="${1#*=}"
-        ;;
-      --shell=*)
-        TARGET_SHELL="${1#*=}"
-        if ! ValidateShell "$TARGET_SHELL"; then
-          ErrorMessage "Invalid shell specified: $TARGET_SHELL"
-          echo "Supported shells: ${gc_supported_shells[*]}"
-          return 1
+ValidateShell() {
+    local shell="$1"
+    local supported_shell=""
+    for supported_shell in "${gc_supported_shells[@]}"; do
+        if [[ "$shell" == "$supported_shell" ]]; then
+            return 0
         fi
-        ;;
-      --all)
-        CHECK_ALL=true
-        ;;
-      --fix)
-        FIX_CONFLICTS=true
-        ;;
-      --non-interactive)
-        INTERACTIVE=false
-        ;;
-      --dry-run)
-        DRY_RUN=true
-        ;;
-      *)
-        ErrorMessage "Unknown parameter: $1"
-        echo "Use --help to see available options."
+    done
+    ErrorMessage "Invalid shell specified: '$shell'. Supported are: ${gc_supported_shells[*]}"
+    return 1
+}
+
+# ============================================================================
+# Function: DetectCurrentShell
+# Description: Detect the name of the currently running interactive shell.
+# Usage: DetectCurrentShell
+# Returns: Echoes 'bash', 'zsh', or the basename of $SHELL as a fallback.
+# ============================================================================
+DetectCurrentShell() {
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        echo "zsh"
+    elif [[ -n "${BASH_VERSION:-}" ]]; then
+        echo "bash"
+    else
+        basename "${SHELL:-unknown}"
+    fi
+}
+
+# ============================================================================
+# Function: DetectCurrentHostname
+# Description: Detect the short hostname of the current machine.
+# Usage: DetectCurrentHostname
+# Returns: Echoes the short hostname.
+# ============================================================================
+DetectCurrentHostname() {
+    if command -v hostname &> /dev/null; then
+        hostname -s 2>/dev/null || hostname | cut -d. -f1
+    elif [[ -n "${HOSTNAME:-}" ]]; then
+         echo "$HOSTNAME" | cut -d. -f1
+    else
+         uname -n | cut -d. -f1
+    fi
+}
+
+# ============================================================================
+# Function: GetSequenceNumber
+# Description: Extract the 3-digit sequence number prefix from a filename.
+# Usage: GetSequenceNumber filename
+# Returns: Echoes the sequence number (e.g., "050").
+# ============================================================================
+GetSequenceNumber() {
+    local filename="$1"
+    echo "${filename%%_*}"
+}
+
+# ============================================================================
+# Function: FindConfigFiles
+# Description: Find rcForge configuration files matching shell and hostname criteria.
+# Usage: FindConfigFiles rcforge_dir shell hostname
+# Returns: Echoes newline-separated list of sorted, found config file paths. Returns 1 if none found.
+# ============================================================================
+FindConfigFiles() {
+    local rcforge_dir="$1"
+    local shell="$2"
+    local hostname="$3"
+    local scripts_dir="${rcforge_dir}/rc-scripts"
+    local -a patterns
+    local -a config_files
+    local find_pattern="" # Temp build variables
+    local first=true
+    local pattern=""
+
+    patterns=(
+        "[0-9][0-9][0-9]_global_common_*.sh"
+        "[0-9][0-9][0-9]_global_${shell}_*.sh"
+        "[0-9][0-9][0-9]_${hostname}_common_*.sh"
+        "[0-9][0-9][0-9]_${hostname}_${shell}_*.sh"
+    )
+
+    if [[ ! -d "$scripts_dir" ]]; then
+        ErrorMessage "rc-scripts directory not found: $scripts_dir"
         return 1
-        ;;
-    esac
+    fi
+
+    # Build find pattern dynamically
+    for pattern in "${patterns[@]}"; do
+         if [[ "$first" == true ]]; then
+             find_pattern="-name '$pattern'"
+             first=false
+         else
+             find_pattern+=" -o -name '$pattern'"
+         fi
+    done
+
+    mapfile -t config_files < <(find "$scripts_dir" -maxdepth 1 -type f \( $find_pattern \) -print0 | sort -z -n | xargs -0 -r printf '%s\n')
+
+    # Output files, one per line
+    printf '%s\n' "${config_files[@]}"
+
+    if [[ ${#config_files[@]} -eq 0 ]]; then
+        return 1 # Indicate no files found
+    fi
+    return 0
+}
+
+# ============================================================================
+# Function: SuggestNewSeqNum
+# Description: Suggest the next available 3-digit sequence number.
+# Usage: SuggestNewSeqNum current_seq_str all_used_seqs_str
+# Returns: Echoes suggested 3-digit sequence number or "ERR".
+# ============================================================================
+SuggestNewSeqNum() {
+    local current_seq_str="$1"
+    local all_used_seqs_str="$2"
+    local current_seq_num=$((10#$current_seq_str))
+    local suggestion=""
+    local i=0
+    local formatted_seq=""
+    local range_start=$(( (current_seq_num / 100) * 100 ))
+    local range_end=$(( range_start + 99 ))
+
+    for (( i = current_seq_num + 1; i <= range_end; i++ )); do
+        printf -v formatted_seq "%03d" "$i"
+        if [[ ! ",${all_used_seqs_str}," =~ ",${formatted_seq}," ]]; then
+            suggestion="$formatted_seq"; break; fi
+    done
+
+    if [[ -z "$suggestion" ]]; then
+        for (( i = range_start; i < current_seq_num; i++ )); do
+             printf -v formatted_seq "%03d" "$i"
+             if [[ ! ",${all_used_seqs_str}," =~ ",${formatted_seq}," ]]; then
+                 suggestion="$formatted_seq"; break; fi
+        done
+    fi
+
+    if [[ -z "$suggestion" ]]; then
+         local next_range_start=$(( range_start + 100 ))
+         if [[ $next_range_start -ge 1000 ]]; then next_range_start=0; fi
+         local next_range_end=$(( next_range_start + 99 ))
+         for (( i = next_range_start; i <= next_range_end; i++ )); do
+              printf -v formatted_seq "%03d" "$i"
+              if [[ ! ",${all_used_seqs_str}," =~ ",${formatted_seq}," ]]; then
+                  suggestion="$formatted_seq"; break; fi
+         done
+    fi
+
+    if [[ -z "$suggestion" ]]; then
+         ErrorMessage "Could not find an available sequence number (000-999)."
+         echo "ERR"
+    else
+         echo "$suggestion"
+    fi
+}
+
+# ============================================================================
+# Function: FixSeqConflicts
+# Description: Interactively guides user to fix sequence number conflicts by renaming files.
+# Usage: FixSeqConflicts rcforge_dir shell hostname sequence_map is_interactive is_dry_run
+# Arguments: Assumes sequence_map is passed by name (requires Bash 4.3+).
+# Returns: 0 if all prompted conflicts addressed/dry-run, 1 otherwise.
+# Requires: Bash 4.3+ for nameref (`local -n`).
+# ============================================================================
+FixSeqConflicts() {
+    local rcforge_dir="$1"
+    local shell="$2"
+    local hostname="$3"
+    local -n seq_map_ref="$4" # Nameref (Bash 4.3+)
+    local is_interactive="$5"
+    local is_dry_run="$6"
+    local scripts_dir="${rcforge_dir}/rc-scripts"
+    local all_fixed_or_skipped=true
+    local seq_num=""
+    local files_string=""
+    local all_used_seqs_str=""
+    local -a conflict_files
+    local i=0
+    local file_to_rename=""
+    local suggested_seq=""
+    local new_seq_input=""
+    local new_seq_num_str=""
+    local current_path=""
+    local new_filename=""
+    local new_path=""
+
+    if [[ "$is_interactive" == "false" ]]; then
+        WarningMessage "Non-interactive conflict fixing (--fix --non-interactive) is not supported."
+        WarningMessage "Conflicts remain for ${hostname}/${shell}."
+        return 1
+    fi
+
+    SectionHeader "Interactive Conflict Resolution for ${hostname}/${shell}" # Call PascalCase
+
+    all_used_seqs_str=$(IFS=,; echo "${!seq_map_ref[*]}")
+
+    for seq_num in "${!seq_map_ref[@]}"; do
+        files_string="${seq_map_ref[$seq_num]}"
+        if [[ "$files_string" != *,* ]]; then continue; fi
+
+        echo -e "\n${CYAN}Resolving conflict for sequence $seq_num:${RESET}"
+        IFS=',' read -r -a conflict_files <<< "$files_string"
+
+        InfoMessage "Keeping '${conflict_files[0]}' at sequence $seq_num."
+
+        for ((i = 1; i < ${#conflict_files[@]}; i++)); do
+            file_to_rename="${conflict_files[$i]}"
+            # Call PascalCase function
+            suggested_seq=$(SuggestNewSeqNum "$seq_num" "$all_used_seqs_str")
+
+            if [[ "$suggested_seq" == "ERR" ]]; then
+                 ErrorMessage "Cannot suggest a number for '$file_to_rename'. Skipping."
+                 all_fixed_or_skipped=false
+                 continue
+            fi
+
+            echo -e "\nFile to renumber: ${CYAN}$file_to_rename${RESET}"
+            echo -e "  Current sequence: ${RED}$seq_num${RESET}"
+            echo -e "  Suggested sequence: ${GREEN}$suggested_seq${RESET}"
+
+            if [[ "$is_dry_run" == "true" ]]; then
+                InfoMessage "[DRY RUN] Would suggest renaming '$file_to_rename' to sequence $suggested_seq."
+                all_used_seqs_str+=",${suggested_seq}"
+                continue
+            fi
+
+            read -p "Enter new sequence (3 digits), 's' to skip, or Enter for suggestion [$suggested_seq]: " new_seq_input
+            new_seq_input="${new_seq_input:-$suggested_seq}"
+
+            if [[ "$new_seq_input" == "s" || "$new_seq_input" == "S" ]]; then
+                 WarningMessage "Skipping rename for '$file_to_rename'."
+                 all_fixed_or_skipped=false
+                 continue
+            fi
+
+            if ! [[ "$new_seq_input" =~ ^[0-9]{3}$ ]]; then
+                WarningMessage "Invalid input '$new_seq_input'. Must be 3 digits. Using suggestion '$suggested_seq'."
+                new_seq_num_str="$suggested_seq"
+            elif [[ ",${all_used_seqs_str}," =~ ",${new_seq_input}," ]]; then
+                 WarningMessage "Sequence '$new_seq_input' is already in use. Using suggestion '$suggested_seq'."
+                 new_seq_num_str="$suggested_seq"
+            else
+                 new_seq_num_str="$new_seq_input"
+            fi
+
+            new_filename="${new_seq_num_str}_${file_to_rename#*_}"
+            current_path="${scripts_dir}/${file_to_rename}"
+            new_path="${scripts_dir}/${new_filename}"
+
+            InfoMessage "Attempting rename: '$file_to_rename' -> '$new_filename'"
+            if mv -v "$current_path" "$new_path"; then
+                 SuccessMessage "File renamed successfully."
+                 all_used_seqs_str+=",${new_seq_num_str}"
+            else
+                 ErrorMessage "Failed to rename file '$file_to_rename'."
+                 all_fixed_or_skipped=false
+            fi
+        done
+    done
+
+    echo ""
+    if [[ "$all_fixed_or_skipped" == "true" ]]; then
+        if [[ "$is_dry_run" == "true" ]]; then
+             SuccessMessage "[DRY RUN] Conflict resolution simulation complete."
+        else
+             SuccessMessage "Conflict resolution process complete for ${hostname}/${shell}."
+        fi
+        return 0
+    else
+        WarningMessage "Some conflicts were skipped or failed to resolve for ${hostname}/${shell}."
+        return 1
+    fi
+}
+
+# ============================================================================
+# Function: CheckSeqConflicts
+# Description: Check for sequence number conflicts for a specific shell/hostname pair.
+# Usage: CheckSeqConflicts rcforge_dir shell hostname fix_conflicts is_interactive is_dry_run
+# Returns: 0 if no conflicts, 1 if conflicts found (or fix attempt failed).
+# ============================================================================
+CheckSeqConflicts() {
+    local rcforge_dir="$1"
+    local shell="$2"
+    local hostname="$3"
+    local fix_conflicts="$4"
+    local is_interactive="$5"
+    local is_dry_run="$6"
+    local -a config_files
+    local has_conflicts=false
+    local file=""
+    local filename=""
+    local seq_num=""
+    local files_string=""
+
+    declare -A sequence_map
+
+    InfoMessage "Checking sequence conflicts for ${hostname}/${shell}..."
+
+    # Call PascalCase function
+    mapfile -t config_files < <(FindConfigFiles "$rcforge_dir" "$shell" "$hostname") || {
+         InfoMessage "No configuration files found for ${hostname}/${shell}. Skipping check."
+         return 0
+    }
+
+
+    for file in "${config_files[@]}"; do
+        filename=$(basename "$file")
+        seq_num=$(GetSequenceNumber "$filename") # Call PascalCase
+
+        if [[ -n "${sequence_map[$seq_num]:-}" ]]; then
+            sequence_map["$seq_num"]="${sequence_map[$seq_num]},$filename"
+            has_conflicts=true
+        else
+            sequence_map["$seq_num"]="$filename"
+        fi
+    done
+
+    if [[ "$has_conflicts" == "false" ]]; then
+        SuccessMessage "No sequence conflicts found for ${hostname}/${shell}."
+        return 0
+    else
+        TextBlock "Sequence Conflicts Detected for ${hostname}/${shell}" "$RED" "${BG_WHITE:-}" # Call PascalCase
+        echo ""
+
+        for seq_num in "${!sequence_map[@]}"; do
+            files_string="${sequence_map[$seq_num]}"
+            if [[ "$files_string" == *,* ]]; then
+                echo -e "${RED}Conflict at sequence ${BOLD}${seq_num}${RESET}${RED}:${RESET}"
+                echo "$files_string" | tr ',' '\n' | sed 's/^/  /'
+                echo ""
+            fi
+        done
+
+        if [[ "$fix_conflicts" == "true" ]]; then
+            # Call PascalCase function
+            if FixSeqConflicts "$rcforge_dir" "$shell" "$hostname" sequence_map "$is_interactive" "$is_dry_run"; then
+                 return 0
+            else
+                 return 1
+            fi
+        else
+            WarningMessage "Run with --fix to attempt interactive resolution."
+            return 1
+        fi
+    fi
+}
+
+# ============================================================================
+# Function: CheckAllSeqConflicts
+# Description: Check sequence conflicts across all detected hostnames and supported shells.
+# Usage: CheckAllSeqConflicts rcforge_dir fix_conflicts is_interactive is_dry_run
+# Returns: 0 if no conflicts found anywhere, 1 otherwise.
+# ============================================================================
+CheckAllSeqConflicts() {
+    local rcforge_dir="$1"
+    local fix_conflicts="$2"
+    local is_interactive="$3"
+    local is_dry_run="$4"
+    local any_conflicts_found=false
+    local -a hostnames=("global")
+    local scripts_dir="${rcforge_dir}/rc-scripts"
+    local file=""
+    local filename=""
+    local hostname_part=""
+    local shell="" # Loop variable
+    local hostname="" # Loop variable
+
+    InfoMessage "Detecting hostnames from scripts in ${scripts_dir}..."
+
+    if [[ -d "$scripts_dir" ]]; then
+        while IFS= read -r -d '' file; do
+            filename=$(basename "$file")
+            hostname_part=$(echo "$filename" | cut -d '_' -f 2)
+            if [[ "$hostname_part" != "global" && ! " ${hostnames[*]} " =~ " ${hostname_part} " ]]; then
+                hostnames+=("$hostname_part")
+            fi
+        done < <(find "$scripts_dir" -maxdepth 1 -type f -name "[0-9][0-9][0-9]_*_*_*.sh" -print0 2>/dev/null || true)
+    else
+        WarningMessage "rc-scripts directory not found: $scripts_dir. Cannot detect hostnames."
+    fi
+
+    # Always add current hostname to the list to check
+    local current_hostname
+    current_hostname=$(DetectCurrentHostname) # Call PascalCase
+    if [[ ! " ${hostnames[*]} " =~ " ${current_hostname} " ]]; then
+         hostnames+=("$current_hostname")
+    fi
+
+    InfoMessage "Checking combinations for shells: ${gc_supported_shells[*]}"
+    InfoMessage "Checking combinations for hostnames: ${hostnames[*]}"
+    echo ""
+
+    for shell in "${gc_supported_shells[@]}"; do
+        for hostname in "${hostnames[@]}"; do
+            # Call PascalCase function
+            if ! CheckSeqConflicts "$rcforge_dir" "$shell" "$hostname" "$fix_conflicts" "$is_interactive" "$is_dry_run"; then
+                any_conflicts_found=true
+            fi
+            echo ""
+        done
+    done
+
+    if [[ "$any_conflicts_found" == "true" ]]; then
+        WarningMessage "Sequence conflicts were detected in one or more execution paths."
+        return 1
+    else
+        SuccessMessage "No sequence conflicts found in any detected execution paths."
+        return 0
+    fi
+}
+
+# ============================================================================
+# Function: ParseArguments
+# Description: Parse command-line arguments for the seqcheck script.
+# Usage: declare -A options; ParseArguments options "$@"
+# Returns: Populates associative array. Returns 0 on success, 1 on error or if help/summary shown.
+# ============================================================================
+ParseArguments() {
+    local -n options_ref="$1" # Use nameref
     shift
-  done
 
-  # Set defaults if not provided
-  : "${TARGET_HOSTNAME:=$(DetectCurrentHostname)}"
-  : "${TARGET_SHELL:=$(DetectCurrentShell)}"
+    # Call PascalCase functions for defaults
+    options_ref["target_hostname"]="$(DetectCurrentHostname)"
+    options_ref["target_shell"]="$(DetectCurrentShell)"
+    options_ref["check_all"]=false
+    options_ref["fix_conflicts"]=false
+    options_ref["is_interactive"]=true
+    options_ref["is_dry_run"]=false
 
-  # Validate shell
-  if ! ValidateShell "$TARGET_SHELL"; then
-    ErrorMessage "Invalid shell: $TARGET_SHELL"
-    echo "Supported shells: ${gc_supported_shells[*]}"
-    return 1
-  fi
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --help|-h) ShowHelp; return 1 ;; # Call PascalCase
+            --summary) ShowSummary; return 1 ;; # Call PascalCase
+            --hostname=*) options_ref["target_hostname"]="${1#*=}" ;;
+            --shell=*)
+                options_ref["target_shell"]="${1#*=}"
+                if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase
+                ;;
+            --all) options_ref["check_all"]=true ;;
+            --fix) options_ref["fix_conflicts"]=true ;;
+            --non-interactive) options_ref["is_interactive"]=false ;;
+            --dry-run) options_ref["is_dry_run"]=true ;;
+            *)
+                ErrorMessage "Unknown parameter: $1"
+                echo "Use --help to see available options."
+                return 1
+                ;;
+        esac
+        shift
+    done
 
-  return 0
+    # Final validation of potentially defaulted shell
+    if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase
+
+    if [[ "${options_ref["fix_conflicts"]}" == "true" && "${options_ref["is_interactive"]}" == "false" ]]; then
+        WarningMessage "--fix requires interactive mode. Running check without fixing."
+    fi
+
+    if [[ "${options_ref["is_dry_run"]}" == "true" && "${options_ref["fix_conflicts"]}" == "true" ]]; then
+         InfoMessage "Running with --dry-run. No changes will be made."
+    fi
+
+    return 0 # Success
 }
 
-# Main function
+# ============================================================================
+# Function: main
+# Description: Main execution logic for the seqcheck script.
+# Usage: main "$@"
+# Returns: 0 on success/no conflicts, 1 on failure/conflicts found.
+# ============================================================================
 main() {
-  # Detect project root
-  local RCFORGE_DIR
-  RCFORGE_DIR=$(DetectProjectRoot)
+    local rcforge_dir
+    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase
+    declare -A options
+    local overall_status=0
 
-  # Parse command-line arguments
-  if ! ParseArguments "$@"; then
-    return 1
-  fi
+    # Call PascalCase function. Exit if parsing failed or help/summary displayed.
+    if ! ParseArguments options "$@"; then
+        return 1
+    fi
 
-  # Display header
-  SectionHeader "rcForge Sequence Conflict Check"
+    SectionHeader "rcForge Sequence Conflict Check (v${gc_version})" # Call PascalCase
 
-  # Run appropriate check based on options
-  if [[ "$CHECK_ALL" == "true" ]]; then
-    CheckAllSeqConflicts
-  else
-    CheckSeqConflicts "$TARGET_SHELL" "$TARGET_HOSTNAME"
-  fi
+    if [[ "${options[check_all]}" == "true" ]]; then
+        # Call PascalCase function
+        CheckAllSeqConflicts \
+            "$rcforge_dir" \
+            "${options[fix_conflicts]}" \
+            "${options[is_interactive]}" \
+            "${options[is_dry_run]}"
+        overall_status=$?
+    else
+        # Call PascalCase function
+        CheckSeqConflicts \
+            "$rcforge_dir" \
+            "${options[target_shell]}" \
+            "${options[target_hostname]}" \
+            "${options[fix_conflicts]}" \
+            "${options[is_interactive]}" \
+            "${options[is_dry_run]}"
+        overall_status=$?
+    fi
+
+    return $overall_status
 }
 
-# Execute main function if run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  main "$@"
-  exit $?
-elif [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
-  # Also execute if called via the rc command
-  main "$@"
-  exit $?
+
+# Execute main function if run directly or via rc command
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]] || [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $?
 fi
 
 # EOF

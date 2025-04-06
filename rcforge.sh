@@ -1,29 +1,57 @@
 #!/usr/bin/env bash
 # rcforge.sh - Universal Shell Configuration Loader
 # Author: Mark Hasse
-# Date: 2025-04-05
+# Date: 2025-04-06
 # Version: 0.3.0
-# Description: Main loader script for rcForge shell configuration system
+# Category: core
+# Description: Main loader script for rcForge shell configuration system. Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 
 # ============================================================================
-# CORE SYSTEM INITIALIZATION
+# CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
 # ============================================================================
 
-# Set strict error handling
-set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+set -o nounset
 
-# Global Constants
 export RCFORGE_APP_NAME="rcForge"
 export RCFORGE_VERSION="0.3.0"
 
+export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/.config/rcforge}"
+export RCFORGE_LIB="${RCFORGE_ROOT}/system/lib"
+export RCFORGE_CORE="${RCFORGE_ROOT}/system/core"
+export RCFORGE_UTILS="${RCFORGE_ROOT}/system/utils"
+export RCFORGE_SCRIPTS="${RCFORGE_ROOT}/rc-scripts"
+export RCFORGE_USER_UTILS="${RCFORGE_ROOT}/utils"
+
+if [[ -f "${RCFORGE_LIB}/shell-colors.sh" ]]; then
+    source "${RCFORGE_LIB}/shell-colors.sh"
+else
+    export RED='\033[0;31m'; export GREEN='\033[0;32m'; export YELLOW='\033[0;33m';
+    export BLUE='\033[0;34m'; export CYAN='\033[0;36m'; export RESET='\033[0m'; export BOLD='\033[1m';
+    ErrorMessage() { echo -e "${RED}ERROR:${RESET} $1" >&2; }
+    WarningMessage() { echo -e "${YELLOW}WARNING:${RESET} $1" >&2; }
+    InfoMessage() { echo -e "${BLUE}INFO:${RESET} $1"; }
+    SuccessMessage() { echo -e "${GREEN}SUCCESS:${RESET} $1"; }
+    WarningMessage "Could not source ${RCFORGE_LIB}/shell-colors.sh. Using minimal output."
+fi
+
+if [[ -f "${RCFORGE_CORE}/functions.sh" ]]; then
+     # shellcheck disable=SC1090
+     source "${RCFORGE_CORE}/functions.sh"
+else
+     ErrorMessage "Core functions file missing: ${RCFORGE_CORE}/functions.sh"
+fi
+
+if [[ -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
+     # shellcheck disable=SC1090
+     source "${RCFORGE_LIB}/utility-functions.sh"
+fi
+
+
 # ============================================================================
 # Function: DetectShell
-# Description: Determine the currently running shell
+# Description: Determine the currently running shell ('bash' or 'zsh').
 # Usage: DetectShell
-# Arguments: None
-# Returns:
-#   Outputs the name of the current shell (bash or zsh)
+# Returns: Echoes the name of the current shell.
 # ============================================================================
 DetectShell() {
     if [[ -n "${ZSH_VERSION:-}" ]]; then
@@ -31,184 +59,246 @@ DetectShell() {
     elif [[ -n "${BASH_VERSION:-}" ]]; then
         echo "bash"
     else
-        # Fallback to $SHELL
-        basename "$SHELL"
+        basename "${SHELL:-unknown}"
     fi
 }
 
 # ============================================================================
+# Function: DetectCurrentHostname
+# Description: Detect the short hostname of the current machine.
+# Usage: DetectCurrentHostname
+# Returns: Echoes the short hostname.
+# ============================================================================
+DetectCurrentHostname() {
+    if command -v hostname &> /dev/null; then
+        hostname -s 2>/dev/null || hostname | cut -d. -f1
+    elif [[ -n "${HOSTNAME:-}" ]]; then
+         echo "$HOSTNAME" | cut -d. -f1
+    else
+         uname -n | cut -d. -f1
+    fi
+}
+
+
+# ============================================================================
 # Function: PerformIntegrityChecks
-# Description: Verify the integrity of rcForge configuration system
+# Description: Verify the integrity of rcForge config by running check scripts.
+#              Prompts user to continue or abort if issues are found (interactive).
 # Usage: PerformIntegrityChecks
-# Arguments: None
-# Returns:
-#   0 if all checks pass
-#   1 if critical issues are detected
-# Exits:
-#   Prompts user or exits if critical issues found
+# Returns: 0 if all checks pass or user chose to continue, 1 if checks failed and user aborted or non-interactive.
 # ============================================================================
 PerformIntegrityChecks() {
-    local continue_flag=true
+    local continue_load=true
     local error_count=0
+    local check_script_path=""
+    local check_name=""
 
-    # Display header
-    echo -e "\n${BOLD}${CYAN}rcForge Integrity Checks${RESET}"
-    echo -e "${CYAN}$(printf '=%.0s' {1..50})${RESET}\n"
+    if command -v SectionHeader &> /dev/null; then SectionHeader "rcForge Integrity Checks"; else
+         echo -e "\n${BOLD}${CYAN}rcForge Integrity Checks${RESET}\n${CYAN}==============================${RESET}\n"; fi
 
-    # Sequence Conflict Check
-    if [[ -f "$RCFORGE_UTILS/seqcheck.sh" ]]; then
-        if ! bash "$RCFORGE_UTILS/seqcheck.sh"; then
-            echo -e "\n${RED}SEQUENCE CONFLICT DETECTED${RESET}"
-            echo "Potential configuration loading conflicts found in RC scripts."
-            error_count=$((error_count + 1))
-            continue_flag=false
+    local -A checks=(
+        ["Sequence Conflict Check"]="${RCFORGE_UTILS}/seqcheck.sh"
+        ["RC File Checksum Check"]="${RCFORGE_CORE}/check-checksums.sh"
+        # ["Core Integrity Check"]="${RCFORGE_UTILS}/integrity.sh" # Can add this
+    )
+
+    for check_name in "${!checks[@]}"; do
+        check_script_path="${checks[$check_name]}"
+        InfoMessage "Running: ${check_name}..."
+        if [[ -f "$check_script_path" && -x "$check_script_path" ]]; then
+            if ! ( bash "$check_script_path" --non-interactive ); then
+                WarningMessage "${check_name} detected issues."
+                error_count=$((error_count + 1))
+                continue_load=false
+            else
+                 SuccessMessage "${check_name} passed."
+            fi
+        else
+            WarningMessage "Check script not found or not executable: $check_script_path"
         fi
-    fi
+    done
 
-    # Checksum Verification
-    if [[ -f "$RCFORGE_CORE/check-checksums.sh" ]]; then
-        if ! bash "$RCFORGE_CORE/check-checksums.sh"; then
-            echo -e "\n${RED}CHECKSUM VERIFICATION FAILED${RESET}"
-            echo "Configuration files may have been modified unexpectedly."
-            error_count=$((error_count + 1))
-            continue_flag=false
-        fi
-    fi
+    if [[ "$continue_load" == "false" ]]; then
+        echo ""
+        WarningMessage "${BOLD}Potential rcForge integrity issues detected (${error_count} check(s) reported problems).${RESET}"
+        InfoMessage "Your shell configuration might not load correctly."
+        InfoMessage "${BOLD}Recommended Action:${RESET} Run utility scripts manually or consider reinstalling."
+        InfoMessage "Example: ${CYAN}rc seqcheck --fix${RESET} or ${CYAN}rc check-checksums --fix${RESET}"
+        InfoMessage "Reinstall: ${CYAN}curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash${RESET}"
+        echo ""
 
-    # Prompt user if errors were found
-    if [[ "$continue_flag" == "false" ]]; then
-        echo -e "\n${YELLOW}Potential system integrity issues detected.${RESET}"
-        echo "Found $error_count potential configuration problems."
-
-        echo -e "\n${BOLD}RECOMMENDED ACTION:${RESET}"
-        echo "Consider reinstalling rcForge with the following command:"
-        echo -e "${CYAN}curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash${RESET}"
-
-        # Check if in non-interactive mode
-        if [[ -n "${RCFORGE_NONINTERACTIVE:-}" ]]; then
-            echo "Running in non-interactive mode. Exiting."
+        if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
+            ErrorMessage "Running in non-interactive mode. Aborting rcForge initialization due to integrity issues."
             return 1
         fi
 
-        read -p "Do you want to continue loading rcForge? (y/N): " response
+        local response=""
+        # Use printf for prompt to avoid issues with echo -e/-n interpretation
+        printf "%b" "${YELLOW}Do you want to continue loading rcForge despite issues? (y/N):${RESET} "
+        read -r response # Use -r to read raw input
         if [[ ! "$response" =~ ^[Yy]$ ]]; then
-            echo "Shell configuration loading aborted."
+            ErrorMessage "Shell configuration loading aborted by user."
             return 1
         else
-            echo -e "\n${GREEN}Continuing with rcForge initialization...${RESET}"
+            SuccessMessage "Continuing with rcForge initialization..."
         fi
     else
-        echo -e "${GREEN}No integrity issues detected.${RESET}"
+        SuccessMessage "All integrity checks passed."
     fi
+    echo ""
 
     return 0
 }
 
 # ============================================================================
 # Function: DetermineLoadPath
-# Description: Determine the appropriate RC script loading path
+# Description: Determine the sequence of RC scripts to load based on shell and hostname.
 # Usage: DetermineLoadPath shell hostname
-# Arguments:
-#   shell (required) - The current shell type (bash or zsh)
-#   hostname (optional) - Specific hostname to use for loading
-# Returns:
-#   List of matching configuration script paths
+# Returns: Echoes a newline-separated list of sorted, matching config file paths. Returns 1 if dir missing.
 # ============================================================================
 DetermineLoadPath() {
-    local shell="${1:?Shell type is required}"
-    local hostname="${2:-$(hostname | cut -d. -f1)}"
+    local shell="${1:?Shell type required}"
+    local hostname="${2:-}"
+    local -a config_files
+    local scripts_dir="${RCFORGE_SCRIPTS}"
+    local -a patterns
+    local find_pattern=""
+    local first=true
+    local pattern=""
 
-    # Build file matching patterns
-    local patterns=(
-        "[0-9]*_global_common_*.sh"
-        "[0-9]*_global_${shell}_*.sh"
-        "[0-9]*_${hostname}_common_*.sh"
-        "[0-9]*_${hostname}_${shell}_*.sh"
+    if [[ -z "$hostname" ]]; then
+        hostname=$(DetectCurrentHostname) # Call PascalCase
+    fi
+
+    patterns=(
+        "[0-9][0-9][0-9]_global_common_*.sh"
+        "[0-9][0-9][0-9]_global_${shell}_*.sh"
+        "[0-9][0-9][0-9]_${hostname}_common_*.sh"
+        "[0-9][0-9][0-9]_${hostname}_${shell}_*.sh"
     )
 
-    # Find and sort matching files
-    local config_files=()
+    if [[ ! -d "$scripts_dir" ]]; then
+        WarningMessage "rc-scripts directory not found: $scripts_dir. Cannot load configurations."
+        return 1
+    fi
+
+    # Build find pattern dynamically
     for pattern in "${patterns[@]}"; do
-        while IFS= read -r -d '' file; do
-            [[ -f "$file" ]] && config_files+=("$file")
-        done < <(find "$RCFORGE_SCRIPTS" -maxdepth 1 -type f -name "$pattern" -print0 2>/dev/null)
+         if [[ "$first" == true ]]; then
+             find_pattern="-name '$pattern'"
+             first=false
+         else
+             find_pattern+=" -o -name '$pattern'"
+         fi
     done
 
-    # Sort files by sequence number
-    IFS=$'\n' config_files=($(sort <<< "${config_files[*]}"))
-    unset IFS
+    mapfile -t config_files < <(find "$scripts_dir" -maxdepth 1 -type f \( $find_pattern \) -print0 | sort -z -n | xargs -0 -r printf '%s\n')
 
-    # Output files
+    if [[ ${#config_files[@]} -eq 0 ]]; then
+         InfoMessage "No rcForge configuration scripts found for ${hostname}/${shell} in ${scripts_dir}."
+         return 0 # Not an error for loader if no files found
+    fi
+
     printf '%s\n' "${config_files[@]}"
+    return 0
 }
 
 # ============================================================================
 # Function: SourceConfigFiles
-# Description: Source shell configuration files in sequence
-# Usage: SourceConfigFiles config_files
-# Arguments:
-#   config_files (required) - Array of configuration file paths
+# Description: Source an array of configuration files in sequence. Includes optional debug timing.
+# Usage: SourceConfigFiles config_file1 [config_file2 ...]
+# Returns: None. Sources files into the current shell environment.
 # ============================================================================
 SourceConfigFiles() {
-    local files=("$@")
+    local -a files_to_source=("$@")
+    local file=""
+    local start_time=""
+    local end_time=""
+    local elapsed=""
+    local have_bc=false
+    local use_seconds=true
 
-    # Start timing for performance measurement
-    local start_time
     if [[ -n "${SHELL_DEBUG:-}" ]]; then
-        start_time=$(date +%s.%N 2>/dev/null) || start_time=$SECONDS
+        if command -v bc &>/dev/null; then have_bc=true; fi
+        if date +%s.%N &>/dev/null; then use_seconds=false; fi
+
+        if [[ "$use_seconds" == "false" ]]; then start_time=$(date +%s.%N); else start_time=$SECONDS; fi
+        InfoMessage "Starting rcForge configuration loading..."
     fi
 
-    # Source each configuration file
-    for file in "${files[@]}"; do
-        # Verbose debug output if enabled
-        if [[ -n "${SHELL_DEBUG:-}" ]]; then
-            echo "Loading configuration: $file"
+    for file in "${files_to_source[@]}"; do
+        if [[ -r "$file" ]]; then
+            if [[ -n "${SHELL_DEBUG:-}" ]]; then echo "rcForge: Sourcing $file"; fi
+            # shellcheck disable=SC1090
+            source "$file"
+        else
+             WarningMessage "Cannot read configuration file: $file. Skipping."
         fi
-
-        # Source the file
-        # shellcheck disable=SC1090
-        source "$file"
     done
 
-    # Calculate and report loading time if debugging is enabled
     if [[ -n "${SHELL_DEBUG:-}" ]]; then
-        local end_time
-        if command -v date >/dev/null 2>&1 && [[ "$start_time" != "$SECONDS" ]]; then
-            end_time=$(date +%s.%N 2>/dev/null)
-            local elapsed
-            elapsed=$(echo "$end_time - $start_time" | bc 2>/dev/null)
-            echo "Shell configuration loaded in $elapsed seconds"
+        if [[ "$use_seconds" == "false" ]] && [[ "$have_bc" == "true" ]]; then
+            end_time=$(date +%s.%N)
+            elapsed=$(echo "$end_time - $start_time" | bc)
+            InfoMessage "rcForge configuration loaded in $elapsed seconds."
+        elif [[ "$use_seconds" == "true" ]]; then
+            local duration=$(( SECONDS - start_time ))
+            InfoMessage "rcForge configuration loaded in $duration seconds."
         else
-            echo "Shell configuration loaded successfully"
+             SuccessMessage "rcForge configuration loading complete."
         fi
     fi
 }
 
 # ============================================================================
-# MAIN EXECUTION
+# Function: main
+# Description: Main execution logic for rcForge initialization.
+# Usage: main "$@" (called at the end of this script when sourced)
+# Returns: 0 on successful loading, 1 on failure.
 # ============================================================================
-
-# Main initialization function
-Main() {
-    # Detect current shell and hostname
-    local current_shell
-    current_shell=$(DetectShell)
-
-    # Perform integrity checks
-    if ! PerformIntegrityChecks; then
-        echo "Integrity checks failed. Aborting rcForge initialization."
-        return 1
+main() {
+    # Use CheckRoot from sourced functions.sh (already PascalCase)
+    if command -v CheckRoot &> /dev/null; then
+         if ! CheckRoot --skip-interactive; then return 1; fi
+    else
+         WarningMessage "CheckRoot function not found - unable to verify non-root execution."
     fi
 
-    # Determine configuration files to load
-    local config_files
-    mapfile -t config_files < <(DetermineLoadPath "$current_shell")
+    local current_shell
+    current_shell=$(DetectShell) # Call PascalCase
+    if [[ "$current_shell" != "bash" && "$current_shell" != "zsh" ]]; then
+         WarningMessage "Unsupported shell detected: '$current_shell'. rcForge supports bash and zsh."
+    fi
 
-    # Source configuration files
-    SourceConfigFiles "${config_files[@]}"
+    if [[ -z "${RCFORGE_SKIP_CHECKS:-}" ]]; then
+         if ! PerformIntegrityChecks; then return 1; fi # Call PascalCase
+    else
+         InfoMessage "Skipping integrity checks due to RCFORGE_SKIP_CHECKS."
+    fi
+
+    local -a config_files_to_load
+    # Call PascalCase. Use process substitution.
+    mapfile -t config_files_to_load < <(DetermineLoadPath "$current_shell") || {
+         return 1 # Propagate error if directory was missing
+    }
+
+    if [[ ${#config_files_to_load[@]} -gt 0 ]]; then
+        # Call PascalCase
+        SourceConfigFiles "${config_files_to_load[@]}"
+    else
+        : # No action needed if no files were found
+    fi
+
+    # TODO: Add lazy-loading setup for 'rc' command function here
+
+    return 0
 }
 
-# Execute main function
-Main "$@"
+# ============================================================================
+# EXECUTION START
+# ============================================================================
+
+# Execute main function when this script is sourced.
+main "$@"
 
 # EOF

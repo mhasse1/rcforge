@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 210_global_bash_config.sh - Bash-specific settings
 # Author: rcForge Team
-# Date: 2025-04-05
-# Version: 0.3.0
+# Date: 2025-04-06 # Updated Date
+# Category: rc-script/bash
 # Description: Configuration settings specific to Bash shell
 
 # Skip if not running in Bash
@@ -10,101 +10,90 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
   return 0
 fi
 
-# ============================================================================
-# SHELL OPTIONS
-# ============================================================================
-
-# Enable vi mode
-set -o vi
-
-# History settings
-shopt -s histappend     # Append to history file, don't overwrite
-shopt -s cmdhist        # Store multi-line commands as single line
-shopt -s lithist        # Use embedded newlines in multi-line history
-shopt -s histverify     # Edit history substitutions before executing
-
-# Display settings
-shopt -s checkwinsize   # Check window size after each command
-
-# Directory navigation
-shopt -s autocd 2>/dev/null || true   # Change directory without cd (Bash 4.0+)
-shopt -s cdspell        # Autocorrect minor spelling errors in cd
-shopt -s dirspell 2>/dev/null || true # Autocorrect directory spelling (Bash 4.0+)
-shopt -s cdable_vars    # Allow cd to variables containing directory names
-
-# Globbing enhancements
-shopt -s globstar 2>/dev/null || true # Enable ** recursive glob (Bash 4.0+)
-shopt -s extglob        # Extended pattern matching
-shopt -s nocaseglob     # Case-insensitive globbing
+# Note: No 'set -e' or 'set -u' here as this is sourced by interactive shells.
 
 # ============================================================================
-# HISTORY CONFIGURATION
+# SHELL OPTIONS (set -o, shopt)
 # ============================================================================
 
-# Set history file location
-export HISTFILE="${HISTFILE:-$HOME/.bash_history}"
+# --- Editing Mode ---
+set -o vi # Enable vi command line editing mode
 
-# History size settings
-export HISTSIZE=10000          # Commands to remember in memory
-export HISTFILESIZE=100000     # Commands to save in file
+# --- History ---
+# Variables are set in common config (HISTSIZE, HISTFILESIZE, HISTCONTROL, HISTTIMEFORMAT, HISTIGNORE)
+shopt -s histappend      # Append to history file, don't overwrite
+shopt -s cmdhist         # Save multi-line commands as single history entry
+shopt -s lithist         # Preserve embedded newlines in multi-line history entries
+shopt -s histverify      # Allow editing history substitutions before execution
 
-# History control flags
-export HISTCONTROL=ignoreboth:erasedups  # Ignore duplicates and space-prefixed commands
+# --- Display ---
+shopt -s checkwinsize    # Update window size after each command
 
-# History timestamp format
-export HISTTIMEFORMAT="%F %T "  # ISO date and time format
+# --- Navigation ---
+# Enable extended cd features (requires Bash 4.0+)
+shopt -s autocd 2>/dev/null || true   # Change directory by typing directory name
+shopt -s cdspell          # Autocorrect minor spelling errors in 'cd' command
+shopt -s dirspell 2>/dev/null || true # Autocorrect directory spelling in commands
+shopt -s cdable_vars      # Allow 'cd varname' if $varname is a directory path
 
-# History exclusion patterns
-export HISTIGNORE="ls:cd:pwd:exit:date:* --help:history:clear"
+# --- Globbing ---
+shopt -s globstar 2>/dev/null || true # Enable ** recursive globbing (Bash 4.0+)
+shopt -s extglob          # Enable extended pattern matching features (+, ?, *, !, @)
+shopt -s nocaseglob       # Make filename globbing case-insensitive
+
+# --- Other ---
+shopt -s hostcomplete     # Enable hostname completion (Tab after @)
 
 # ============================================================================
-# COMPLETION
+# HISTORY CONFIGURATION (Variables set in common config)
+# ============================================================================
+# HISTFILE, HISTSIZE, HISTFILESIZE, HISTCONTROL, HISTTIMEFORMAT set in common config
+# Optionally add more specific HISTIGNORE patterns here if needed
+
+# ============================================================================
+# COMPLETION (Bash Programmable Completion)
 # ============================================================================
 
-# Enable programmable completion features
+# Enable programmable completion features if not in POSIX mode
 if ! shopt -oq posix; then
+  # Check standard locations for bash_completion script
   if [[ -f /usr/share/bash-completion/bash_completion ]]; then
-    # Modern location
+    # shellcheck disable=SC1091
     source /usr/share/bash-completion/bash_completion
   elif [[ -f /etc/bash_completion ]]; then
-    # Legacy location
+    # shellcheck disable=SC1090,SC1091
     source /etc/bash_completion
-  elif [[ -f "$(brew --prefix 2>/dev/null)/etc/bash_completion" ]]; then
-    # Homebrew location
-    source "$(brew --prefix)/etc/bash_completion"
+  elif [[ -n "${BASH_COMPLETION_COMPAT_DIR:-}" && -f "${BASH_COMPLETION_COMPAT_DIR}/bash_completion" ]]; then
+    # Use environment variable if set (often by package managers like Homebrew)
+    # shellcheck disable=SC1090
+    source "${BASH_COMPLETION_COMPAT_DIR}/bash_completion"
   fi
 fi
 
-# ============================================================================
-# ENVIRONMENT SETTINGS
-# ============================================================================
+# Enable case-insensitive completion
+# Note: This might already be handled by inputrc settings
+# bind 'set completion-ignore-case on' # Uncomment if needed
 
-# Set default editor based on availability
-if command -v vim >/dev/null 2>&1; then
-  export EDITOR="vim"
-elif command -v nano >/dev/null 2>&1; then
-  export EDITOR="nano"
-else
-  export EDITOR="vi"
-fi
+# ============================================================================
+# ENVIRONMENT SETTINGS (Bash specific, overrides common if needed)
+# ============================================================================
+# EDITOR set in common config
+# TERM set in common config
 
-# Color support for ls and grep
+# Color support for ls and grep (via dircolors)
 if command -v dircolors >/dev/null 2>&1; then
+  # Use user's custom dircolors if it exists, otherwise use defaults
   if [[ -r "$HOME/.dircolors" ]]; then
     eval "$(dircolors -b "$HOME/.dircolors")"
   else
     eval "$(dircolors -b)"
   fi
+  # Aliases in 400_global_common_aliases.sh enable --color=auto for ls/grep
 fi
 
-# Terminal type settings
-export TERM="${TERM:-xterm-256color}"
-
 # ============================================================================
-# DEFAULT ALIASES
+# DEFAULT ALIASES (Sourced from common file)
 # ============================================================================
-
-# Alias definitions are kept in a separate file to make them
-# accessible to both Bash and Zsh. See 400_global_common_aliases.sh
+# Alias definitions are kept in a separate file (400_global_common_aliases.sh)
 
 # EOF
