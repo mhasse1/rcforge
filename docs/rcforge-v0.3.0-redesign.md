@@ -25,7 +25,34 @@ The rcForge project has evolved through multiple iterations, with each version a
    - Clear separation of concerns
    - Support diverse use cases
 5. **Space conservation**
-   * Documentaton will be primarily online (cuts storage by 75%)
+   * Documentation will be primarily online (cuts storage by 75%)
+
+## Target Audience
+
+rcForge is designed primarily for individual users who want a clean, structured way to manage their shell configurations. This focus on individual users allows for:
+
+- Simplified installation process (no root permissions needed)
+- User-centered customization options
+- Straightforward configuration management
+- Personal workflow optimization
+
+While the current focus is on individual users, the architecture is flexible enough to potentially support team or organizational use in the future if demand arises.
+
+## Design Rationale
+
+The key design decisions in v0.3.0 address specific pain points from previous versions:
+
+1. **User-Level Installation**: Eliminates root permission requirements, making installation and management simpler and more secure.
+
+2. **Flattened Script Directory**: Improves visibility and organization of configuration scripts.
+
+3. **Lazy-Loaded RC Command**: Minimizes impact on shell startup time while maintaining full functionality.
+
+4. **Simplified Include System**: Reduces complexity while preserving essential functionality.
+
+5. **Clear Separation of User and System Components**: Allows for easier customization without breaking core functionality.
+
+These decisions aim to create a shell configuration system that is powerful yet intuitive, maintaining flexibility while reducing complexity.
 
 ## Architectural Changes
 
@@ -56,6 +83,25 @@ ${HOME}/.config/rcforge/
 └── utils                             # User utility scripts
 ```
 
+### User Override Precedence
+
+A fundamental principle in rcForge v0.3.0 is that user-defined configurations and utilities always take precedence over system ones. This means:
+
+- If a user creates a utility with the same name as a system utility, the user's version will be used
+- User rc-scripts can override or extend system functionality without breaking the core system
+- Custom configurations are fully preserved during updates
+
+This approach empowers users to customize their environment without fear of breaking core functionality, while still benefiting from system updates.
+
+Example of user override:
+```bash
+# A user who wants to customize the built-in 'httpheaders' utility
+# Simply creates their own version in the user utils directory
+$ cp ~/.config/rcforge/system/utils/httpheaders.sh ~/.config/rcforge/utils/httpheaders.sh
+$ vim ~/.config/rcforge/utils/httpheaders.sh
+# The user's version will now be used instead of the system version
+```
+
 ### Key Design Decisions
 
 #### 1. Lazy-Loaded RC Function
@@ -75,11 +121,33 @@ ${HOME}/.config/rcforge/
 - Support hostname-based configurations
 - Preserve existing naming conventions
 
+Example loading sequence:
+```
+050_global_common_path.sh      # Loaded first (path configuration)
+210_global_bash_config.sh      # Bash-specific configuration
+350_global_bash_prompt.sh      # Bash prompt setup
+400_global_common_aliases.sh   # Common aliases for all shells
+```
+
 #### 4. Include System
 
+The include system has been simplified in v0.3.0, adopting a pragmatic approach to functions versus scripts:
+
 - Minimal core function sourcing
-- Primarily for internal rcForge system functions
-- Reduced complexity compared to previous versions
+- Source-able utility files for common needs (e.g., colors, messaging)
+- Focus on the right tool for the job rather than strict rules
+
+**When to use functions:**
+- For operations frequently needed across multiple scripts
+- For consistent UI elements (colors, messaging, prompts)
+- When maintaining state between operations
+
+**When to use standalone scripts:**
+- For complete, self-contained operations
+- For less frequently used utilities
+- When language other than Bash is preferred
+
+Source-able files like `shell-colors.sh` remain important for maintaining consistent styling and behavior across both system and user scripts.
 
 #### 5. RC Help System and Command Functionality
 
@@ -89,7 +157,7 @@ ${HOME}/.config/rcforge/
 
 - Supports a flexible, discoverable interface for system and user utilities
 
-- while the utility scripts written to support rc will have the .sh extension, execution from within rc will not require or list the .sh extension. For example, `htttheaders.sh` would be executed as `rc httpheaders example.com` and would be listed as 
+- While the utility scripts written to support rc will have the .sh extension, execution from within rc will not require or list the .sh extension. For example, `htttheaders.sh` would be executed as `rc httpheaders example.com` and would be listed as 
 
   ​	`httpheaders   Retrieves and displays HTTP headers for the specified URL` 
 
@@ -153,27 +221,82 @@ ${HOME}/.config/rcforge/
 - Support for both system and user-defined commands
 - Simple search capabilities
 
-#### Example Workflow
+##### Example RC Command Interaction
 
 ```bash
-# List all available commands (uses summary feature for each command)
 $ rc help
+rcForge Utility Command (v0.3.0)
 
-# Get a quick summary of a command (primarily used in rc help command list)
-$ rc isup summary
+Available commands:
+httpheaders   Retrieves and displays HTTP headers for the specified URL
+isup          Checks if a website is up and responding
+diagram       Generates visual representation of rc-scripts loading order
+colors        Displays available terminal colors and formatting
+findport      Finds which process is using a specific port
 
-# Get help for a specific command
-$ rc isup help
+Use 'rc <command> help' for detailed information about a command.
+Use 'rc search <term>' to find commands related to a topic.
 
-# Search for commands related to a topic
-$ rc search domain
+$ rc search http
+Commands related to 'http':
+httpheaders   Retrieves and displays HTTP headers for the specified URL
+isup          Checks if a website is up and responding
+
+$ rc httpheaders help
+httpheaders - HTTP Headers Utility
+
+Description:
+  Retrieves and displays HTTP headers from a URL with formatting options.
+
+Usage:
+  rc httpheaders [options] <url>
+
+Options:
+  -v, --verbose    Show detailed request/response information
+  -j, --json       Output in JSON format
+  -f, --follow     Follow redirects
+
+Examples:
+  rc httpheaders example.com
+  rc httpheaders -v https://github.com
+  rc httpheaders -j -f https://redirecting-site.com
 ```
 
-This design provides a unified, user-friendly interface for discovering and using utilities across the rcForge system.
+## Conflict Detection and Visualization
 
-##Here's a summary of the installation and upgrade processes we designed:
+rcForge v0.3.0 preserves and enhances the conflict detection tools from previous versions:
 
-### Installation and Upgrade Processes
+1. **Diagram Utility**: Generates visual representations of the rc-scripts loading sequence, making it easy to understand the execution order and potential conflicts.
+
+2. **Sequence Conflict Detection**: Automatically identifies and reports duplicate sequence numbers or other potential conflicts in the loading order.
+
+3. **Interactive Resolution**: Provides guidance and options for resolving detected conflicts.
+
+These tools help users understand and maintain their configurations, especially as they add more customizations over time.
+
+Example diagram output:
+```
+# Configuration Loading Order Diagram
+```mermaid
+flowchart TD
+    classDef global fill:#f9f,stroke:#333,stroke-width:2px
+    classDef hostname fill:#bbf,stroke:#333,stroke-width:2px
+    classDef common fill:#dfd,stroke:#333,stroke-width:1px
+    classDef shell fill:#ffd,stroke:#333,stroke-width:1px
+
+    Start([Start rcForge]) --> FirstFile
+    FirstFile[050: global/common<br>path] --> file1
+    file1[210: global/bash<br>config] --> file2
+    file2[350: global/bash<br>prompt] --> file3
+    file3[400: global/common<br>aliases] --> End([End rcForge])
+    
+    class FirstFile global,common
+    class file1 global,shell
+    class file2 global,shell
+    class file3 global,common
+```
+
+## Installation and Upgrade Processes
 
 ### Core Principles
 
@@ -187,8 +310,6 @@ This design provides a unified, user-friendly interface for discovering and usin
 ~/.config/rcforge/
 ├── utils            # User utility scripts
 ├── rc-scripts/      # User shell configuration scripts
-│   ├── bash/
-│   └── zsh/
 ├── backups          # Upgrade tarballs
 └── system           # Managed system files
     ├── lib          # System libraries
@@ -247,27 +368,16 @@ This design provides a unified, user-friendly interface for discovering and usin
 
 ### Post-Installation Recommendations
 
-1. Version Control
+1. **Version Control**
    - Explicitly recommend storing configuration in:
      - Private GitHub repository
      - Cloud storage with versioning
    - Provide clear instructions
    - Highlight importance of backing up configurations
-2. Shell Integration
+2. **Shell Integration**
    - Automatically update shell RC files
    - Add source line for rcForge
    - Support for bash and zsh
-
-### Key Differences from Previous Versions
-
-- Completely user-level installation
-- No system-wide or root-level dependencies
-- Simple, transparent backup mechanism
-- Flexible upgrade path
-- Clear separation of system and user components
-- No packaging system requirements
-- Install process similar to homebrew
-- Root permissions not required (actually excluded)
 
 ### User Experience Goals
 
@@ -277,7 +387,49 @@ This design provides a unified, user-friendly interface for discovering and usin
 - Supports various user scenarios
 - Encourages best practices (version control, backup)
 
-Would you like me to elaborate on any specific aspect of the installation or upgrade process?
+## Getting Started
+
+### Quick Start
+
+1. **Installation**
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash
+   ```
+
+2. **Initial Setup**
+   ```bash
+   # Source rcForge in your current shell
+   source ~/.config/rcforge/rcforge.sh
+   
+   # Run the help command to see available utilities
+   rc help
+   ```
+
+3. **Basic Customization**
+   ```bash
+   # Create a custom alias configuration
+   vim ~/.config/rcforge/rc-scripts/410_global_common_myaliases.sh
+   
+   # Example content for the file:
+   #!/bin/bash
+   # My custom aliases
+   alias ll='ls -la'
+   alias projects='cd ~/Projects'
+   ```
+
+### Common Use Cases
+
+1. **Managing Different Shell Environments**
+   - Create shell-specific configurations in bash/zsh directories
+   - Use `global_common` for shared settings
+
+2. **Machine-Specific Configurations**
+   - Create hostname-specific settings using `hostname_shell` naming
+
+3. **Creating Custom Utilities**
+   - Add scripts to the `utils` directory
+   - Make them executable (`chmod +x`)
+   - Access via the `rc` command
 
 ## Version Roadmap
 
