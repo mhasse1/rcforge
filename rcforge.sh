@@ -11,6 +11,76 @@
 set -o nounset  # Treat unset variables as errors
 set -o errexit  # Exit immediately if a command exits with a non-zero status
 
+# Uncomment for debugging
+# export SHELL_DEBUG=1
+
+
+# ============================================================================
+# DEBUG ECHO
+# Simple debug function if core functions not available
+# ============================================================================
+debug_echo() {
+  if [[ -n "${SHELL_DEBUG:-}" ]]; then
+    echo "DEBUG: $*" >&2
+  fi
+}
+
+
+# ============================================================================
+# INTEGRITY CHECKS
+# Function to perform system integrity checks
+# ============================================================================
+perform_integrity_checks() {
+    local continue_flag=true
+    local error_count=0
+
+    # Display header
+    echo -e "\n${BOLD}${CYAN}rcForge Integrity Checks${RESET}"
+    echo -e "${CYAN}$(printf '=%.0s' {1..50})${RESET}\n"
+
+    # Sequence Conflict Check
+    if [[ -f "$RCFORGE_UTILS/seqcheck.sh" ]]; then
+        if ! bash "$RCFORGE_UTILS/seqcheck.sh"; then
+            echo -e "\n${RED}SEQUENCE CONFLICT DETECTED${RESET}"
+            echo "Potential configuration loading conflicts found in RC scripts."
+            error_count=$((error_count + 1))
+            continue_flag=false
+        fi
+    fi
+
+    # Checksum Verification
+    if [[ -f "$RCFORGE_CORE/check-checksums.sh" ]]; then
+        if ! bash "$RCFORGE_CORE/check-checksums.sh"; then
+            echo -e "\n${RED}CHECKSUM VERIFICATION FAILED${RESET}"
+            echo "Configuration files may have been modified unexpectedly."
+            error_count=$((error_count + 1))
+            continue_flag=false
+        fi
+    fi
+
+    # Prompt user if errors were found
+    if [[ "$continue_flag" == "false" ]]; then
+        echo -e "\n${YELLOW}Potential system integrity issues detected.${RESET}"
+        echo "Found $error_count potential configuration problems."
+
+        # Check if in non-interactive mode
+        if [[ -n "${RCFORGE_NONINTERACTIVE:-}" ]]; then
+            echo "Running in non-interactive mode. Exiting."
+            exit 1
+        fi
+
+        read -p "Do you want to continue loading rcForge? (y/N): " response
+        if [[ ! "$response" =~ ^[Yy]$ ]]; then
+            echo "Shell configuration loading aborted."
+            exit 1
+        else
+            echo -e "\n${GREEN}Continuing with rcForge initialization...${RESET}"
+        fi
+    else
+        echo -e "${GREEN}No integrity issues detected.${RESET}"
+    fi
+}
+
 # Check for Bash version requirement if using Bash
 if [[ -n "${BASH_VERSION:-}" ]]; then
   bash_major_version=${BASH_VERSION%%.*}
@@ -108,16 +178,6 @@ else
   fi
 fi
 
-# Uncomment for debugging
-# export SHELL_DEBUG=1
-
-# Simple debug function if core functions not available
-debug_echo() {
-  if [[ -n "${SHELL_DEBUG:-}" ]]; then
-    echo "DEBUG: $*" >&2
-  fi
-}
-
 # Source core functions if available
 if [[ -f "$RCFORGE_CORE/functions.sh" ]]; then
   source "$RCFORGE_CORE/functions.sh"
@@ -165,28 +225,6 @@ else
       debug_echo "Skipping $desc (not found or not readable): $file"
       return 1
     fi
-  }
-fi
-
-# Load include system if available
-if [[ -f "$RCFORGE_LIB/include-functions.sh" ]]; then
-  source "$RCFORGE_LIB/include-functions.sh"
-  debug_echo "Include functions loaded from $RCFORGE_LIB/include-functions.sh"
-else
-  debug_echo "Include functions not found at $RCFORGE_LIB/include-functions.sh"
-
-  # Simple include_function stub for compatibility
-  include_function() {
-    debug_echo "Warning: include_function called but include system not available"
-    debug_echo "  Attempted to include: $1/$2"
-    return 1
-  }
-
-  # Simple include_category stub for compatibility
-  include_category() {
-    debug_echo "Warning: include_category called but include system not available"
-    debug_echo "  Attempted to include category: $1"
-    return 1
   }
 fi
 

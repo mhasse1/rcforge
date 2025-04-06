@@ -183,9 +183,17 @@ fi
    - Use lowercase with underscores for utility functions, e.g., `utility_function`
    - Be descriptive about the function's purpose
    - Examples: `InstallDependencies()`, `validate_configuration()`
-
+   - Include function headings as demonstrated in 2. Function Structure below.
+   - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
+   
 2. **Function Structure**
    ```bash
+   # ============================================================================
+   # FunctionName
+   # Function to perform system integrity checks
+   # parameter 1: description
+   # parameter 2: description
+   # ============================================================================
    FunctionName() {
        # Documentation comment describing function purpose and args
        
@@ -205,7 +213,7 @@ fi
        echo "$result"
    }
    ```
-
+   
 3. **Input Validation**
    - Check number and type of arguments
    - Validate input values
