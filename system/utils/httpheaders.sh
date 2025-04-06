@@ -25,14 +25,137 @@ else
   SuccessMessage() { echo -e "${GREEN}SUCCESS:${RESET} $1"; }
 fi
 
+# Set strict error handling
+set -o nounset  # Treat unset variables as errors
+set -o errexit  # Exit immediately if a command exits with a non-zero status
+
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
 
 # Default options
-FOLLOW_REDIRECTS=false
-OUTPUT_FORMAT="text"
-VERBOSE_MODE=true
+declare FOLLOW_REDIRECTS=false
+declare OUTPUT_FORMAT="text"
+declare VERBOSE_MODE=true
+declare TIMEOUT=10
+declare SAVE_RESPONSE=false
+declare OUTPUT_FILE=""
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+# Function: ShowSummary
+# Description: Display one-line summary for rc help
+# Usage: ShowSummary
+ShowSummary() {
+  echo "Retrieves and displays HTTP headers for the specified URL"
+}
+
+# Function: ShowHelp
+# Description: Display help information
+# Usage: ShowHelp
+ShowHelp() {
+  cat << EOF
+HTTP Headers Utility
+
+Description:
+  Retrieves and displays HTTP headers from a URL with formatting options.
+
+Usage:
+  rc httpheaders [options] <url>
+
+Options:
+  -v, --verbose         Show detailed request/response information
+  -j, --json            Output in JSON format
+  -f, --follow          Follow redirects
+  -s, --save <file>     Save response headers to file
+  -t, --timeout <secs>  Set request timeout (default: 10s)
+  -h, --help            Show this help message
+  --summary             Show one-line description
+
+Examples:
+  rc httpheaders example.com
+  rc httpheaders -v https://github.com
+  rc httpheaders -j -f https://redirecting-site.com
+  rc httpheaders -s headers.txt https://api.example.com
+EOF
+}
+
+# Function: FormatHeader
+# Description: Format a header line for display
+# Usage: FormatHeader "Header: Value"
+FormatHeader() {
+  local line="$1"
+  local name="${line%%:*}"
+  local value="${line#*: }"
+  
+  if [[ -z "$name" || "$name" == "$value" ]]; then
+    echo "$line"
+    return
+  fi
+  
+  printf "${CYAN}%s${RESET}: %s\n" "$name" "$value"
+}
+
+# Function: OutputJSON
+# Description: Convert headers to JSON format
+# Usage: OutputJSON headers_array
+OutputJSON() {
+  local -a headers=("$@")
+  local json="{\n"
+  
+  for header in "${headers[@]}"; do
+    if [[ "$header" == *":"* ]]; then
+      local name="${header%%:*}"
+      local value="${header#*: }"
+      
+      # Skip empty lines
+      if [[ -n "$name" && "$name" != "$value" ]]; then
+        # Escape quotes in the value
+        value="${value//\"/\\\"}"
+        json+="  \"$name\": \"$value\",\n"
+      fi
+    fi
+  done
+  
+  # Remove trailing comma and add closing brace
+  json="${json%,\\n}"
+  json+="\n}"
+  
+  # Output formatted JSON
+  echo -e "$json"
+}
+
+# ============================================================================
+# MAIN FUNCTIONALITY
+# ============================================================================
+
+# Main function
+main() {
+  # Check dependencies
+  if ! command -v curl &>/dev/null; then
+    ErrorMessage "This tool requires curl, but it's not installed."
+    echo "Please install curl and try again."
+    return 1
+  }
+  
+  # Reset option variables
+  local URL=""
+  
+  # Parse command-line arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --help|-h)
+        ShowHelp
+        return 0
+        ;;
+      --summary)
+        ShowSummary
+        return 0
+        ;;
+      --verbose|-v)
+        VERBOSE_MODE=true
         ;;
       --json|-j)
         OUTPUT_FORMAT="json"
@@ -168,126 +291,12 @@ VERBOSE_MODE=true
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   main "$@"
   exit $?
-elif [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
-  # Also execute if called via the rc command
+fi
+
+# Also execute if called via the rc command
+if [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
   main "$@"
   exit $?
 fi
 
-# EOFfalse
-SAVE_RESPONSE=false
-TIMEOUT=10
-OUTPUT_FILE=""
-
-# ============================================================================
-# UTILITY FUNCTIONS
-# ============================================================================
-
-# Function: ShowSummary
-# Description: Display one-line summary for rc help
-# Usage: ShowSummary
-ShowSummary() {
-  echo "Retrieves and displays HTTP headers for the specified URL"
-}
-
-# Function: ShowHelp
-# Description: Display help information
-# Usage: ShowHelp
-ShowHelp() {
-  echo "httpheaders - HTTP Headers Utility"
-  echo ""
-  echo "Description:"
-  echo "  Retrieves and displays HTTP headers from a URL with formatting options."
-  echo ""
-  echo "Usage:"
-  echo "  rc httpheaders [options] <url>"
-  echo ""
-  echo "Options:"
-  echo "  -v, --verbose         Show detailed request/response information"
-  echo "  -j, --json            Output in JSON format"
-  echo "  -f, --follow          Follow redirects"
-  echo "  -s, --save <file>     Save response headers to file"
-  echo "  -t, --timeout <secs>  Set request timeout (default: 10s)"
-  echo "  -h, --help            Show this help message"
-  echo "  --summary             Show one-line description"
-  echo ""
-  echo "Examples:"
-  echo "  rc httpheaders example.com"
-  echo "  rc httpheaders -v https://github.com"
-  echo "  rc httpheaders -j -f https://redirecting-site.com"
-  echo "  rc httpheaders -s headers.txt https://api.example.com"
-}
-
-# Function: FormatHeader
-# Description: Format a header line for display
-# Usage: FormatHeader "Header: Value"
-FormatHeader() {
-  local line="$1"
-  local name="${line%%:*}"
-  local value="${line#*: }"
-  
-  if [[ -z "$name" || "$name" == "$value" ]]; then
-    echo "$line"
-    return
-  fi
-  
-  printf "${CYAN}%s${RESET}: %s\n" "$name" "$value"
-}
-
-# Function: OutputJSON
-# Description: Convert headers to JSON format
-# Usage: OutputJSON headers_array
-OutputJSON() {
-  local -a headers=("$@")
-  local json="{\n"
-  
-  for header in "${headers[@]}"; do
-    if [[ "$header" == *":"* ]]; then
-      local name="${header%%:*}"
-      local value="${header#*: }"
-      
-      # Skip empty lines
-      if [[ -n "$name" && "$name" != "$value" ]]; then
-        # Escape quotes in the value
-        value="${value//\"/\\\"}"
-        json+="  \"$name\": \"$value\",\n"
-      fi
-    fi
-  done
-  
-  # Remove trailing comma and add closing brace
-  json="${json%,\\n}"
-  json+="\n}"
-  
-  # Output formatted JSON
-  echo -e "$json"
-}
-
-# ============================================================================
-# MAIN FUNCTIONALITY
-# ============================================================================
-
-# Main function to execute when script is run
-main() {
-  # Check dependencies
-  if ! command -v curl &>/dev/null; then
-    ErrorMessage "This tool requires curl, but it's not installed."
-    echo "Please install curl and try again."
-    return 1
-  fi
-  
-  # Process command-line arguments
-  local URL=""
-  
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --help|-h)
-        ShowHelp
-        return 0
-        ;;
-      --summary)
-        ShowSummary
-        return 0
-        ;;
-      --verbose|-v)
-        VERBOSE_MODE=
+# EOF

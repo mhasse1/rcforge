@@ -3,6 +3,7 @@
 # Author: Mark Hasse
 # Date: 2025-03-31
 # Category: system
+# Version: 0.3.0
 # Description: Checks and validates checksums for shell configuration files
 
 # Source utility libraries
@@ -14,7 +15,7 @@ set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants
 readonly gc_app_name="rcForge"
-readonly gc_version="0.2.1"
+readonly gc_version="0.3.0"
 readonly gc_supported_rc_files=(
     ".bashrc"
     ".zshrc"
@@ -54,7 +55,7 @@ DetectProjectRoot() {
 # Returns: Path to the rcForge configuration directory
 DetermineRcforgeDir() {
     local project_root=""
-    
+
     # Determine if in development mode
     if [[ -n "${RCFORGE_DEV:-}" ]]; then
         project_root=$(DetectProjectRoot)
@@ -84,12 +85,12 @@ DetectCurrentShell() {
 # Returns: Checksum of the file or "NONE" if file doesn't exist
 CalculateChecksum() {
     local file="$1"
-    
+
     if [[ ! -f "$file" ]]; then
         echo "NONE"
         return 1
     }
-    
+
     case "$(uname -s)" in
         Darwin)
             # macOS uses md5 instead of md5sum
@@ -172,7 +173,7 @@ VerifyRcFileChecksum() {
     # Compare checksums
     if [[ "$stored_sum" != "$current_sum" ]]; then
         TextBlock "CHECKSUM MISMATCH DETECTED" "$c_RED" "$c_BG_WHITE"
-        
+
         WarningMessage "File changed: $rc_name"
         InfoMessage "Current shell: $(DetectCurrentShell)"
         InfoMessage "Expected checksum: $stored_sum"

@@ -13,6 +13,10 @@
 set -o nounset  # Treat unset variables as errors
 set -o errexit  # Exit immediately if a command exits with a non-zero status
 
+# Global Constants
+export RCFORGE_APP_NAME="rcForge"
+export RCFORGE_VERSION="0.3.0"
+
 # ============================================================================
 # Function: DetectShell
 # Description: Determine the currently running shell
@@ -40,7 +44,7 @@ DetectShell() {
 # Returns:
 #   0 if all checks pass
 #   1 if critical issues are detected
-# Exits: 
+# Exits:
 #   Prompts user or exits if critical issues found
 # ============================================================================
 PerformIntegrityChecks() {
@@ -75,11 +79,11 @@ PerformIntegrityChecks() {
     if [[ "$continue_flag" == "false" ]]; then
         echo -e "\n${YELLOW}Potential system integrity issues detected.${RESET}"
         echo "Found $error_count potential configuration problems."
-        
+
         echo -e "\n${BOLD}RECOMMENDED ACTION:${RESET}"
         echo "Consider reinstalling rcForge with the following command:"
         echo -e "${CYAN}curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash${RESET}"
-        
+
         # Check if in non-interactive mode
         if [[ -n "${RCFORGE_NONINTERACTIVE:-}" ]]; then
             echo "Running in non-interactive mode. Exiting."
@@ -147,7 +151,7 @@ DetermineLoadPath() {
 # ============================================================================
 SourceConfigFiles() {
     local files=("$@")
-    
+
     # Start timing for performance measurement
     local start_time
     if [[ -n "${SHELL_DEBUG:-}" ]]; then
@@ -160,7 +164,7 @@ SourceConfigFiles() {
         if [[ -n "${SHELL_DEBUG:-}" ]]; then
             echo "Loading configuration: $file"
         fi
-        
+
         # Source the file
         # shellcheck disable=SC1090
         source "$file"

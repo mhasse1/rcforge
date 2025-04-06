@@ -312,6 +312,7 @@ fi
 2. **Function Structure**
 
    ```bash
+   # ============================================================================
    # Function: FunctionName
    # Description: Clear, concise description of what the function does
    # Usage: Demonstrate how to call the function [Optional, not required for simple implementations or if no arguments]
@@ -329,6 +330,7 @@ fi
    #   Specific exit codes if applicable
    # Exits: [Optional, if present]
    #   May exit with specific codes in error conditions
+   # ============================================================================
    FunctionName() {
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
