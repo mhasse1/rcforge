@@ -26,6 +26,11 @@ The rcForge project has evolved through multiple iterations, with each version a
    - Support diverse use cases
 5. **Space conservation**
    * Documentation will be primarily online (cuts storage by 75%)
+6. **Shell Compatibility**
+   * Core system requires Bash 4.0+ for implementation
+   * End user experience treats Bash and Zsh as equal first-class citizens
+   * RC scripts can be shell-specific or shared across shells
+   * All system scripts use `#!/usr/bin/env bash` for cross-platform compatibility
 
 ## Target Audience
 
@@ -51,6 +56,8 @@ The key design decisions in v0.3.0 address specific pain points from previous ve
 4. **Simplified Include System**: Reduces complexity while preserving essential functionality.
 
 5. **Clear Separation of User and System Components**: Allows for easier customization without breaking core functionality.
+
+6. **Multi-Shell Support**: Provides first-class support for both Bash and Zsh while keeping core implementation in Bash 4.0+.
 
 These decisions aim to create a shell configuration system that is powerful yet intuitive, maintaining flexibility while reducing complexity.
 
@@ -104,18 +111,24 @@ $ vim ~/.config/rcforge/utils/httpheaders.sh
 
 ### Key Design Decisions
 
-#### 1. Lazy-Loaded RC Function
+#### 1. Shell Compatibility
+- Core system implemented in Bash 4.0+ for reliable functionality
+- Support for both Bash and Zsh as first-class shells for end users
+- Shell-specific scripts with parallel naming conventions
+- Common scripts for shell-agnostic functionality
+
+#### 2. Lazy-Loaded RC Function
 - Implement a minimal stub for the `rc` command
 - Full implementation loaded only when first invoked
 - Reduces memory footprint
 - Improves startup performance
 
-#### 2. Utility Script Flexibility
+#### 3. Utility Script Flexibility
 - Support utilities in any language
 - Not limited to shell scripts
 - Executable from a central `rc` command interface
 
-#### 3. Configuration Loading
+#### 4. Configuration Loading
 - Maintain sequence-based loading
 - Shell-specific script directories
 - Support hostname-based configurations
@@ -129,7 +142,7 @@ Example loading sequence:
 400_global_common_aliases.sh   # Common aliases for all shells
 ```
 
-#### 4. Include System
+#### 5. Include System
 
 The include system has been simplified in v0.3.0, adopting a pragmatic approach to functions versus scripts:
 
@@ -149,7 +162,7 @@ The include system has been simplified in v0.3.0, adopting a pragmatic approach 
 
 Source-able files like `shell-colors.sh` remain important for maintaining consistent styling and behavior across both system and user scripts.
 
-#### 5. RC Help System and Command Functionality
+#### 6. RC Help System and Command Functionality
 
 ##### Core Command Structure
 
@@ -319,15 +332,19 @@ flowchart TD
 
 ### Installation Script Key Features
 
-1. **Backup Mechanism**
+1. **Bash Version Check**
+   - Verifies Bash 4.0+ is available
+   - Provides guidance for macOS users to install modern Bash
+   - Ensures proper environment for core functionality
+2. **Backup Mechanism**
    - Creates a timestamped backup before installation
    - Stores backup in `~/.config/rcforge/backups/`
    - Allows easy rollback if needed
-2. **Flexible Installation**
+3. **Flexible Installation**
    - Detects if it's a first-time install or an upgrade
    - Sets appropriate flags (`gc_upgrade`)
    - Provides different messaging for new vs. existing users
-3. **Directory Setup**
+4. **Directory Setup**
    - Creates necessary directory structure
    - Sets appropriate file permissions
    - Separates system and user-specific components
@@ -439,6 +456,7 @@ flowchart TD
 - Minimal viable loader
 - Basic include mechanism
 - User-level installation
+- Multi-shell support (Bash & Zsh)
 
 0.4.0 - Functional Expansion
 - Port core utility functions
@@ -494,7 +512,10 @@ flowchart TD
 1. Long-term evolution of the include system
 2. Potential enhancements to the `rc` command framework
 3. Community-driven utility script ecosystem
+4. Additional shell support beyond Bash and Zsh
 
 ## Conclusion
 
-The v0.3.0 redesign represents a strategic pivot towards a more focused, user-friendly shell configuration management system. By prioritizing simplicity, security, and flexibility, rcForge aims to provide a powerful yet intuitive solution for developers and system administrators.
+The v0.3.0 redesign represents a strategic pivot towards a more focused, user-friendly shell configuration management system. By prioritizing simplicity, security, and flexibility, rcForge aims to provide a powerful yet intuitive solution for developers and system administrators. With strong multi-shell support and a clear separation between system and user components, rcForge creates a solid foundation for customized shell environments across different platforms.
+
+# EOF

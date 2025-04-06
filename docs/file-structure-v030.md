@@ -12,6 +12,16 @@ rcForge v0.3.0 adopts a user-centric, simplified architecture with these key com
 4. **Libraries** - Source-able utility files
 5. **Documentation** - User and developer guides
 
+## Technical Requirements
+
+- **Core System**: Requires Bash 4.0 or higher
+  - macOS users will need to install modern Bash via Homebrew or MacPorts
+  - All system scripts use `#!/usr/bin/env bash` for cross-platform compatibility
+- **End User Support**: 
+  - Both Bash and Zsh are supported as equal first-class citizens
+  - RC scripts can be shell-specific (bash/zsh) or common to both
+  - Configuration loading adapts to the user's active shell
+
 ## Directory Structure
 
 The v0.3.0 redesign significantly simplifies the directory structure, focusing on a clean user-level installation:
