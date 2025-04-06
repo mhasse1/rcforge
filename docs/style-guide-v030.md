@@ -181,6 +181,13 @@ fi
 # Example script demonstrating main function standards
 # Function comments shortened for readability
 
+# Function: ShowSummary
+# Description: Display one-line summary for rc help
+# Usage: ShowSummary
+ShowSummary() {
+  echo "Short summary of script functin"
+}
+
 # Function: show_help
 # Description: Display help information
 show_help() {
@@ -303,8 +310,8 @@ fi
    - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
 
 2. **Function Structure**
+
    ```bash
-   # ============================================================================
    # Function: FunctionName
    # Description: Clear, concise description of what the function does
    # Usage: Demonstrate how to call the function [Optional, not required for simple implementations or if no arguments]
@@ -322,10 +329,7 @@ fi
    #   Specific exit codes if applicable
    # Exits: [Optional, if present]
    #   May exit with specific codes in error conditions
-   # ============================================================================
    FunctionName() {
-       # Documentation comment describing function purpose and args
-   
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
    
