@@ -87,7 +87,7 @@ else
   export RCFORGE_CORE="$RCFORGE_SYS_DIR/core"
   export RCFORGE_UTILS="$RCFORGE_SYS_DIR/utils"
   export RCFORGE_LIB="$RCFORGE_SYS_DIR/lib"
-  
+
   # Check if user directories exist, if not try to create them
   if [[ ! -d "$RCFORGE_USER_DIR" ]]; then
     # Try to create user config directory and populate from skel if available
@@ -239,9 +239,9 @@ fi
 
 # Run automated checks if enabled
 if [[ -z "${RCFORGE_NO_CHECKS:-}" ]]; then
-  # Check for sequence conflicts
-  if [[ -f "$RCFORGE_CORE/check-seq.sh" ]]; then
-    bash "$RCFORGE_CORE/check-seq.sh" >/dev/null 2>&1 || true
+  # Check for sequence conflicts using the seqcheck utility
+  if [[ -f "$RCFORGE_DIR/system/utils/seqcheck.sh" ]]; then
+    bash "$RCFORGE_DIR/system/utils/seqcheck.sh" --non-interactive >/dev/null 2>&1 || true
   fi
 
   # Verify RC file checksums
