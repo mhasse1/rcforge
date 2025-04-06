@@ -2,7 +2,7 @@
 
 ## Background and Motivation
 
-The rcForge project has evolved through multiple iterations, with each version addressing specific challenges in shell configuration management. The v0.5.0 redesign represents a significant architectural shift aimed at simplifying, securing, and streamlining the shell configuration system.
+The rcForge project has evolved through multiple iterations, with each version addressing specific challenges in shell configuration management. The v0.3.0 redesign represents a significant architectural shift aimed at simplifying, securing, and streamlining the shell configuration system.
 
 ## Design Philosophy
 
@@ -345,4 +345,4 @@ Would you like me to elaborate on any specific aspect of the installation or upg
 
 ## Conclusion
 
-The v0.5.0 redesign represents a strategic pivot towards a more focused, user-friendly shell configuration management system. By prioritizing simplicity, security, and flexibility, rcForge aims to provide a powerful yet intuitive solution for developers and system administrators.
+The v0.3.0 redesign represents a strategic pivot towards a more focused, user-friendly shell configuration management system. By prioritizing simplicity, security, and flexibility, rcForge aims to provide a powerful yet intuitive solution for developers and system administrators.
