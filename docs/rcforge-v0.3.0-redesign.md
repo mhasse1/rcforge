@@ -190,10 +190,10 @@ This design provides a unified, user-friendly interface for discovering and usin
 │   ├── bash/
 │   └── zsh/
 ├── backups          # Upgrade tarballs
-└── system        # Managed system files
+└── system           # Managed system files
     ├── lib          # System libraries
     ├── include      # System include files
-    └── utils     # System utility scripts
+    └── utils        # System utility scripts
 ```
 
 ### Installation Script Key Features
