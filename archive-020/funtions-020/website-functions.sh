@@ -9,7 +9,7 @@
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+ # set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 #--------------------------------------------------------------
 # DNS and Domain Functions
@@ -27,7 +27,7 @@ DnsLookup() {
     echo "ERROR: No domain specified for DNS lookup" >&2
     return 1
   fi
-  
+
   local domain="$1"
 
   # Try different DNS lookup tools depending on availability
@@ -38,7 +38,7 @@ DnsLookup() {
   else
     nslookup "$domain" 2>/dev/null | grep 'Address' | grep -v '#' | cut -d' ' -f2
   fi
-  
+
   return 0
 }
 
@@ -57,7 +57,7 @@ IsWebsiteUp() {
 
   local url="$1"
   local temp_file=""
-  
+
   # Process URL step by step
   # Remove whitespace
   url=$(echo "$url" | tr -d '[:space:]')
@@ -76,10 +76,10 @@ IsWebsiteUp() {
 
   # Create temporary file for storing curl output
   temp_file=$(mktemp)
-  
+
   # Ensure temp file gets cleaned up on exit
   trap 'rm -f "$temp_file"' EXIT
-  
+
   # Run curl with explicit timeout and follow redirects
   curl -s -m 10 -I -L "$url" > "$temp_file"
 
@@ -116,7 +116,7 @@ IsWebsiteUp() {
         echo "✅ $http_url is UP (Status: $http_code)"
       else
         echo "❌ $http_url is also DOWN (Status: $http_code)"
-        
+
         # Add DNS lookup to help troubleshoot
         local domain
         domain=$(echo "$url" | sed -E 's|https?://||' | cut -d'/' -f1)
@@ -124,7 +124,7 @@ IsWebsiteUp() {
         echo
         echo "DNS lookup:"
         DnsLookup "$domain"
-        
+
         return 1
       fi
     else
@@ -135,7 +135,7 @@ IsWebsiteUp() {
       echo
       echo "DNS lookup:"
       DnsLookup "$domain"
-      
+
       return 1
     fi
   elif [[ "$http_code" -ge 200 && "$http_code" -lt 400 ]]; then
@@ -146,7 +146,7 @@ IsWebsiteUp() {
     fi
   else
     echo "❌ $url appears to be DOWN (Status: $http_code)"
-    
+
     # Add DNS lookup to help troubleshoot
     local domain
     domain=$(echo "$url" | sed -E 's|https?://||' | cut -d'/' -f1)
@@ -154,7 +154,7 @@ IsWebsiteUp() {
     echo
     echo "DNS lookup:"
     DnsLookup "$domain"
-    
+
     return 1
   fi
 
@@ -165,7 +165,7 @@ IsWebsiteUp() {
   echo
   echo "DNS lookup:"
   DnsLookup "$domain"
-  
+
   return 0
 }
 
@@ -183,7 +183,7 @@ CheckDomainAvailability() {
   fi
 
   local domain="$1"
-  
+
   # Check if whois command is available
   if ! command -v whois > /dev/null 2>&1; then
     echo "ERROR: whois command not available - cannot check domain availability" >&2
@@ -219,7 +219,7 @@ CheckDomainAvailability() {
     if [[ -n "$reg_date" ]]; then
       echo "Registration info: $reg_date"
     fi
-    
+
     return 1
   fi
 }
@@ -236,18 +236,18 @@ GetHttpStatus() {
     echo "ERROR: No URL specified" >&2
     return 1
   fi
-  
+
   local url="$1"
-  
+
   # Add protocol if needed
   if ! echo "$url" | grep -q "^http"; then
     url="https://${url}"
   fi
-  
+
   # Get HTTP status code
   local status
   status=$(curl -s -o /dev/null -w "%{http_code}" -L "$url")
-  
+
   echo "$status"
   return 0
 }
@@ -264,14 +264,14 @@ GetHttpHeaders() {
     echo "ERROR: No URL specified" >&2
     return 1
   fi
-  
+
   local url="$1"
-  
+
   # Add protocol if needed
   if ! echo "$url" | grep -q "^http"; then
     url="https://${url}"
   fi
-  
+
   # Get HTTP headers
   curl -s -I -L "$url"
   return $?

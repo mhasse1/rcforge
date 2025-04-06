@@ -9,7 +9,7 @@
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+ # set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 #--------------------------------------------------------------
 # Path Manipulation Functions
@@ -27,21 +27,21 @@ AddToPath() {
         echo "ERROR: No directory specified to add to PATH" >&2
         return 1
     fi
-    
+
     local dir="$1"
-    
+
     # Check if directory exists
     if [[ ! -d "$dir" ]]; then
         echo "ERROR: Directory does not exist: $dir" >&2
         return 1
     fi
-    
+
     # Check if directory is already in PATH
     if [[ ":$PATH:" == *":$dir:"* ]]; then
         # Already in PATH, no need to modify
         return 1
     fi
-    
+
     # Add to beginning of PATH
     export PATH="$dir:$PATH"
     return 0
@@ -59,21 +59,21 @@ AppendToPath() {
         echo "ERROR: No directory specified to append to PATH" >&2
         return 1
     fi
-    
+
     local dir="$1"
-    
+
     # Check if directory exists
     if [[ ! -d "$dir" ]]; then
         echo "ERROR: Directory does not exist: $dir" >&2
         return 1
     fi
-    
+
     # Check if directory is already in PATH
     if [[ ":$PATH:" == *":$dir:"* ]]; then
         # Already in PATH, no need to modify
         return 1
     fi
-    
+
     # Add to end of PATH
     export PATH="$PATH:$dir"
     return 0
@@ -101,17 +101,17 @@ RemoveFromPath() {
         echo "ERROR: No directory specified to remove from PATH" >&2
         return 1
     fi
-    
+
     local dir="$1"
     local new_path=""
-    
+
     # Check if directory is in PATH
     if [[ ":$PATH:" != *":$dir:"* ]]; then
         # Not in PATH, nothing to do
         echo "WARNING: Directory not found in PATH: $dir" >&2
         return 1
     fi
-    
+
     # Remove directory from PATH
     new_path=$(echo "$PATH" | tr ':' '\n' | grep -v "^$dir\$" | tr '\n' ':' | sed 's/:$//')
     export PATH="$new_path"
@@ -127,19 +127,19 @@ CleanPath() {
     local old_path="$PATH"
     local new_path=""
     local item=""
-    
+
     # Split PATH by colon and process each directory
     while IFS= read -r item; do
         # Skip empty entries
         if [[ -z "$item" ]]; then
             continue
         fi
-        
+
         # Skip non-existent directories
         if [[ ! -d "$item" ]]; then
             continue
         fi
-        
+
         # Add to new PATH if not already there
         if [[ ":$new_path:" != *":$item:"* ]]; then
             if [[ -z "$new_path" ]]; then
@@ -149,7 +149,7 @@ CleanPath() {
             fi
         fi
     done < <(echo "$old_path" | tr ':' '\n')
-    
+
     # Set the new PATH
     export PATH="$new_path"
     return 0
@@ -167,21 +167,21 @@ MoveToFront() {
         echo "ERROR: No directory specified to move to front of PATH" >&2
         return 1
     fi
-    
+
     local dir="$1"
-    
+
     # Check if directory exists
     if [[ ! -d "$dir" ]]; then
         echo "ERROR: Directory does not exist: $dir" >&2
         return 1
     fi
-    
+
     # Check if directory is in PATH
     if [[ ":$PATH:" != *":$dir:"* ]]; then
         echo "ERROR: Directory not found in PATH: $dir" >&2
         return 1
     fi
-    
+
     # Remove from current position and add to front
     RemoveFromPath "$dir"
     AddToPath "$dir"
@@ -200,9 +200,9 @@ PathContains() {
         echo "ERROR: No directory specified to check in PATH" >&2
         return 1
     fi
-    
+
     local dir="$1"
-    
+
     # Check if directory is in PATH
     if [[ ":$PATH:" == *":$dir:"* ]]; then
         return 0

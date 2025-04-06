@@ -9,7 +9,7 @@
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+ # set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Define cached variables to avoid repeated calls to external commands
 export OS_NAME=""
@@ -25,7 +25,7 @@ DetectOsInfo() {
     if [[ -z "$OS_NAME" ]]; then
         OS_NAME="$(uname -s)"
     fi
-    
+
     # Get Linux distribution info if applicable
     if [[ "$OS_NAME" == "Linux" ]] && [[ -z "$OS_RELEASE_ID" ]]; then
         if [[ -f /etc/os-release ]]; then
@@ -78,17 +78,17 @@ IsLinux() {
 IsWindows() {
     local uname_output
     uname_output="$(uname -a)"
-    
+
     # Check for Windows Subsystem for Linux (WSL)
     if [[ "$uname_output" =~ [Mm]icrosoft ]] || [[ "$uname_output" =~ WSL ]]; then
         return 0
     fi
-    
+
     # Check for MSYS, MINGW, or Cygwin
     if [[ "$OS_NAME" =~ MINGW ]] || [[ "$OS_NAME" =~ MSYS ]] || [[ "$OS_NAME" =~ CYGWIN ]]; then
         return 0
     fi
-    
+
     # Not Windows
     return 1
 }
@@ -99,9 +99,9 @@ IsWindows() {
 # Returns: 0 if running on BSD, 1 otherwise
 IsBSD() {
     # Check for FreeBSD, OpenBSD, NetBSD, or DragonFly
-    [[ "$OS_NAME" == "FreeBSD" ]] || 
-    [[ "$OS_NAME" == "OpenBSD" ]] || 
-    [[ "$OS_NAME" == "NetBSD" ]] || 
+    [[ "$OS_NAME" == "FreeBSD" ]] ||
+    [[ "$OS_NAME" == "OpenBSD" ]] ||
+    [[ "$OS_NAME" == "NetBSD" ]] ||
     [[ "$OS_NAME" == "DragonFly" ]]
     return $?
 }
@@ -128,7 +128,7 @@ IsUbuntu() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "ubuntu" ]]
     return $?
 }
@@ -142,7 +142,7 @@ IsDebian() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "debian" ]]
     return $?
 }
@@ -156,7 +156,7 @@ IsFedora() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "fedora" ]]
     return $?
 }
@@ -170,7 +170,7 @@ IsCentOS() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "centos" ]]
     return $?
 }
@@ -184,7 +184,7 @@ IsRedHat() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "rhel" ]]
     return $?
 }
@@ -198,7 +198,7 @@ IsArch() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "arch" ]]
     return $?
 }
@@ -212,7 +212,7 @@ IsAlpine() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "alpine" ]]
     return $?
 }
@@ -226,7 +226,7 @@ IsSUSE() {
     if ! IsLinux; then
         return 1
     fi
-    
+
     [[ "$OS_RELEASE_ID" == "suse" ]] || [[ "$OS_RELEASE_ID" == "opensuse" ]]
     return $?
 }
@@ -318,7 +318,7 @@ GetOsVersion() {
 # Returns: Echoes system information
 GetSystemInfo() {
     local format="${1:-text}"
-    
+
     if [[ "$format" == "--json" ]]; then
         # JSON output format
         cat << EOF

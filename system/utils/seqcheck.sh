@@ -13,7 +13,7 @@ source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh" #
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+ # set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # ============================================================================
 # GLOBAL CONSTANTS

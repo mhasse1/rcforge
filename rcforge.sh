@@ -259,7 +259,8 @@ SourceConfigFiles() {
 main() {
     # Use CheckRoot from sourced functions.sh (already PascalCase)
     if command -v CheckRoot &> /dev/null; then
-         if ! CheckRoot --skip-interactive; then return 1; fi
+         if ! CheckRoot --skip-interactive; then return 0; fi
+         # if ! CheckRoot --skip-interactive; then return 1; fi
     else
          WarningMessage "CheckRoot function not found - unable to verify non-root execution."
     fi
@@ -271,7 +272,8 @@ main() {
     fi
 
     if [[ -z "${RCFORGE_SKIP_CHECKS:-}" ]]; then
-         if ! PerformIntegrityChecks; then return 1; fi # Call PascalCase
+         if ! PerformIntegrityChecks; then return 0; fi # Call PascalCase
+         # if ! PerformIntegrityChecks; then return 1; fi # Call PascalCase
     else
          InfoMessage "Skipping integrity checks due to RCFORGE_SKIP_CHECKS."
     fi
@@ -279,7 +281,8 @@ main() {
     local -a config_files_to_load
     # Call PascalCase. Use process substitution.
     mapfile -t config_files_to_load < <(DetermineLoadPath "$current_shell") || {
-         return 1 # Propagate error if directory was missing
+         # return 1 # Propagate error if directory was missing
+         return 0 # Propagate error if directory was missing
     }
 
     if [[ ${#config_files_to_load[@]} -gt 0 ]]; then

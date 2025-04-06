@@ -9,7 +9,7 @@
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+ # set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Default available TLDs
 export DEFAULT_TLDS=("com" "ai" "io" "app")
@@ -25,7 +25,7 @@ export DEFAULT_TLDS=("com" "ai" "io" "app")
 #   --tlds=LIST    Comma-separated list of TLDs to check (default: com,ai,io,app)
 #   --all-tlds     Check each domain with all TLDs (otherwise checks domain as provided)
 #   <domains>      One or more domain names to check
-# Returns: 
+# Returns:
 #   0 on success
 #   1 if invalid arguments
 #   2 if whois command not available
@@ -100,14 +100,14 @@ EOF
       # Extract the base and TLD
       local base="${full_domain%.*}"
       local tld="${full_domain##*.}"
-      
+
       CheckSingleDomain "$base" "$tld" total_checked total_available available_domains
     fi
   done
 
   # Print summary
   PrintDomainSummary "$total_checked" "$total_available" "${available_domains[@]}"
-  
+
   return 0
 }
 
@@ -127,9 +127,9 @@ CheckSingleDomain() {
   local -n checked_count="$3"
   local -n available_count="$4"
   local -n available_list="$5"
-  
+
   local full_domain="${base_domain}.${tld}"
-  
+
   echo "-------------------------------"
   echo "Checking availability for: $full_domain"
 
@@ -170,7 +170,7 @@ PrintDomainSummary() {
   local total_available="$2"
   shift 2
   local available_domains=("$@")
-  
+
   # Summary message when finished
   echo "-------------------------------"
   echo "🎯 Domain Check Summary:"

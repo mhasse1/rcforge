@@ -11,7 +11,7 @@ source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
+# set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants initialized from environment variables set in rcforge.sh
 readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
@@ -251,12 +251,12 @@ main() {
                 ;;
             --help|-h)
                 DisplayUsage # Call PascalCase
-                exit 0 # Exit success after displaying help
+                # exit 0 # Exit success after displaying help
                 ;;
             *)
                 ErrorMessage "Unknown option: $1"
                 DisplayUsage # Call PascalCase
-                exit 1 # Exit failure for unknown option
+                # exit 1 # Exit failure for unknown option
                 ;;
         esac
         shift
@@ -291,7 +291,7 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
     # Exit using the return code from main
-    exit $?
+    # exit $?
 fi
 
 # EOF

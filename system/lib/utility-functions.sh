@@ -31,7 +31,7 @@ fi
 # Debug mode flag (can be overridden by environment before sourcing)
 export DEBUG_MODE="${DEBUG_MODE:-false}"
 # Use rcForge core version if available, otherwise use ENV_ERROR default
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[[ ! -v gc_version ]] && readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 readonly gc_copyright="Copyright (c) $(date +%Y) rcForge Team" # Dynamic year
 readonly gc_license="Released under the MIT License"
