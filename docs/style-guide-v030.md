@@ -655,7 +655,7 @@ Since Bash doesn't have formal type declarations, we use consistent naming conve
 
 The most important rule when working with libraries and exported functions:
 
-**Any variable referenced inside an exported function must itself be exported and should be set as such when first declared.**
+**Note:** Any variable referenced inside an exported function must itself be exported and should be set as such when first declared.
 
 #### Exported Variables
 
@@ -688,6 +688,24 @@ ErrorMessage() {
     echo -e "${gc_red}Error: $1${RESET}"  # Will fail when sourced elsewhere
 }
 export -f ErrorMessage
+```
+
+#### Application-Wide Constants
+
+For application-wide constants like version and name:
+- Use `RCFORGE_UPPERCASE_SNAKE_CASE` for exported variables
+- Maintain a readonly global constant with `gc_` prefix for scripts requiring immutability
+- Store these in the main loader script (`rcforge.sh`)
+
+Example:
+```bash
+# In rcforge.sh
+export RCFORGE_APP_NAME="rcForge"
+export RCFORGE_VERSION="0.3.0"
+
+# For local use in a script
+readonly gc_app_name="$RCFORGE_APP_NAME"
+readonly gc_version="$RCFORGE_VERSION"
 ```
 
 #### Example Library with Exported Functions and Variables
