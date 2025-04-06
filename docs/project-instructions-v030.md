@@ -94,5 +94,3 @@ detect_shell() {
 ```
 
 When in doubt, use a discussion-first approach to clarify design intent before implementation. Keep simplicity as a guiding principle throughout the development process.
-
-# EOF

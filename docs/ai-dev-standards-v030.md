@@ -2,10 +2,10 @@
 
 ## Critical File Location Verification
 
-* **MANDATORY**: Before modifying ANY existing file, verify its exact location by:  
-  1. First checking the file in the uploaded documents list  
-  2. Cross-referencing with the updated `~/.config/rcforge/docs/FILE_STRUCTURE_GUIDE.md`  
-  3. Explicitly confirming the full path when suggesting changes 
+* **MANDATORY**: Before modifying ANY existing file, verify its exact location by:
+  1. First checking the file in the uploaded documents list
+  2. Cross-referencing with the updated `~/.config/rcforge/docs/FILE_STRUCTURE_GUIDE.md`
+  3. Explicitly confirming the full path when suggesting changes
 * **Always** specify the complete file path when suggesting modifications
 * **Never** suggest structural changes without explicit discussion - always highlight these as separate recommendations and obtain approval before implementing
 * **Never** assume standard locations or make undocumented structural changes
@@ -121,5 +121,3 @@
 - Ensure all RC command utilities have proper summary text for `rc help`
 
 By adhering to these standards, we ensure that AI-assisted development for rcForge v0.3.0 remains consistent, maintainable, and aligned with the redesigned architecture.
-
-# EOF
