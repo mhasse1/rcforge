@@ -47,71 +47,107 @@ DisplayHelp() {
 }
 
 # ============================================================================
+# Function: ParseArguments
+# Description: Parse command-line arguments for concat-files script.
+# Usage: declare -A options; ParseArguments options "$@"
+# Returns: Populates associative array. Returns 0 on success, 1 on error or help/summary.
+# ============================================================================
+ParseArguments() {
+    local -n options_ref="$1" # Use nameref (Bash 4.3+)
+    shift # Remove array name from args
+
+    # Default values
+    options_ref["find_pattern"]="*" # Default pattern finds everything [cite: 1045]
+    options_ref["recursive"]=true # [cite: 1045]
+    # options_ref["args"]=() # For any future positional args
+
+     # --- Pre-parse checks for summary/help ---
+     # Check BEFORE the loop if only summary/help is requested
+     if [[ "$#" -eq 1 ]]; then
+         case "$1" in
+             -h|--help) DisplayHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     # Also handle case where summary/help might be first but other args exist
+     elif [[ "$#" -gt 0 ]]; then
+          case "$1" in
+             -h|--help) DisplayHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     fi
+    # --- End pre-parse ---
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help) DisplayHelp; return 1 ;;
+            --summary) ShowSummary; return 1 ;; # Handle summary
+            -p|--pattern)
+                # Ensure value exists and is not another option
+                if [[ -z "${2:-}" || "$2" == -* ]]; then ErrorMessage "Option '$1' requires a PATTERN argument."; return 1; fi # [cite: 1048]
+                options_ref["find_pattern"]="$2"
+                shift 2 # past argument and value [cite: 1049]
+                ;;
+            -nr|--no-recursive)
+                options_ref["recursive"]=false # [cite: 1050]
+                shift # past argument [cite: 1050]
+                ;;
+            *)
+                ErrorMessage "Unknown option: $1" # [cite: 1051]
+                DisplayHelp
+                return 1
+                ;;
+        esac
+    done
+
+    # No positional arguments expected for this script currently
+    # Add validation here if needed in the future
+
+    return 0 # Success
+}
+
+# ============================================================================
 # Function: main
 # Description: Main logic - parse args, find files, print content.
 # Usage: main "$@"
 # ============================================================================
 main() {
-    # Default option values
-    local find_pattern="*" # Default pattern finds everything (effectively)
-    local max_depth_option="" # Default is recursive
+    declare -A options
+    ParseArguments options "$@" || exit $? # Parse args or exit
 
-    # Parse Arguments
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -h|--help)
-                DisplayHelp
-                exit 0
-                ;;
-            -p|--pattern)
-                if [[ -z "${2:-}" ]]; then
-                     echo "ERROR: Option '$1' requires a PATTERN argument." >&2
-                     exit 1
-                fi
-                find_pattern="$2"
-                shift # past argument
-                shift # past value
-                ;;
-            -nr|--no-recursive)
-                max_depth_option="-maxdepth 1"
-                shift # past argument
-                ;;
-            *)
-                echo "ERROR: Unknown option: $1" >&2
-                DisplayHelp
-                exit 1
-                ;;
-        esac
-    done
+    # Use options from the array
+    local find_pattern="${options[find_pattern]}"
+    local max_depth_option="" # Default is recursive
+    if [[ "${options[recursive]}" == "false" ]]; then
+        max_depth_option="-maxdepth 1" # [cite: 1050]
+    fi
 
     # Build find command arguments into an array for safety
-    local -a find_args=(".") # Start with current directory
+    local -a find_args=(".") # Start with current directory [cite: 1052]
 
     # Add maxdepth option if set
     if [[ -n "$max_depth_option" ]]; then
-        find_args+=("$max_depth_option")
+        find_args+=("$max_depth_option") # [cite: 1053]
     fi
 
     # Always exclude .git directory
-    find_args+=(-path "./.git" -prune -o)
+    find_args+=(-path "./.git" -prune -o) # [cite: 1053]
 
-    # Add the name pattern if specified (use -name for simple patterns)
-    # If using more complex paths, -path might be better
+    # Add the name pattern if specified
     if [[ "$find_pattern" != "*" ]]; then
-         find_args+=(-name "$find_pattern")
+         find_args+=(-name "$find_pattern") # [cite: 1054]
     fi
 
     # Always look for files and print0
-    find_args+=(-type f -print0)
+    find_args+=(-type f -print0) # [cite: 1054]
 
     # Execute find and loop through results safely
-    find "${find_args[@]}" | while IFS= read -r -d '' file; do
+    find "${find_args[@]}" | while IFS= read -r -d '' file; do # [cite: 1055]
         # Print marker with filename
-        echo "# ========== <${file}>"
+        echo "# ========== <${file}>" # [cite: 1055]
         # Print file content safely
-        cat "$file"
+        cat "$file" # [cite: 1055]
         # Add a newline after file content for separation
-        echo ""
+        echo "" # [cite: 1055]
     done
 }
 

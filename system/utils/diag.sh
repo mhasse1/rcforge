@@ -392,7 +392,6 @@ GenerateDiagram() {
     return 0
 }
 
-
 # ============================================================================
 # Function: ParseArguments
 # Description: Parse command-line arguments for the diag script.
@@ -400,49 +399,67 @@ GenerateDiagram() {
 # Returns: Populates associative array. Returns 0 on success, 1 on error or if help/summary shown.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1" # Use nameref
+    local -n options_ref="$1" # Use nameref [cite: 742]
     shift
 
     # Call PascalCase functions for defaults
-    options_ref["target_hostname"]="$(DetectCurrentHostname)"
-    options_ref["target_shell"]="$(DetectCurrentShell)"
-    options_ref["output_file"]=""
-    options_ref["format"]="mermaid"
-    options_ref["verbose_mode"]=false
+    options_ref["target_hostname"]="$(DetectCurrentHostname)" # [cite: 743]
+    options_ref["target_shell"]="$(DetectCurrentShell)" # [cite: 743]
+    options_ref["output_file"]="" # [cite: 743]
+    options_ref["format"]="mermaid" # [cite: 743]
+    options_ref["verbose_mode"]=false # [cite: 743]
+    $options_ref["args"]=() # For any future positional args
+
+    # --- Pre-parse checks for summary/help ---
+     # Check BEFORE the loop if only summary/help is requested
+     if [[ "$#" -eq 1 ]]; then
+         case "$1" in
+            --help|-h) ShowHelp; return 1 ;;
+            --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     # Also handle case where summary/help might be first but other args exist
+     elif [[ "$#" -gt 0 ]]; then
+          case "$1" in
+             --help|-h) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     fi
+    # --- End pre-parse ---
 
     while [[ "$#" -gt 0 ]]; do
         case "$1" in
-            --help|-h) ShowHelp; return 1 ;; # Call PascalCase
-            --summary) ShowSummary; return 1 ;; # Call PascalCase
-            --hostname=*) options_ref["target_hostname"]="${1#*=}" ;;
+            --help|-h) ShowHelp; return 1 ;; # [cite: 744]
+            --summary) ShowSummary; return 1 ;; # [cite: 745]
+            --hostname=*) options_ref["target_hostname"]="${1#*=}"; shift ;; # [cite: 745]
             --shell=*)
                 options_ref["target_shell"]="${1#*=}"
-                if ! ValidateShellType "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase
-                ;;
-            --output=*) options_ref["output_file"]="${1#*=}" ;;
+                if ! ValidateShellType "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase [cite: 747]
+                shift ;;
+            --output=*) options_ref["output_file"]="${1#*=}"; shift ;; # [cite: 748]
             --format=*)
                 options_ref["format"]="${1#*=}"
-                if ! ValidateFormat "${options_ref["format"]}"; then return 1; fi # Call PascalCase
-                ;;
-            --verbose|-v) options_ref["verbose_mode"]=true ;;
+                if ! ValidateFormat "${options_ref["format"]}"; then return 1; fi # Call PascalCase [cite: 749]
+                shift ;;
+            --verbose|-v) options_ref["verbose_mode"]=true; shift ;; # [cite: 750]
             *)
-                ErrorMessage "Unknown parameter: $1"
-                echo "Use --help to see available options."
+                # Assume any other arg is an error for diag
+                ErrorMessage "Unknown parameter or unexpected argument: $1" # [cite: 751]
+                ShowHelp
                 return 1
+                # If diag ever takes positional args, capture them here:
+                # options_ref["args"]+=("$1"); shift ;;
                 ;;
         esac
-        shift
     done
 
     # Final validation after defaults
-    if ! ValidateShellType "${options_ref["target_shell"]}"; then # Call PascalCase
-         WarningMessage "Default shell detection failed or resulted in unsupported shell."
+    if ! ValidateShellType "${options_ref["target_shell"]}"; then # Call PascalCase [cite: 753]
+         WarningMessage "Default shell detection failed or resulted in unsupported shell." [cite: 753]
          return 1
     fi
 
-    return 0 # Success
+    return 0 # Success [cite: 754]
 }
-
 
 # ============================================================================
 # Function: main
@@ -452,42 +469,40 @@ ParseArguments() {
 # ============================================================================
 main() {
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase
+    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase [cite: 756]
     declare -A options
     local -a config_files
     local default_filename="" # Temp var for default name construction
 
-    # Call PascalCase. Exit if parsing failed or help/summary displayed.
-    if ! ParseArguments options "$@"; then
-        return 1
+    # Call ParseArguments. Exit if parsing failed or help/summary displayed.
+    ParseArguments options "$@" || exit $? # [cite: 757]
+
+    # Determine default output file path if not provided (using options array)
+    if [[ -z "${options[output_file]}" ]]; then # [cite: 758]
+         default_filename="loading_order_${options[target_hostname]}_${options[target_shell]}.${options[format]}" # [cite: 759]
+         if [[ "${options[format]}" == "mermaid" ]]; then default_filename="${default_filename%.*}.md"; fi # [cite: 760]
+         if [[ "${options[format]}" == "graphviz" ]]; then default_filename="${default_filename%.*}.dot"; fi # [cite: 761]
+         if [[ "${options[format]}" == "ascii" ]]; then default_filename="${default_filename%.*}.txt"; fi # [cite: 762]
+         options[output_file]="${gc_default_output_dir}/${default_filename}" # [cite: 762]
     fi
 
-    # Determine default output file path if not provided
-    if [[ -z "${options[output_file]}" ]]; then
-         default_filename="loading_order_${options[target_hostname]}_${options[target_shell]}.${options[format]}"
-         if [[ "${options[format]}" == "mermaid" ]]; then default_filename="${default_filename%.*}.md"; fi
-         if [[ "${options[format]}" == "graphviz" ]]; then default_filename="${default_filename%.*}.dot"; fi
-         if [[ "${options[format]}" == "ascii" ]]; then default_filename="${default_filename%.*}.txt"; fi
-         options[output_file]="${gc_default_output_dir}/${default_filename}"
-    fi
+    SectionHeader "rcForge Configuration Diagram Generation (v${gc_version})" # Call PascalCase [cite: 762]
 
-    SectionHeader "rcForge Configuration Diagram Generation (v${gc_version})" # Call PascalCase
-
-    # Call PascalCase. Use process substitution and mapfile.
-    mapfile -t config_files < <(FindConfigFiles "$rcforge_dir" "${options[target_shell]}" "${options[target_hostname]}" "${options[verbose_mode]}") || {
+    # Call FindConfigFiles. Use process substitution and mapfile.
+    mapfile -t config_files < <(FindConfigFiles "$rcforge_dir" "${options[target_shell]}" "${options[target_hostname]}" "${options[verbose_mode]}") || { # [cite: 763]
         # find_config_files already prints message, just return failure status
-        return 1
+        return 1 # [cite: 764]
     }
 
 
-    # Call PascalCase function to generate the diagram
+    # Call GenerateDiagram function to generate the diagram (using options array)
     GenerateDiagram \
         "${options[format]}" \
         "${options[output_file]}" \
         "${options[verbose_mode]}" \
-        "${config_files[@]}"
+        "${config_files[@]}" # [cite: 764]
 
-    return $? # Return status of GenerateDiagram
+    return $? # Return status of GenerateDiagram [cite: 765]
 }
 
 

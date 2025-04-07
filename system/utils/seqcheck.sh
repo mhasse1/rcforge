@@ -501,51 +501,76 @@ CheckAllSeqConflicts() {
 # Returns: Populates associative array. Returns 0 on success, 1 on error or if help/summary shown.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1" # Use nameref
+    local -n options_ref="$1" # Use nameref [cite: 869]
     shift
 
     # Call PascalCase functions for defaults
-    options_ref["target_hostname"]="$(DetectCurrentHostname)"
-    options_ref["target_shell"]="$(DetectCurrentShell)"
-    options_ref["check_all"]=false
-    options_ref["fix_conflicts"]=false
-    options_ref["is_interactive"]=true
-    options_ref["is_dry_run"]=false
+    options_ref["target_hostname"]="$(DetectCurrentHostname)" # [cite: 870]
+    options_ref["target_shell"]="$(DetectCurrentShell)" # [cite: 870]
+    options_ref["check_all"]=false # [cite: 870]
+    options_ref["fix_conflicts"]=false # [cite: 870]
+    options_ref["is_interactive"]=true # [cite: 870]
+    options_ref["is_dry_run"]=false # [cite: 870]
+    options_ref["args"]=() # For any future positional args
 
-    while [[ "$#" -gt 0 ]]; do
+    # --- Pre-parse checks for summary/help ---
+     # Check BEFORE the loop if only summary/help is requested
+     if [[ "$#" -eq 1 ]]; then
+         case "$1" in
+             --help|-h) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     # Also handle case where summary/help might be first but other args exist
+     elif [[ "$#" -gt 0 ]]; then
+          case "$1" in
+             --help|-h) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     fi
+    # --- End pre-parse ---
+
+    while [[ "$#" -gt 0 ]]; do # [cite: 872]
         case "$1" in
-            --help|-h) ShowHelp; return 1 ;; # Call PascalCase
-            --summary) ShowSummary; return 1 ;; # Call PascalCase
-            --hostname=*) options_ref["target_hostname"]="${1#*=}" ;;
+            --help|-h) ShowHelp; return 1 ;; # [cite: 873]
+            --summary) ShowSummary; return 1 ;; # [cite: 874]
+            --hostname=*) options_ref["target_hostname"]="${1#*=}"; shift ;; # [cite: 874]
             --shell=*)
                 options_ref["target_shell"]="${1#*=}"
-                if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase
-                ;;
-            --all) options_ref["check_all"]=true ;;
-            --fix) options_ref["fix_conflicts"]=true ;;
-            --non-interactive) options_ref["is_interactive"]=false ;;
-            --dry-run) options_ref["is_dry_run"]=true ;;
+                if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase [cite: 876]
+                shift ;;
+            --all) options_ref["check_all"]=true; shift ;; # [cite: 877]
+            --fix) options_ref["fix_conflicts"]=true; shift ;; # [cite: 877]
+            --non-interactive) options_ref["is_interactive"]=false; shift ;; # [cite: 877]
+            --dry-run) options_ref["is_dry_run"]=true; shift ;; # [cite: 877]
             *)
-                ErrorMessage "Unknown parameter: $1"
-                echo "Use --help to see available options."
-                return 1
+                # Assume any other arg is an error for seqcheck
+                ErrorMessage "Unknown parameter or unexpected argument: $1" # [cite: 878]
+                ShowHelp
+                return 1 # [cite: 879]
+                # If seqcheck ever takes positional args, capture them here:
+                # options_ref["args"]+=("$1"); shift ;;
                 ;;
         esac
-        shift
     done
 
+    # --- Post-parsing validation and info messages ---
     # Final validation of potentially defaulted shell
-    if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase
+    if ! ValidateShell "${options_ref["target_shell"]}"; then return 1; fi # Call PascalCase [cite: 881]
 
-    if [[ "${options_ref["fix_conflicts"]}" == "true" && "${options_ref["is_interactive"]}" == "false" ]]; then
-        WarningMessage "--fix requires interactive mode. Running check without fixing."
+    # Handle interaction between --fix and --non-interactive
+    if [[ "${options_ref["fix_conflicts"]}" == "true" && "${options_ref["is_interactive"]}" == "false" ]]; then # [cite: 881]
+        WarningMessage "--fix requires interactive mode. Conflicts will be reported but not fixed." # [cite: 882]
+        # Automatically disable fix if non-interactive to avoid issues later
+        options_ref["fix_conflicts"]=false # [cite: 883]
     fi
 
-    if [[ "${options_ref["is_dry_run"]}" == "true" && "${options_ref["fix_conflicts"]}" == "true" ]]; then
-         InfoMessage "Running with --dry-run. No changes will be made."
+    if [[ "${options_ref["is_dry_run"]}" == "true" && "${options_ref["fix_conflicts"]}" == "true" ]]; then # [cite: 883]
+         InfoMessage "Running with --dry-run. --fix is enabled but no changes will be made." # [cite: 884]
+    elif [[ "${options_ref["is_dry_run"]}" == "true" ]]; then # [cite: 884]
+         InfoMessage "Running with --dry-run. No changes will be made." # [cite: 885]
     fi
 
-    return 0 # Success
+    return 0 # Success [cite: 885]
 }
 
 # ============================================================================
@@ -556,40 +581,38 @@ ParseArguments() {
 # ============================================================================
 main() {
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase
+    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase [cite: 887]
     declare -A options
     local overall_status=0
 
-    # Call PascalCase function. Exit if parsing failed or help/summary displayed.
-    if ! ParseArguments options "$@"; then
-        return 1
-    fi
+    # Call ParseArguments function. Exit if parsing failed or help/summary displayed.
+    ParseArguments options "$@" || exit $? # [cite: 888]
 
-    SectionHeader "rcForge Sequence Conflict Check (v${gc_version})" # Call PascalCase
+    SectionHeader "rcForge Sequence Conflict Check (v${gc_version})" # Call PascalCase [cite: 889]
 
-    if [[ "${options[check_all]}" == "true" ]]; then
-        # Call PascalCase function
+    # Determine whether to check all or specific context based on options array
+    if [[ "${options[check_all]}" == "true" ]]; then # [cite: 890]
+        # Call CheckAllSeqConflicts function
         CheckAllSeqConflicts \
             "$rcforge_dir" \
             "${options[fix_conflicts]}" \
             "${options[is_interactive]}" \
-            "${options[is_dry_run]}"
+            "${options[is_dry_run]}" # [cite: 890]
         overall_status=$?
     else
-        # Call PascalCase function
+        # Call CheckSeqConflicts function
         CheckSeqConflicts \
             "$rcforge_dir" \
             "${options[target_shell]}" \
             "${options[target_hostname]}" \
             "${options[fix_conflicts]}" \
             "${options[is_interactive]}" \
-            "${options[is_dry_run]}"
-        overall_status=$?
+            "${options[is_dry_run]}" # [cite: 891]
+        overall_status=$? # [cite: 892]
     fi
 
-    return $overall_status
+    return $overall_status # [cite: 892]
 }
-
 
 # Execute main function if run directly or via rc command
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]] || [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then

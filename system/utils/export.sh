@@ -306,75 +306,77 @@ ExportConfiguration() {
     fi
 }
 
-
 # ============================================================================
 # Function: ParseArguments
-# Description: Parse command-line arguments.
+# Description: Parse command-line arguments for export script.
 # Usage: declare -A options; ParseArguments options "$@"
-# Arguments:
-#   options (required) - Name of the associative array to populate.
-#   "$@" (required) - The script's command-line arguments.
-# Returns: Populates the associative array. Returns 0 on success, 1 on error or if help/summary shown.
+# Returns: Populates associative array. Returns 0 on success, 1 on error or if help/summary shown.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1" # Use nameref for associative array
+    local -n options_ref="$1" # Use nameref for associative array [cite: 1013]
     shift # Remove array name from args
 
-    options_ref["shell_type"]=""
-    options_ref["hostname"]=""
-    options_ref["output_file"]=""
-    options_ref["verbose_mode"]=false
-    options_ref["keep_debug"]=false
-    options_ref["strip_comments"]=true
-    options_ref["force_overwrite"]=false
+    # Default values
+    options_ref["shell_type"]="" # [cite: 1013]
+    options_ref["hostname"]="" # [cite: 1013]
+    options_ref["output_file"]="" # [cite: 1013]
+    options_ref["verbose_mode"]=false # [cite: 1013]
+    options_ref["keep_debug"]=false # [cite: 1013]
+    options_ref["strip_comments"]=true # Default is to strip [cite: 1013]
+    options_ref["force_overwrite"]=false # [cite: 1013]
+    #options_ref["args"]=() # For any future positional args
 
-    while [[ "$#" -gt 0 ]]; do
+    # --- Pre-parse checks for summary/help ---
+     # Check BEFORE the loop if only summary/help is requested
+     if [[ "$#" -eq 1 ]]; then
+         case "$1" in
+             --help|-h) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     # Also handle case where summary/help might be first but other args exist
+     elif [[ "$#" -gt 0 ]]; then
+          case "$1" in
+             --help|-h) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 1 ;; # Handle summary
+         esac
+     fi
+    # --- End pre-parse ---
+
+    while [[ "$#" -gt 0 ]]; do # [cite: 1014]
         case "$1" in
-            --help|-h)
-                ShowHelp # Call PascalCase
-                return 1
-                ;;
-            --summary)
-                ShowSummary # Call PascalCase
-                return 1
-                ;;
+            --help|-h) ShowHelp; return 1 ;; # [cite: 1014]
+            --summary) ShowSummary; return 1 ;; # [cite: 1015]
             --shell=*)
                 options_ref["shell_type"]="${1#*=}"
-                # Call PascalCase
-                if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi
-                ;;
-            --hostname=*)
-                options_ref["hostname"]="${1#*=}"
-                ;;
-            --output=*)
-                options_ref["output_file"]="${1#*=}"
-                ;;
-            --verbose|-v)
-                options_ref["verbose_mode"]=true
-                ;;
+                if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi #
+                shift ;;
+            --hostname=*) options_ref["hostname"]="${1#*=}"; shift ;; # [cite: 1018]
+            --output=*) options_ref["output_file"]="${1#*=}"; shift ;; # [cite: 1019]
+            --verbose|-v) options_ref["verbose_mode"]=true; shift ;; # [cite: 1020]
             --keep-debug)
                 options_ref["keep_debug"]=true
-                options_ref["strip_comments"]=false
-                ;;
-             --force|-f)
-                options_ref["force_overwrite"]=true
-                ;;
+                options_ref["strip_comments"]=false # keep-debug implies keep comments [cite: 1021]
+                shift ;;
+            --force|-f) options_ref["force_overwrite"]=true; shift ;; # [cite: 1022]
             *)
-                ErrorMessage "Unknown parameter: $1"
-                echo "Use --help to see available options."
-                return 1
+                # Assume any other arg is an error for export
+                ErrorMessage "Unknown parameter or unexpected argument: $1" # [cite: 1023]
+                ShowHelp
+                return 1 # [cite: 1024]
+                # If export ever takes positional args, capture them here:
+                # options_ref["args"]+=("$1"); shift ;;
                 ;;
         esac
-        shift
     done
 
-    if [[ -z "${options_ref["shell_type"]}" ]]; then
-        ErrorMessage "Shell type must be specified (--shell=bash or --shell=zsh)."
-        ShowHelp # Call PascalCase
-        return 1
+    # --- Post-parsing validation ---
+    if [[ -z "${options_ref["shell_type"]}" ]]; then # [cite: 1025]
+        ErrorMessage "Shell type must be specified (--shell=bash or --shell=zsh)." # [cite: 1026]
+        ShowHelp # Call PascalCase [cite: 1027]
+        return 1 # [cite: 1027]
     fi
 
-    return 0 # Success
+    return 0 # Success [cite: 1027]
 }
 
 # ============================================================================
@@ -386,18 +388,16 @@ ParseArguments() {
 # ============================================================================
 main() {
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase
-    declare -A options # Associative array for parsed options
+    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase [cite: 1029]
+    declare -A options # Associative array for parsed options [cite: 1029]
 
-    # Call PascalCase function. Exit if parse fails or help/summary shown.
-    if ! ParseArguments options "$@"; then
-         return 1
-    fi
+    # Call ParseArguments function. Exit if parse fails or help/summary shown.
+    ParseArguments options "$@" || exit $? # [cite: 1030]
 
-    # Call PascalCase function (SectionHeader assumed defined in utility-functions.sh)
-    SectionHeader "rcForge Configuration Export (v${gc_version})"
+    # Call SectionHeader function (SectionHeader assumed defined in utility-functions.sh)
+    SectionHeader "rcForge Configuration Export (v${gc_version})" # [cite: 1031]
 
-    # Call PascalCase function using options from the associative array
+    # Call ExportConfiguration function using options from the associative array
     ExportConfiguration \
         "$rcforge_dir" \
         "${options[shell_type]}" \
@@ -406,9 +406,9 @@ main() {
         "${options[keep_debug]}" \
         "${options[strip_comments]}" \
         "${options[force_overwrite]}" \
-        "${options[verbose_mode]}"
+        "${options[verbose_mode]}" #
 
-    return $? # Return the exit status of ExportConfiguration
+    return $? # Return the exit status of ExportConfiguration [cite: 1033]
 }
 
 
