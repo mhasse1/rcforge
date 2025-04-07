@@ -1,5 +1,5 @@
 # v0.3.0 File Manifest
-# File version: 0.3.0-2
+# File version: 0.3.0-3
 
 DIRECTORIES:
 # Directory structure (relative to ~/.config/rcforge)
@@ -31,6 +31,7 @@ system/core/bash-version-check.sh               system/core/bash-version-check.s
 system/core/check-checksums.sh                  system/core/check-checksums.sh
 system/core/functions.sh                        system/core/functions.sh
 system/core/integrity.sh                        system/core/integrity.sh
+system/core/rc-command.sh                       system/core/rc-command.sh
 system/lib/shell-colors.sh                      system/lib/shell-colors.sh
 system/lib/utility-functions.sh                 system/lib/utility-functions.sh
 system/utils/concat-files.sh                    system/utils/concat-files.sh
