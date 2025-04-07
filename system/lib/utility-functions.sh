@@ -7,6 +7,17 @@
 # Description: This library provides common utilities for rcForge command-line scripts,
 #              including argument processing, help display, and execution context detection.
 
+
+# --- Include Guard ---
+# Check if already sourced
+if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
+    return 0 # Already sourced, exit gracefully
+fi
+# Mark as sourced
+export _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true
+# --- End Include Guard ---
+
+
 # Note: Do not use 'set -e' or 'set -u' in sourced library scripts.
 
 # Source color utilities if available (required by messaging functions below)
@@ -31,10 +42,10 @@ fi
 # Debug mode flag (can be overridden by environment before sourcing)
 export DEBUG_MODE="${DEBUG_MODE:-false}"
 # Use rcForge core version if available, otherwise use ENV_ERROR default
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-readonly gc_copyright="Copyright (c) $(date +%Y) rcForge Team" # Dynamic year
-readonly gc_license="Released under the MIT License"
+[ -v gc_version ]   || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_app_name ]  || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[ -v gc_copyright ] || readonly gc_copyright="Copyright (c) $(date +%Y) rcForge Team"
+[ -v gc_license ]   || readonly gc_license="Released under the MIT License"
 
 # ============================================================================
 # CONTEXT DETECTION FUNCTIONS (PascalCase)

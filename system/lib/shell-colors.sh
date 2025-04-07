@@ -6,6 +6,17 @@
 # Category: system/library
 # Description: Provides color definitions, output formatting, and standardized messaging functions with dynamic wrapping. Intended to be sourced.
 
+
+# --- Include Guard ---
+# Check if already sourced
+if [[ -n "${_RCFORGE_SHELL_COLORS_SH_SOURCED:-}" ]]; then
+    return 0 # Already sourced, exit gracefully
+fi
+# Mark as sourced
+export _RCFORGE_SHELL_COLORS_SH_SOURCED=true
+# --- End Include Guard ---
+
+
 # Note: Do not use 'set -e' or 'set -u' in sourced library scripts as it can affect the parent shell.
 
 # ============================================================================
