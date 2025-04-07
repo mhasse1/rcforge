@@ -18,9 +18,11 @@ set -o nounset  # Treat unset variables as errors
 # ============================================================================
 # GLOBAL CONSTANTS
 # ============================================================================
-readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 readonly gc_supported_shells=("bash" "zsh")
+
+# readonly removed to allow sourcing from rcforge.sh
+gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 
 # ============================================================================
 # UTILITY FUNCTIONS (PascalCase)
@@ -399,13 +401,20 @@ CheckSeqConflicts() {
         filename=$(basename "$file")
         seq_num=$(GetSequenceNumber "$filename") # Call PascalCase
 
+        # --- Add Check ---
+        if ! [[ "$seq_num" =~ ^[0-9]{3}$ ]]; then
+             WarningMessage "Skipping file with invalid sequence format: $filename (seq='$seq_num')"
+             continue # Skip this file
+        fi
+        # --- End Add Check ---
+
         if [[ -n "${sequence_map[$seq_num]:-}" ]]; then
             sequence_map["$seq_num"]="${sequence_map[$seq_num]},$filename"
             has_conflicts=true
         else
             sequence_map["$seq_num"]="$filename"
         fi
-    done
+    done 
 
     if [[ "$has_conflicts" == "false" ]]; then
         SuccessMessage "No sequence conflicts found for ${hostname}/${shell}."

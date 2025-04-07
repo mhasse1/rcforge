@@ -363,48 +363,31 @@ SectionHeader() {
 # Description: Print a message highlighted with background/foreground colors, wrapped.
 # Usage: TextBlock "Message" [ForegroundColor] [BackgroundColor]
 # Arguments:
-#   message (required) - Text to display. Uses $* internally.
-#   fg_color (optional) - ANSI foreground color variable (default: WHITE).
-#   bg_color (optional) - ANSI background color variable (default: BG_BLUE).
+#   $1 (required) - Text to display.
+#   $2 (optional) - ANSI foreground color variable (default: WHITE).
+#   $3 (optional) - ANSI background color variable (default: BG_BLUE).
 # Returns: 1 if message is empty, 0 otherwise. Prints to stdout.
 # ============================================================================
 TextBlock() {
-    local message="${*}" # Capture all arguments as message
-    local fg_color="$WHITE" # Default foreground
-    local bg_color="$BG_BLUE" # Default background
+    local message="${1:-}" # Message is the first argument
+    local fg_color="${2:-$WHITE}"  # Use 2nd arg or default
+    local bg_color="${3:-$BG_BLUE}"  # Use 3rd arg or default
     local wrapped_message
 
-    # Check if last 2 args look like color vars (heuristic)
-    local arg_count=$#
-    if [[ "$arg_count" -ge 2 ]] && [[ "${*:$arg_count}" =~ ^\\033\[[0-9;]+m$ ]]; then
-        bg_color="${*:$arg_count}"
-        if [[ "$arg_count" -ge 3 ]] && [[ "${*:$((arg_count-1)):1}" =~ ^\\033\[[0-9;]+m$ ]]; then
-             fg_color="${*:$((arg_count-1)):1}"
-             # Rebuild message excluding last 2 args
-             message="${*:1:$((arg_count-2))}"
-        else
-             # Rebuild message excluding last arg
-             message="${*:1:$((arg_count-1))}"
-        fi
-    elif [[ "$arg_count" -ge 1 ]] && [[ "${*:$arg_count}" =~ ^\\033\[[0-9;]+m$ ]]; then
-         fg_color="${*:$arg_count}"
-         # Rebuild message excluding last arg
-         message="${*:1:$((arg_count-1))}"
-    fi
-
-
     if [[ -z "$message" ]]; then
-        WarningMessage "No message provided to TextBlock function." # Use WarningMessage
-        return 1 # Indicate error
+        WarningMessage "No message provided to TextBlock function."
+        return 1
     fi
 
-    # Wrap the message content, indenting subsequent lines by 1 space for padding
-    wrapped_message=$(Wrap "$message" 1) # Call library's Wrap function
+    # Wrap the message content, indent subsequent lines by 1 space for padding
+    # Assumes Wrap function exists in this library
+    wrapped_message=$(Wrap "$message" 1)
 
     # Print wrapped message line by line with background color
     local first_line=true
     while IFS= read -r line; do
          if [[ "$first_line" == true ]]; then
+             # Print first line with 1 space padding inside background
              if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
                  printf "%b%b %s %b\n" "$fg_color" "$bg_color" "$line" "$RESET"
              else
@@ -412,8 +395,9 @@ TextBlock() {
              fi
              first_line=false
          else
+              # Print subsequent lines indented by 2 spaces within background
               if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
-                  printf "%b%b  %s %b\n" "$fg_color" "$bg_color" "$line" "$RESET" # Indent subsequent lines
+                  printf "%b%b  %s %b\n" "$fg_color" "$bg_color" "$line" "$RESET"
              else
                   printf "  %s\n" "$line"
              fi

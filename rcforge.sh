@@ -106,7 +106,8 @@ PerformIntegrityChecks() {
         check_script_path="${checks[$check_name]}"
         InfoMessage "Running: ${check_name}..."
         if [[ -f "$check_script_path" && -x "$check_script_path" ]]; then
-            if ! ( bash "$check_script_path" --non-interactive ); then
+            # Remove --non-interactive from the call
+            if ! ( bash "$check_script_path" ); then
                 WarningMessage "${check_name} detected issues."
                 error_count=$((error_count + 1))
                 continue_load=false
@@ -115,6 +116,9 @@ PerformIntegrityChecks() {
             fi
         else
             WarningMessage "Check script not found or not executable: $check_script_path"
+            # Consider if this should count as an error
+            # error_count=$((error_count + 1))
+            # continue_load=false
         fi
     done
 
