@@ -257,6 +257,38 @@ SourceConfigFiles() {
 # Returns: 0 on successful loading, 1 on failure.
 # ============================================================================
 main() {
+    # --- Abort Check ---
+    local user_input=""
+    local timeout_seconds=3
+    # Use printf for potentially colored/formatted output consistency
+    printf "%b" "${CYAN}INFO:${RESET} Initializing rcForge... (Press '.' within ${timeout_seconds}s to abort): "
+    # Read one character (-N 1), silently (-s), with a timeout (-t)
+    if read -s -N 1 -t "$timeout_seconds" user_input; then
+        # Read completed (didn't time out)
+        echo "" # Add a newline after input
+        if [[ "$user_input" == "." ]]; then
+            WarningMessage "rcForge loading aborted by user."
+            # Return non-zero to signal the sourcing process should stop (if possible)
+            # Note: The parent shell might ignore this depending on its settings (e.g., set -e)
+            return 1
+        fi
+        # If input wasn't '.', just continue silently or add verbose message
+        # VerboseMessage "true" "Proceeding with rcForge load." # Requires utility-functions sourced
+    else
+        # Read timed out (exit status > 128 in Bash for read -t timeout)
+        # Or read failed for another reason
+        if [[ $? -gt 128 ]]; then
+             echo "Timeout." # Indicate timeout clearly
+             # Continue loading automatically after timeout
+        else
+             # Handle other potential read errors if necessary
+             WarningMessage "Read command failed unexpectedly during abort check. Continuing..."
+        fi
+    fi
+    echo "" # Add a newline for cleaner output flow
+    # --- End Abort Check ---
+
+
     # Use CheckRoot from sourced functions.sh (already PascalCase)
     if command -v CheckRoot &> /dev/null; then
          if ! CheckRoot --skip-interactive; then return 0; fi

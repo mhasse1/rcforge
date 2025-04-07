@@ -49,6 +49,8 @@
 
 This style guide defines the coding standards, best practices, and conventions for the rcForge v0.3.0 project. Our goal is to maintain consistency, readability, and maintainability across all project contributions while adhering to the redesigned architecture.
 
+Note that in many cases this document is still aspirational and as code is revised, attepts are being made to bring things up to the latest standards.
+
 ## General Principles
 
 1. **Clarity Over Cleverness**
@@ -307,14 +309,17 @@ fi
    - Examples: `InstallDependencies()`, `validate_configuration()`
    - Include function headings as demonstrated in 2. Function Structure below.
    - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
-   
+
 2. **Function Structure**
+
+   Restrict long comment lines to 72 characters and indent the following lines. See `Usage` in the example below.
 
    ```bash
    # ============================================================================
    # Function: FunctionName
    # Description: Clear, concise description of what the function does
-   # Usage: Demonstrate how to call the function [Optional, not required for simple implementations or if no arguments]
+   # Usage: Demonstrate how to call the function [Optional, not required for 
+   #        simple implementations or if no arguments]
    # Arguments: ["None" if no arguments]
    #   arg1 (required) - Description of first argument
    #   arg2 (optional) - Description of second argument (if applicable)
