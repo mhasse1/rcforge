@@ -213,7 +213,7 @@ SourceConfigFiles() {
 main() {
     # --- Abort Check ---
     local user_input=""
-    local timeout_seconds=3
+    local timeout_seconds=1
     # Use printf for potentially colored/formatted output consistency
     printf "%b" "${CYAN}INFO:${RESET} Initializing rcForge... (Press '.' within ${timeout_seconds}s to abort): "
     # Read one character (-N 1), silently (-s), with a timeout (-t)

@@ -106,9 +106,9 @@ GetTerminalWidth() {
 }
 
 # ============================================================================
-# Function: PrintWrappedMessage (Internal Helper)
+# Function: _PrintWrappedMessage (Internal Helper)
 # Description: Internal helper to print prefixed and wrapped messages with indentation.
-# Usage: PrintWrappedMessage "PREFIX" "COLOR_PREFIX" INDENT_WIDTH "MESSAGE" [REDIRECT]
+# Usage: _PrintWrappedMessage "PREFIX" "COLOR_PREFIX" INDENT_WIDTH "MESSAGE" [REDIRECT]
 # Arguments:
 #   $1 (required) - Plain text prefix (e.g., "[INFO]").
 #   $2 (required) - Colored prefix string (e.g., "${BLUE}[INFO]${RESET}").
@@ -117,7 +117,7 @@ GetTerminalWidth() {
 #   $5 (optional) - Redirection target (e.g., >&2 for stderr). Default stdout.
 # Returns: None. Prints wrapped message.
 # ============================================================================
-PrintWrappedMessage() {
+_PrintWrappedMessage() {
     local prefix="$1"
     local color_prefix="$2"
     local indent_width=${3:-0}
@@ -256,7 +256,7 @@ ErrorMessage() {
     local color_prefix="${BRIGHT_RED}${prefix}${RESET}"
     local indent_width=8 # Length of "[ERROR] "
 
-    PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr" # Pass stderr redirection hint
+    _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr" # Pass stderr redirection hint
 
     [[ -n "$exit_code" ]] && exit "$exit_code"
 }
@@ -274,7 +274,7 @@ WarningMessage() {
     local prefix="[WARNING]"
     local color_prefix="${BRIGHT_YELLOW}${prefix}${RESET}"
     local indent_width=10 # Length of "[WARNING] "
-    PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr"
+    _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr"
 }
 
 # ============================================================================
@@ -290,7 +290,7 @@ InfoMessage() {
     local prefix="[INFO]"
     local color_prefix="${BRIGHT_BLUE}${prefix}${RESET}"
     local indent_width=7 # Length of "[INFO] "
-    PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
+    _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
 }
 
 # ============================================================================
@@ -306,7 +306,7 @@ SuccessMessage() {
     local prefix="[SUCCESS]"
     local color_prefix="${BRIGHT_GREEN}${prefix}${RESET}"
     local indent_width=10 # Length of "[SUCCESS] "
-    PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
+    _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
 }
 
 # ============================================================================
@@ -323,7 +323,7 @@ DebugMessage() {
     local prefix="[DEBUG]"
     local color_prefix="${CYAN}${prefix}${RESET}"
     local indent_width=8 # Length of "[DEBUG] "
-    PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr"
+    _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr"
     return 0
 }
 
@@ -455,7 +455,7 @@ export -f GetTerminalWidth # Might be useful externally
 export -f DetermineColorSupport
 export -f EnableColorOutput
 export -f DisableColorOutput
-export -f PrintWrappedMessage
+export -f _PrintWrappedMessage
 export -f ErrorMessage
 export -f WarningMessage
 export -f InfoMessage
@@ -464,6 +464,6 @@ export -f DebugMessage
 export -f SectionHeader
 export -f TextBlock
 export -f StripColors
-# Do not export PrintWrappedMessage as it's internal
+# Do not export _PrintWrappedMessage as it's internal
 
 # EOF
