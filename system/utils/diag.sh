@@ -18,8 +18,8 @@ set -o nounset  # Treat unset variables as errors
 # ============================================================================
 # GLOBAL CONSTANTS
 # ============================================================================
-readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 readonly gc_default_output_dir="${HOME}/.config/rcforge/docs" # Default output dir
 
 # ============================================================================

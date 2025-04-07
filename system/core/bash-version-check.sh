@@ -17,8 +17,8 @@ set -o nounset  # Treat unset variables as errors
 
 # Global constants
 readonly gc_required_bash_version="4.0"
-readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}" # Use ENV_ERROR default
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}" # Use ENV_ERROR default
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 
 # ============================================================================
 # Function: CheckBashVersion

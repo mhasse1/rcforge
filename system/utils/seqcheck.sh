@@ -19,10 +19,8 @@ set -o nounset  # Treat unset variables as errors
 # GLOBAL CONSTANTS
 # ============================================================================
 readonly gc_supported_shells=("bash" "zsh")
-
-# readonly removed to allow sourcing from rcforge.sh
-gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 
 # ============================================================================
 # UTILITY FUNCTIONS (PascalCase)
@@ -414,7 +412,7 @@ CheckSeqConflicts() {
         else
             sequence_map["$seq_num"]="$filename"
         fi
-    done 
+    done
 
     if [[ "$has_conflicts" == "false" ]]; then
         SuccessMessage "No sequence conflicts found for ${hostname}/${shell}."
