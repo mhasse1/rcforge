@@ -184,7 +184,8 @@ if [[ "$(uname)" == "Darwin" ]]; then
         "/Applications/Sublime Text.app/Contents/SharedSupport/bin" \
         "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" \
         # Add others if needed
-        ; do
+        # REMOVED semicolon from the end of this list
+    do # This should now parse correctly
         AppendToPath "$editor_path" # Append editor paths
     done
 fi
