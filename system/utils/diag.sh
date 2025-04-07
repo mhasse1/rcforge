@@ -136,82 +136,27 @@ DetectCurrentShell() {
     fi
 }
 
-# ============================================================================
-# Function: DetectCurrentHostname
-# Description: Detect the short hostname of the current machine.
-# Usage: DetectCurrentHostname
-# Returns: Echoes the short hostname.
-# ============================================================================
-DetectCurrentHostname() {
-    if command -v hostname &> /dev/null; then
-        hostname -s 2>/dev/null || hostname | cut -d. -f1
-    elif [[ -n "${HOSTNAME:-}" ]]; then
-         echo "$HOSTNAME" | cut -d. -f1
-    else
-         uname -n | cut -d. -f1
-    fi
-}
 
 # ============================================================================
 # Function: FindConfigFiles
-# Description: Find rcForge configuration files matching shell/hostname criteria.
-# Usage: FindConfigFiles rcforge_dir shell_type hostname is_verbose
-# Returns: Echoes a newline-separated list of sorted config file paths. Returns 1 if none found.
+# Description: Wrapper function to call the shared FindRcScripts library function.
+# Usage: FindConfigFiles rcforge_dir shell_type hostname is_verbose (rcforge_dir/is_verbose unused)
+# Arguments:
+#   $1 (unused) - rcforge_dir path (info now comes from env var used by library fn).
+#   $2 (required) - Shell type ('bash' or 'zsh').
+#   $3 (required) - Hostname.
+#   $4 (unused) - is_verbose flag.
+# Returns: Echoes newline-separated list from FindRcScripts. Passes through exit status.
 # ============================================================================
 FindConfigFiles() {
-    local rcforge_dir="$1"
+    # local rcforge_dir="$1" # No longer needed
     local shell_type="$2"
     local hostname="$3"
-    local is_verbose="${4:-false}"
-    local scripts_dir="${rcforge_dir}/rc-scripts"
-    local -a patterns
-    local -a config_files
-    local find_pattern="" # Temp build variables
-    local first=true
-    local pattern=""
+    # local is_verbose="${4:-false}" # No longer needed
 
-    patterns=(
-        "[0-9][0-9][0-9]_global_common_*.sh"
-        "[0-9][0-9][0-9]_global_${shell_type}_*.sh"
-        "[0-9][0-9][0-9]_${hostname}_common_*.sh"
-        "[0-9][0-9][0-9]_${hostname}_${shell_type}_*.sh"
-    )
-
-    if [[ "$is_verbose" == "true" ]]; then
-        InfoMessage "Searching for files in: $scripts_dir"
-        InfoMessage "Criteria: Shell=$shell_type, Hostname=$hostname"
-    fi
-
-    if [[ ! -d "$scripts_dir" ]]; then
-        ErrorMessage "rc-scripts directory not found: $scripts_dir"
-        return 1
-    fi
-
-    # Build find pattern dynamically
-    for pattern in "${patterns[@]}"; do
-         if [[ "$first" == true ]]; then
-             find_pattern="-name '$pattern'"
-             first=false
-         else
-             find_pattern+=" -o -name '$pattern'"
-         fi
-    done
-
-    mapfile -t config_files < <(find "$scripts_dir" -maxdepth 1 -type f \( $find_pattern \) -print0 | sort -z -n | xargs -0 -r printf '%s\n')
-
-    if [[ ${#config_files[@]} -eq 0 ]]; then
-        # ErrorMessage "No configuration files found matching criteria." # Be less alarming for diag
-        InfoMessage "No configuration files found matching criteria for ${hostname}/${shell_type}."
-        return 1 # Still indicate failure to find files
-    fi
-
-    if [[ "$is_verbose" == "true" ]]; then
-        InfoMessage "Found ${#config_files[@]} configuration files to process:"
-        printf '  %s\n' "${config_files[@]}"
-    fi
-
-    printf '%s\n' "${config_files[@]}"
-    return 0
+    # Call the shared library function (ensure utility-functions.sh is sourced first)
+    FindRcScripts "$shell_type" "$hostname"
+    return $? # Return the exit status of FindRcScripts
 }
 
 

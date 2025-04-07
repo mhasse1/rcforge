@@ -63,22 +63,6 @@ DetectShell() {
     fi
 }
 
-# ============================================================================
-# Function: DetectCurrentHostname
-# Description: Detect the short hostname of the current machine.
-# Usage: DetectCurrentHostname
-# Returns: Echoes the short hostname.
-# ============================================================================
-DetectCurrentHostname() {
-    if command -v hostname &> /dev/null; then
-        hostname -s 2>/dev/null || hostname | cut -d. -f1
-    elif [[ -n "${HOSTNAME:-}" ]]; then
-         echo "$HOSTNAME" | cut -d. -f1
-    else
-         uname -n | cut -d. -f1
-    fi
-}
-
 
 # ============================================================================
 # Function: PerformIntegrityChecks
@@ -154,57 +138,23 @@ PerformIntegrityChecks() {
     return 0
 }
 
-# ============================================================================
+============================================================================
 # Function: DetermineLoadPath
-# Description: Determine the sequence of RC scripts to load based on shell and hostname.
+# Description: Wrapper function to call the shared FindRcScripts library function.
 # Usage: DetermineLoadPath shell hostname
-# Returns: Echoes a newline-separated list of sorted, matching config file paths. Returns 1 if dir missing.
+# Arguments:
+#   $1 (required) - The current shell type ('bash' or 'zsh').
+#   $2 (optional) - Specific hostname (defaults to current).
+# Returns: Echoes newline-separated list from FindRcScripts. Passes through exit status.
 # ============================================================================
 DetermineLoadPath() {
     local shell="${1:?Shell type required}"
-    local hostname="${2:-}"
-    local -a config_files
-    local scripts_dir="${RCFORGE_SCRIPTS}"
-    local -a patterns
-    local find_pattern=""
-    local first=true
-    local pattern=""
+    local hostname="${2:-}" # Pass hostname if provided
 
-    if [[ -z "$hostname" ]]; then
-        hostname=$(DetectCurrentHostname) # Call PascalCase
-    fi
-
-    patterns=(
-        "[0-9][0-9][0-9]_global_common_*.sh"
-        "[0-9][0-9][0-9]_global_${shell}_*.sh"
-        "[0-9][0-9][0-9]_${hostname}_common_*.sh"
-        "[0-9][0-9][0-9]_${hostname}_${shell}_*.sh"
-    )
-
-    if [[ ! -d "$scripts_dir" ]]; then
-        WarningMessage "rc-scripts directory not found: $scripts_dir. Cannot load configurations."
-        return 1
-    fi
-
-    # Build find pattern dynamically
-    for pattern in "${patterns[@]}"; do
-         if [[ "$first" == true ]]; then
-             find_pattern="-name '$pattern'"
-             first=false
-         else
-             find_pattern+=" -o -name '$pattern'"
-         fi
-    done
-
-    mapfile -t config_files < <(find "$scripts_dir" -maxdepth 1 -type f \( $find_pattern \) -print0 | sort -z -n | xargs -0 -r printf '%s\n')
-
-    if [[ ${#config_files[@]} -eq 0 ]]; then
-         InfoMessage "No rcForge configuration scripts found for ${hostname}/${shell} in ${scripts_dir}."
-         return 0 # Not an error for loader if no files found
-    fi
-
-    printf '%s\n' "${config_files[@]}"
-    return 0
+    # Call the shared library function (ensure utility-functions.sh is sourced first)
+    # Pass hostname explicitly if provided, otherwise FindRcScripts detects current
+    FindRcScripts "$shell" "$hostname"
+    return $? # Return the exit status of FindRcScripts
 }
 
 # ============================================================================

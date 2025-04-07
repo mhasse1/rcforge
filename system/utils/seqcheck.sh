@@ -121,22 +121,6 @@ DetectCurrentShell() {
 }
 
 # ============================================================================
-# Function: DetectCurrentHostname
-# Description: Detect the short hostname of the current machine.
-# Usage: DetectCurrentHostname
-# Returns: Echoes the short hostname.
-# ============================================================================
-DetectCurrentHostname() {
-    if command -v hostname &> /dev/null; then
-        hostname -s 2>/dev/null || hostname | cut -d. -f1
-    elif [[ -n "${HOSTNAME:-}" ]]; then
-         echo "$HOSTNAME" | cut -d. -f1
-    else
-         uname -n | cut -d. -f1
-    fi
-}
-
-# ============================================================================
 # Function: GetSequenceNumber
 # Description: Extract the 3-digit sequence number prefix from a filename.
 # Usage: GetSequenceNumber filename

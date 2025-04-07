@@ -52,6 +52,101 @@ export DEBUG_MODE="${DEBUG_MODE:-false}"
 # ============================================================================
 
 # ============================================================================
+# Function: DetectCurrentHostname
+# Description: Detect the short hostname of the current machine.
+# Usage: local host=$(DetectCurrentHostname)
+# Arguments: None
+# Returns: Echoes the short hostname.
+# ============================================================================
+DetectCurrentHostname() {
+    # Prefer hostname command if available
+    if command -v hostname &> /dev/null; then
+        # Try hostname -s first (short), fallback to hostname | cut
+        hostname -s 2>/dev/null || hostname | cut -d. -f1
+    # Fallback to HOSTNAME environment variable if set
+    elif [[ -n "${HOSTNAME:-}" ]]; then
+         echo "$HOSTNAME" | cut -d. -f1
+    # Final fallback to uname
+    else
+         uname -n | cut -d. -f1
+    fi
+}
+
+
+# ============================================================================
+# Function: FindRcScripts
+# Description: Finds rcForge configuration scripts matching shell/hostname criteria.
+#              Used by both rcforge.sh loader and diagnostic utilities.
+# Usage: FindRcScripts shell_type [hostname]
+# Arguments:
+#   $1 (required) - The shell type ('bash' or 'zsh').
+#   $2 (optional) - Specific hostname to filter for (defaults to current hostname).
+# Returns: Echoes a newline-separated list of sorted, matching config file paths.
+#          Returns status 1 if scripts directory missing, 0 otherwise (even if no files found).
+# Environment Variables: Reads RCFORGE_SCRIPTS.
+# ============================================================================
+FindRcScripts() {
+    local shell="${1:?Shell type required}"
+    local hostname="${2:-}"
+    local -a config_files=() # Initialize empty array
+    # RCFORGE_SCRIPTS should be exported by the caller (rcforge.sh)
+    local scripts_dir="${RCFORGE_SCRIPTS:-$HOME/.config/rcforge/rc-scripts}" # Add fallback just in case
+    local -a patterns
+    local pattern="" # Loop variable
+    local file=""    # Loop variable
+    local nullglob_enabled=false
+
+    # Use DetectCurrentHostname if hostname not provided (function should be defined earlier in this file)
+    if [[ -z "$hostname" ]]; then
+        hostname=$(DetectCurrentHostname)
+    fi
+
+    # Define search patterns
+    patterns=(
+        "${scripts_dir}/[0-9][0-9][0-9]_global_common_*.sh"
+        "${scripts_dir}/[0-9][0-9][0-9]_global_${shell}_*.sh"
+        "${scripts_dir}/[0-9][0-9][0-9]_${hostname}_common_*.sh"
+        "${scripts_dir}/[0-9][0-9][0-9]_${hostname}_${shell}_*.sh"
+    )
+
+    if [[ ! -d "$scripts_dir" ]]; then
+        # Use WarningMessage if available, otherwise simple echo
+        if command -v WarningMessage &>/dev/null; then
+            WarningMessage "rc-scripts directory not found: $scripts_dir"
+        else
+             echo "WARNING: rc-scripts directory not found: $scripts_dir" >&2
+        fi
+        return 1 # Indicate error
+    fi
+
+    # Use nullglob for safer file finding loop
+    shopt -q nullglob && nullglob_enabled=true
+    shopt -s nullglob
+
+    for pattern in "${patterns[@]}"; do
+         for file in $pattern; do
+             # Ensure it's actually a file found
+             [[ -f "$file" ]] && config_files+=("$file")
+         done
+    done
+
+    # Restore nullglob setting
+    [[ "$nullglob_enabled" == "false" ]] && shopt -u nullglob
+
+    # Return early if no files found (echo nothing)
+    if [[ ${#config_files[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    # Sort and print if files were found
+    # Use printf and sort -z for robustness with special chars, then mapfile/readarray
+    # Echoing sorted list directly is often sufficient if filenames are simple
+    printf '%s\n' "${config_files[@]}" | sort -n
+
+    return 0
+}
+
+# ============================================================================
 # Function: IsExecutedDirectly
 # Description: Detects if script is being sourced or executed directly.
 # Usage: if IsExecutedDirectly; then ... fi
@@ -357,6 +452,8 @@ fi
 # ============================================================================
 
 export -f IsExecutedDirectly
+export -f DetectCurrentHostname
+export -f FindRcScripts
 export -f DetectShell
 export -f DetectOS
 export -f IsMacOS
