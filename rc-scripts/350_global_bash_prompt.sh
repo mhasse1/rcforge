@@ -133,7 +133,7 @@ _rcforge_build_prompt() {
     PS1+="\[${git_info}\]" # Git info (already has colors/reset)
     PS1+="\n" # Newline after first line
     # PS1+="\[${prompt_symbol}\]" # Prompt symbol (already has colors/reset)
-    PS1+=" " # Trailing space
+    # PS1+=" " # Trailing space
 
     # Set PS2 (Continuation prompt)
     # Note: PS2 also needs escaping for non-printing characters
