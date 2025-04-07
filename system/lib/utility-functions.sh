@@ -7,7 +7,6 @@
 # Description: This library provides common utilities for rcForge command-line scripts,
 #              including argument processing, help display, and execution context detection.
 
-
 # --- Include Guard ---
 # Check if already sourced
 if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
@@ -16,7 +15,6 @@ fi
 # Mark as sourced
 export _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true
 # --- End Include Guard ---
-
 
 # Note: Do not use 'set -e' or 'set -u' in sourced library scripts.
 

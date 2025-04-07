@@ -138,7 +138,7 @@ PerformIntegrityChecks() {
     return 0
 }
 
-============================================================================
+# ============================================================================
 # Function: DetermineLoadPath
 # Description: Wrapper function to call the shared FindRcScripts library function.
 # Usage: DetermineLoadPath shell hostname
