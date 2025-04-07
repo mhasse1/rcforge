@@ -447,10 +447,47 @@ UpdateShellRc() {
 }
 
 # ============================================================================
-# Function: ShowVersion / ShowHelp (No changes needed)
+# Function: ShowVersion
+# Description: Displays installer version, copyright, and license information.
+# Usage: ShowVersion
+# Arguments: None
+# Returns: None. Prints info to stdout and exits.
 # ============================================================================
-ShowVersion() { echo "rcForge Installer v$gc_version"; echo "Installs rcForge Core v$RCFORGE_VERSION_CONST"; echo "Copyright (c) $(date +%Y) rcForge Team"; echo "MIT License"; exit 0; }
-ShowHelp() { echo "rcForge Installer v$gc_version"; echo ""; echo "Installs/upgrades rcForge using a manifest file."; echo ""; echo "Usage: $0 [options]"; echo ""; echo "Options:"; echo " --reinstall"; echo " --force, -f"; echo " --verbose, -v"; echo " --no-backup"; echo " --no-shell-update"; echo " --skip-version-check"; echo " --help, -h"; echo " --version"; echo ""; echo "Example: bash $0 --verbose"; exit 0; }
+ShowVersion() {
+  echo "rcForge Installer v$gc_version"
+  echo "Installs rcForge Core v$RCFORGE_VERSION_CONST"
+  echo "Copyright (c) $(date +%Y) rcForge Team"
+  echo "MIT License"
+  exit 0
+}
+
+# ============================================================================
+# Function: ShowHelp
+# Description: Displays help information for the installer script.
+# Usage: ShowHelp
+# Arguments: None
+# Returns: None. Prints help to stdout and exits.
+# ============================================================================
+ShowHelp() {
+  echo "rcForge Installer v$gc_version"
+  echo ""
+  echo "Installs/upgrades rcForge using a manifest file."
+  echo ""
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  --reinstall          Perform a clean reinstall (removes existing installation)"
+  echo "  --force, -f          Overwrite existing files without prompting"
+  echo "  --verbose, -v        Enable verbose output during installation"
+  echo "  --no-backup          Skip creating a backup before installation"
+  echo "  --no-shell-update    Skip adding the source line to shell configuration files"
+  echo "  --skip-version-check Bypass the minimum Bash version check"
+  echo "  --help, -h           Show this help message"
+  echo "  --version            Show installer version information"
+  echo ""
+  echo "Example: bash $0 --verbose"
+  exit 0
+}
 
 # ============================================================================
 # Function: CleanInstall / UpgradeInstall (Simplified wrappers)

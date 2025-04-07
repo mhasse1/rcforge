@@ -894,6 +894,80 @@ result=$(curl -s "$url" 2>/dev/null) || {
 }
 ```
 
+### Control Structure Formatting
+
+Consistent formatting of control structures like `if` statements and loops is crucial for readability.
+
+**`if` Statements:**
+
+Use the following multi-line format for `if`, `elif`, and `else` blocks. Place `then`, `else`, and `fi` on their own lines, indented at the same level as the corresponding `if` or `elif`. Indent the actions within each block.
+
+```bash
+if [[ condition ]]; then
+    action_if_true
+    another_action_if_true
+elif [[ another_condition ]]; then
+    action_if_elif_true
+else
+    action_if_all_false
+fi
+```
+
+**Loops (`for`, `while`, `until`):**
+
+Similarly, format loops with `do` and `done` on separate lines, aligned vertically. Indent the actions inside the loop body.
+
+- **`for` loop:**
+
+  ```
+  for item in "${list[@]}"; do
+      action_on_item
+      another_action
+  done
+  ```
+
+- **`while` loop:**
+
+  ```
+  while [[ condition ]]; do
+      action_while_true
+      another_action
+  done
+  ```
+
+- **`until` loop:**
+
+  ```
+  until [[ condition ]]; do
+      action_until_true
+      another_action
+  done
+  ```
+
+* **Step `for` loop:**
+
+  * **C-style `for` loop**
+
+  ```
+  limit=5
+  for (( i=0; i < limit; i++ )); do
+      echo "Iteration number: $i"
+      # Other actions within the loop
+  done
+  ```
+
+  **Ranged `for` loop**
+
+  ```
+  limit=5
+  for i in {1..5}; do
+      echo "Iteration number: $i"
+      # Other actions within the loop
+  done
+  ```
+
+Adhering to this formatting ensures that the structure of the code is immediately clear, making it easier to follow the logic and maintain the scripts.Adhering to this formatting ensures that the structure of the code is immediately clear, making it easier to follow the logic and maintain the scripts.
+
 ## Performance Considerations
 
 - Use lazy loading for infrequently used functionality
