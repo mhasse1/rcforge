@@ -9,7 +9,7 @@
 
 # Source necessary libraries
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh" 
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
@@ -380,6 +380,8 @@ CheckSeqConflicts() {
 
 
     for file in "${config_files[@]}"; do
+        [[ -z "$file" ]] && continue
+
         filename=$(basename "$file")
         seq_num=$(GetSequenceNumber "$filename") # Call PascalCase
 
