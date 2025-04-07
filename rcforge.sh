@@ -205,6 +205,41 @@ SourceConfigFiles() {
 }
 
 # ============================================================================
+# RC COMMAND STUB (Lazy Loader)
+# ============================================================================
+rc() {
+    # Unset this stub function to avoid recursion on the next call
+    unset -f rc
+
+    # Define path to the actual implementation script
+    # Ensure RCFORGE_CORE is set (should be exported by rcforge.sh)
+    local rc_impl_path="${RCFORGE_CORE:-$HOME/.config/rcforge/system/core}/rc-command.sh" # Assuming this path for the full impl
+
+    if [[ -f "$rc_impl_path" && -r "$rc_impl_path" ]]; then
+        # Source the actual implementation
+        # shellcheck disable=SC1090
+        source "$rc_impl_path"
+
+        # Now call the fully defined 'rc' function (from the sourced file)
+        # with the original arguments passed to the stub
+        rc "$@"
+        return $? # Return the exit status of the real rc command
+    else
+        # Use ErrorMessage if available, otherwise plain echo
+        if command -v ErrorMessage &>/dev/null; then
+            ErrorMessage "rc command implementation not found or not readable: $rc_impl_path" 127 # Exit 127: Command not found
+        else
+            echo "ERROR: rc command implementation not found or not readable: $rc_impl_path" >&2
+            return 127
+        fi
+    fi
+}
+export -f rc
+
+# Existing EOF should be after this block in rcforge.sh
+# EOF
+
+# ============================================================================
 # Function: main
 # Description: Main execution logic for rcForge initialization.
 # Usage: main "$@" (called at the end of this script when sourced)
