@@ -17,22 +17,24 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 
 ## System Requirements
 
-- Bash 4.0+ (required for rcForge's internal core functionality)
+- **Bash 4.3+ (required for rcForge's internal core functionality)**
 - Zsh 5.0+ (fully supported)
 - Git (for version control)
 - Standard UNIX utilities (find, sort, etc.)
 
 ## Features
 
+- **100% shell-based**: Uses BASH + the standard \*NIX toolset. No additional languages or binaries required.
 - **Cross-shell compatibility**: Works with both Bash and Zsh
 - **Machine-specific configurations**: Load configs based on hostname
 - **Deterministic loading order**: Explicit sequence numbers
 - **Conflict detection**: Automatically identifies and helps resolve loading conflicts
 - **Visual diagrams**: See your configuration's loading order
 - **Checksum verification**: Detect unauthorized changes to your RC files
-- **Export functionality**: Consolidate configurations for remote servers
+- **Export functionality**: Consolidate configurations into one *rc file for restricted servers (should also support older environments)
 - **Include system**: Modular function organization with dependency management
-- **Security model**: Protection from root execution and file permission issues
+- **Basic security model**: Protection from root execution and file permission issues
+
 
 ## Installation
 
