@@ -2,7 +2,7 @@
 # rc-command.sh - Core rc command dispatcher (Full Implementation)
 # Author: rcForge Team
 # Date: 2025-04-07 # Updated
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/core
 # Description: Finds and executes user or system utility scripts, handles help and conflicts.
 

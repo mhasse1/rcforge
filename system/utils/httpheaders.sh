@@ -2,7 +2,7 @@
 # httpheaders.sh - HTTP Headers Utility
 # Author: rcForge Team
 # Date: 2025-04-06 # Updated Date
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/utility # Set Category
 # RC Summary: Retrieves and displays HTTP headers for the specified URL
 # Description: Utility to fetch and display HTTP headers from any URL with formatting options

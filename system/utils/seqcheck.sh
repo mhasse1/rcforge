@@ -2,7 +2,7 @@
 # seqcheck.sh - Detect and resolve sequence number conflicts in rcForge configurations
 # Author: rcForge Team
 # Date: 2025-04-06
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/utility
 # RC Summary: Checks for sequence number conflicts in rcForge configuration scripts
 # Description: Identifies and offers to resolve sequence number conflicts in shell configuration scripts

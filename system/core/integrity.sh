@@ -3,7 +3,7 @@
 # Author: rcForge Team
 # Date: 2025-04-06
 # Category: system/utility
-# Version: 0.3.0
+# Version: 0.4.0
 # Description: Validates the integrity of rcForge installation and environment
 
 # Source required libraries
@@ -22,7 +22,7 @@ readonly gc_required_files=(
     "system/lib/shell-colors.sh"
     "system/lib/utility-functions.sh" # Assuming this exists, add to check if needed
     "system/core/functions.sh"
-    "system/utils/seqcheck.sh" # Confirm this filename is correct for v0.3.0
+    "system/utils/seqcheck.sh" # Confirm this filename is correct for v0.4.0
 )
 
 readonly gc_min_bash_version="4.0"

@@ -3,7 +3,7 @@
 # Author: Mark Hasse
 # Date: 2025-04-06
 # Category: core
-# Version: 0.3.0
+# Version: 0.4.0
 # Description: Provides utility functions for secure script execution
 
 # Source shared utilities

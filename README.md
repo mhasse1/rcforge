@@ -1,4 +1,4 @@
-# rcForge v0.3.0 - Deathstar
+# rcForge v0.4.0 - Journey to the Deathstar
 
 **A user-centric, modular shell configuration management system for Bash and Zsh.**
 rcForge is a flexible, modular configuration system for Bash and Zsh shells that provides a single framework for managing your shell environment across multiple machines.
@@ -8,11 +8,11 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 **Documentation:** (under development) See https://github.com/mhasse1/rcforge/wiki
 
 ``` ascii
-      _.-._                                            *        *
-     / \_/ \               * \|/  *                       *
-    >-(_)-<              * - EXPLOSION - *                     *
-     \_/ \_/               * /|\  *                   *            *
-      `-'                                                   *
+      _.-._          _.-._                                     *        *
+     / \_/ \        / \_/ \               * \|/  *                *
+    >-(_)-<        >-(_)-< - -x       * - EXPLOSION - *              *
+     \_/ \_/        \_/ \_/               * /|\  *            *            *
+      `-'            `-'                                            *
 ```
 
 ## System Requirements
@@ -40,3 +40,4 @@ Install or upgrade using the following command:
 
 ```bash
 curl -fsSL [https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh](https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh) | bash
+```

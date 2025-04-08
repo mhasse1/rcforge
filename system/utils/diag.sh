@@ -2,7 +2,7 @@
 # diag.sh - Visualize rcForge configuration loading order
 # Author: rcForge Team
 # Date: 2025-04-06
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/utility
 # RC Summary: Creates diagrams of rcForge configuration loading sequence
 # Description: Generates visual representations of shell configuration loading sequence

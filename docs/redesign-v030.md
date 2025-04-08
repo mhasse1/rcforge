@@ -476,6 +476,7 @@ flowchart TD
 
 0.7.0 - Release Candidate
 - Comprehensive documentation
+	- Document all exported variables and functions
 - Installer improvements
 - Default configuration templates
 

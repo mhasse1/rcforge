@@ -2,7 +2,7 @@
 # export.sh - Export shell configurations for remote servers
 # Author: rcForge Team
 # Date: 2025-04-06
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/utility
 # RC Summary: Exports rcForge shell configurations for use on remote systems
 # Description: Exports shell configurations with flexible options for use on remote servers

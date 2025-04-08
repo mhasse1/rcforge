@@ -2,7 +2,7 @@
 # utility-functions.sh - Common utilities for command-line scripts
 # Author: rcForge Team
 # Date: 2025-04-06 # Updated Date
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/library
 # Description: This library provides common utilities for rcForge command-line scripts,
 #              including argument processing, help display, and execution context detection.

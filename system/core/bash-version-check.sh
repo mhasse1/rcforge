@@ -2,7 +2,7 @@
 # bash-version-check.sh - Check Bash version compatibility for rcForge
 # Author: rcForge Team
 # Date: 2025-04-06 # Updated Date
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/core # Set Category
 # RC Summary: Check if Bash version meets system requirements
 # Description: Validates Bash version compatibility for rcForge and provides upgrade instructions
