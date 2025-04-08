@@ -2,7 +2,7 @@
 # install.sh - rcForge Installation Script (Dynamic Manifest Version)
 # Author: rcForge Team
 # Date: 2025-04-06
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: installer
 # Description: Installs or upgrades rcForge shell configuration system using a manifest file. Runs non-interactively.
 
@@ -15,7 +15,7 @@ set -o pipefail # Ensure pipeline fails on any component failing
 # CONFIGURATION & GLOBAL CONSTANTS
 # ============================================================================
 
-readonly RCFORGE_VERSION_CONST="0.3.0"
+readonly RCFORGE_VERSION_CONST="0.4.0"
 readonly gc_version="$RCFORGE_VERSION_CONST"
 readonly RCFORGE_DIR="$HOME/.config/rcforge"
 readonly BACKUP_DIR="$RCFORGE_DIR/backups"

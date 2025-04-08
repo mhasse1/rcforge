@@ -2,7 +2,7 @@
 # rcforge.sh - Universal Shell Configuration Loader
 # Author: Mark Hasse
 # Date: 2025-04-06
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: core
 # Description: Main loader script for rcForge shell configuration system. Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 
@@ -13,7 +13,7 @@
 set -o nounset
 
 export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.3.0"
+export RCFORGE_VERSION="0.4.0"
 
 export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/.config/rcforge}"
 export RCFORGE_LIB="${RCFORGE_ROOT}/system/lib"

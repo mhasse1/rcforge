@@ -2,7 +2,7 @@
 # shell-colors.sh - Comprehensive color and messaging utility for shell scripts
 # Author: rcForge Team
 # Date: 2025-04-06 # Updated Date
-# Version: 0.3.0
+# Version: 0.4.0
 # Category: system/library
 # Description: Provides color definitions, output formatting, and standardized messaging functions with dynamic wrapping. Intended to be sourced.
 
