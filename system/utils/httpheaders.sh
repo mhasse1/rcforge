@@ -9,7 +9,7 @@
 
 # Source required libraries
 # Standard sourcing assuming shell-colors.sh exists in a valid install
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors

@@ -7,7 +7,7 @@
 # Description: Provides utility functions for secure script execution
 
 # Source shared utilities
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors

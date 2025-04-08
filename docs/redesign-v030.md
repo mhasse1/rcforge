@@ -4,6 +4,10 @@
 
 The rcForge project has evolved through multiple iterations, with each version addressing specific challenges in shell configuration management. The v0.3.0 redesign represents a significant architectural shift aimed at simplifying, securing, and streamlining the shell configuration system.
 
+### Project Name Use in Code
+
+The correct name of the project is `rcForge`.  For camel_case applications it should be written `RcForge`. To shorten the function or variable name, use `rc`.
+
 ## Design Philosophy
 
 ### Core Principles
@@ -462,6 +466,12 @@ flowchart TD
 - Port core utility functions
 - Enhanced include system
 - Basic rc command framework
+- Testing primarily zsh/macOS
+
+0.4.1 - Reduce namespace clutter
+- Only user-facing and critical functions
+- Only user-facing and critical variables
+- Additional testing on macOS (zsh) and Linux (bash)
 
 0.5.0 - Security Audit & Hardening
 - Comprehensive security review

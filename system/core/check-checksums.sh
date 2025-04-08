@@ -7,7 +7,7 @@
 # Description: Checks and validates checksums for shell configuration files (.bashrc, .zshrc)
 
 # Source utility libraries
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
@@ -37,22 +37,6 @@ DetermineRcforgeDir() {
     fi
 }
 
-# ============================================================================
-# Function: DetectCurrentShell
-# Description: Determine the name of the currently running shell.
-# Usage: DetectCurrentShell
-# Returns: Echoes the name of the current shell (e.g., "bash", "zsh").
-# ============================================================================
-DetectCurrentShell() {
-    if [[ -n "${ZSH_VERSION:-}" ]]; then # Added :- default value
-        echo "zsh"
-    elif [[ -n "${BASH_VERSION:-}" ]]; then # Added :- default value
-        echo "bash"
-    else
-        # Fallback to checking the SHELL environment variable
-        basename "$SHELL"
-    fi
-}
 
 # ============================================================================
 # Function: CalculateChecksum
@@ -191,25 +175,35 @@ VerifyRcFileChecksum() {
     return 0
 }
 
+# Within system/core/check-checksums.sh
+
+# ... (rest of the script above main) ...
+
 # ============================================================================
 # Function: main
-# Description: Main execution logic for the script. Parses arguments,
-#              creates checksum directory, and verifies checksums for supported files.
+# Description: Main execution logic.
 # Usage: main "$@"
-# Arguments: Passes all script arguments ("$@").
-# Returns: Exits with 0 if all checksums match or are fixed, 1 otherwise.
+# Returns: 0 if OK/fixed, 1 otherwise. Uses 'return' if sourced, 'exit' otherwise.
 # ============================================================================
 main() {
-    # Parse command-line arguments
-    ParseArguments "$@" # Call PascalCase
+    local is_sourced=false
+    # Check if the first argument is --sourced (and remove it)
+    if [[ "${1:-}" == "--sourced" ]]; then
+        is_sourced=true
+        shift
+    fi
 
-    # Determine rcForge directory
+    # Parse command-line arguments (remaining ones)
+    ParseArguments "$@" # Call local function
+
+    # Determine rcForge directory using sourced function
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Call PascalCase
+    rcforge_dir=$(DetermineRcforgeDir) # Call sourced function
 
     # Define and create checksum directory if it doesn't exist
     local checksum_dir="${rcforge_dir}/checksums"
-    mkdir -p "$checksum_dir"
+    mkdir -p "$checksum_dir" || { ErrorMessage "Cannot create checksum directory: $checksum_dir"; if $is_sourced; then return 1; else exit 1; fi; }
+    chmod 700 "$checksum_dir" || WarningMessage "Could not set permissions (700) on $checksum_dir"
 
     # Track if any mismatch occurred and wasn't fixed
     local any_unresolved_mismatch=0
@@ -218,34 +212,60 @@ main() {
 
     # Verify checksums for each supported RC file
     local rc_file_basename="" # Loop variable
-    for rc_file_basename in "${gc_supported_rc_files[@]}"; do
+    for rc_file_basename in "${gc_supported_rc_files[@]}";
+    do
         local full_rc_path="${HOME}/${rc_file_basename}"
         local checksum_path="${checksum_dir}/${rc_file_basename}.md5"
 
-        # Call PascalCase function
+        # Call local function
         if ! VerifyRcFileChecksum "$full_rc_path" "$checksum_path" "$rc_file_basename"; then
-            # VerifyRcFileChecksum returns 1 only if mismatch and --fix not used
             any_unresolved_mismatch=1
         fi
     done
 
     # Report final status
-    if [[ $any_unresolved_mismatch -eq 1 ]]; then
+    if [[ $any_unresolved_mismatch -eq 1 ]];
+    then
         WarningMessage "One or more RC files have changed. Run with --fix to update checksums."
     else
-        # Only show success if RCFORGE_FIX_CHECKSUMS was not set (avoid double success message)
-        if [[ "${RCFORGE_FIX_CHECKSUMS:-0}" -ne 1 ]]; then
+        if [[ "${RCFORGE_FIX_CHECKSUMS:-0}" -ne 1 ]];
+        then
              SuccessMessage "All RC file checksums verified successfully."
         fi
     fi
 
-    # Exit with appropriate status (0 for success/fixed, 1 for unresolved mismatch)
-    exit $any_unresolved_mismatch
+    # Use return if sourced, exit otherwise
+    if [[ "$is_sourced" == "true" ]]; then
+        return $any_unresolved_mismatch
+    else
+        # This part is only reached when executed directly
+        # We don't need an explicit exit here if the bottom execution block handles it
+        : # No action needed, main function ends, execution block handles exit
+    fi
 }
 
-# Execute the main function if script is run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
+# Execute the main function IF NOT sourced OR if sourced but called directly/via rc
+# The IsExecutedDirectly check handles direct `bash script.sh` calls.
+# The "$0" == *"rc"* check handles being called via the `rc` wrapper script.
+# We need to pass arguments correctly, stripping --sourced if present.
+
+_main_args=("$@") # Copy original args
+_is_sourced_arg=false
+if [[ "${_main_args[0]:-}" == "--sourced" ]]; then
+     _is_sourced_arg=true
+     # Remove --sourced for passing to main when executed directly
+     unset '_main_args[0]' # Remove element (might leave gap)
+     _main_args=("${_main_args[@]}") # Re-index array
 fi
+
+# Only run main and exit if NOT sourced during rcforge.sh init
+# Or if sourced but called via rc wrapper (where exit is ok)
+if ! $_is_sourced_arg || [[ "$0" == *"rc"* ]]; then
+    if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+        main "${_main_args[@]}" # Pass potentially modified args
+        exit $? # Exit with the status from main
+    fi
+fi
+
 
 # EOF

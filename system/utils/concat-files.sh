@@ -9,6 +9,8 @@
 #              matching an optional pattern, then prints their name and
 #              content to standard output, separated by start/end markers.
 
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
+
 # Set strict error handling
 set -o nounset
  # set -o errexit
