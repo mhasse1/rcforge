@@ -1,5 +1,5 @@
 # v0.4.0 File Manifest
-# File version: 0.4.0-1
+# File version: 0.4.1-1
 
 DIRECTORIES:
 # Directory structure (relative to ~/.config/rcforge)
