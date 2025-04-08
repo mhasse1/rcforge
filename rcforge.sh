@@ -64,7 +64,7 @@ PerformIntegrityChecks() {
     SectionHeader "rcForge Integrity Checks" # Use sourced function
 
     local -A checks=(
-        ["Sequence Conflict Check"]="${RCFORGE_UTILS}/seqcheck.sh"
+        ["Sequence Conflict Check"]="${RCFORGE_UTILS}/chkseq.sh"
         ["RC File Checksum Check"]="${RCFORGE_CORE}/check-checksums.sh"
         # ["Core Integrity Check"]="${RCFORGE_CORE}/integrity.sh" # Add this back if needed
     )
@@ -94,7 +94,7 @@ PerformIntegrityChecks() {
         WarningMessage "${BOLD}Potential rcForge integrity issues detected (${error_count} check(s) reported problems).${RESET}"
         InfoMessage "Your shell configuration might not load correctly."
         InfoMessage "${BOLD}Recommended Action:${RESET} Run utility scripts manually or consider reinstalling."
-        InfoMessage "Example: ${CYAN}rc seqcheck --fix${RESET} or ${CYAN}rc check-checksums --fix${RESET}"
+        InfoMessage "Example: ${CYAN}rc chkseq --fix${RESET} or ${CYAN}rc check-checksums --fix${RESET}"
         InfoMessage "Reinstall: ${CYAN}curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash${RESET}" # Adjust URL if needed
         echo ""
 
@@ -115,7 +115,6 @@ PerformIntegrityChecks() {
     else
         SuccessMessage "All integrity checks passed."
     fi
-    echo ""
     return 0
 }
 
@@ -185,12 +184,19 @@ main() {
     # --- Abort Check (optional) ---
     local user_input=""
     local timeout_seconds=1
-    printf "%b" "${CYAN}INFO:${RESET} Initializing rcForge v${RCFORGE_VERSION}... (Press '.' within ${timeout_seconds}s to abort)..."
+    printf "%b" "${BRIGHT_BLUE}[INFO]${RESET} Initializing rcForge v${RCFORGE_VERSION}. ${BRIGHT_WHITE}(Press '.' within ${timeout_seconds}s to abort).${RESET}"
     if read -s -N 1 -t "$timeout_seconds" user_input; then
         echo ""
-        if [[ "$user_input" == "." ]]; then WarningMessage "rcForge loading aborted by user."; return 1; fi
+        if [[ "$user_input" == "." ]]; then
+            WarningMessage "rcForge loading aborted by user."
+            return 1
+        fi
     else
-        if [[ $? -gt 128 ]]; then echo "continuing."; else WarningMessage "Read command failed unexpectedly during abort check. Continuing..."; fi
+        if [[ $? -gt 128 ]]; then
+            echo " Continuing."
+        else
+            WarningMessage "Read command failed unexpectedly during abort check. Continuing..."
+        fi
     fi
     # --- End Abort Check ---
 
@@ -209,6 +215,8 @@ main() {
          InfoMessage "Skipping integrity checks due to RCFORGE_SKIP_CHECKS."
     fi
 
+    SectionHeader "Loading rcForge Configuration"
+    InfoMessage "Locating and sourcing configuration files."
     # --- Determine Load Path (FIXED CALL) ---
     local -a config_files_to_load
     # Call FindRcScripts directly (from sourced utility-functions.sh)
@@ -226,6 +234,8 @@ main() {
         # Use sourced InfoMessage and DetectCurrentHostname
         InfoMessage "No specific rcForge configuration files found to load for ${current_shell} on $(DetectCurrentHostname)."
     fi
+    SuccessMessage "Configuraton files sourced."
+
 
     return 0 # Indicate successful sourcing
 }

@@ -6,25 +6,12 @@
 # Category: system/core
 # Description: Finds and executes user or system utility scripts, handles help and conflicts. Runs as a standalone script invoked by the 'rc' wrapper function.
 
-# --- START DEBUG ---
-echo "[DEBUG rc.sh] Starting execution."
-echo "[DEBUG rc.sh] RCFORGE_LIB is: '${RCFORGE_LIB:-NOT SET}'"
-# --- END DEBUG ---
-
 # Source required libraries explicitly
 # Default paths used in case RCFORGE_LIB is not set (e.g., direct execution)
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
-# --- START DEBUG ---
-echo "[DEBUG rc.sh] Sourced libraries."
-echo "[DEBUG rc.sh] GREEN is: '${GREEN:-UNBOUND}'"
-echo "[DEBUG rc.sh] RESET is: '${RESET:-UNBOUND}'"
-echo "[DEBUG rc.sh] InfoMessage is: '$(declare -f InfoMessage &>/dev/null && echo "Defined" || echo "UNDEFINED")'"
-# --- END DEBUG ---
-
-
 # Set strict modes
-# set -o nounset # <<< TEMPORARILY COMMENTED OUT FOR DEBUGGING
+set -o nounset
 set -o pipefail
 # set -o errexit # Let functions handle their own errors
 

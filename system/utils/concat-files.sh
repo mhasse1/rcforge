@@ -1,41 +1,36 @@
 #!/usr/bin/env bash
 # concat-files.sh - Concatenate specified files with markers for processing
 # Author: User Provided / Updated by AI
-# Date: 2025-04-06
-# Version: N/A
-# Category: utility/developer
+# Date: 2025-04-08 # Updated for style/summary refactor
+# Version: 0.4.1
+# Category: system/utility
 # RC Summary: Finds files and concatenates their content with markers.
 # Description: Finds files in the current directory (optionally recursively)
 #              matching an optional pattern, then prints their name and
 #              content to standard output, separated by start/end markers.
 
+# Source necessary libraries (utility-functions sources shell-colors)
+# Need ErrorMessage, ExtractSummary from libraries
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset
- # set -o errexit
 set -o pipefail
-
-# ============================================================================
-# Function: ShowSummary
-# Description: Display one-line summary for rc help command.
-# Usage: ShowSummary
-# Arguments: None
-# Returns: Echoes summary string.
-# ============================================================================
-ShowSummary() {
-    grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
-    exit 0
-}
-
+# set -o errexit # Let script handle errors where needed
 
 # ============================================================================
 # Function: ShowHelp
 # Description: Show help message for the script.
 # Usage: ShowHelp
+# Exits: 0
 # ============================================================================
 ShowHelp() {
-    echo "Usage: $0 [options]"
+    # Use sourced constants
+    local script_name
+    script_name=$(basename "$0")
+    local version="${gc_version:-0.4.1}" # Use global constant with fallback
+
+    echo "Usage: ${script_name} [options]"
     echo ""
     echo "Description:"
     echo "  Finds files and concatenates their content with markers."
@@ -44,68 +39,82 @@ ShowHelp() {
     echo "  -p, --pattern PATTERN   Find files matching PATTERN (e.g., '*.sh'). Defaults to all files."
     echo "  -nr, --no-recursive   Only search the current directory (do not recurse into subdirectories)."
     echo "  -h, --help            Show this help message."
+    echo "  --summary             Show one-line summary." # Added standard option
+    echo "  --version             Show version information." # Added standard option
     echo ""
     echo "Example:"
-    echo "  $0 -p '*.sh' -nr   # Concatenate all .sh files in the current directory only"
-
+    echo "  ${script_name} -p '*.sh' -nr   # Concatenate all .sh files in the current directory only"
     exit 0
 }
 
 # ============================================================================
-# Function: ParseArguments
+# Function: ParseArguments (Refactored to standard loop)
 # Description: Parse command-line arguments for concat-files script.
 # Usage: declare -A options; ParseArguments options "$@"
-# Returns: Populates associative array. Returns 0 on success, 1 on error or help/summary.
+# Returns: Populates associative array by reference. Returns 0 on success, 1 on error.
+#          Exits directly for --help, --summary, --version.
 # ============================================================================
 ParseArguments() {
     local -n options_ref="$1" # Use nameref (Bash 4.3+)
     shift # Remove array name from args
 
+    # Ensure Bash 4.3+ for namerefs (-n)
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+        ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
+        return 1
+    fi
+
     # Default values
-    options_ref["find_pattern"]="*" # Default pattern finds everything [cite: 1045]
-    options_ref["recursive"]=true # [cite: 1045]
-    # options_ref["args"]=() # For any future positional args
+    options_ref["find_pattern"]="*" # Default pattern finds everything
+    options_ref["recursive"]=true
 
-     # --- Pre-parse checks for summary/help ---
-     # Check BEFORE the loop if only summary/help is requested
-     if [[ "$#" -eq 1 ]]; then
-         case "$1" in
-             -h|--help) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 0 ;; # Handle summary
-         esac
-     # Also handle case where summary/help might be first but other args exist
-     elif [[ "$#" -gt 0 ]]; then
-          case "$1" in
-             -h|--help) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 0 ;; # Handle summary
-         esac
-     fi
-    # --- End pre-parse ---
-
+    # Single loop for arguments
     while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -h|--help) ShowHelp; return 1 ;;
-            --summary) ShowSummary; return 0 ;; # Handle summary
+        local key="$1"
+        case "$key" in
+            -h|--help)
+                ShowHelp # Exits
+                ;;
+            --summary)
+                ExtractSummary "$0" # Call helper directly
+                exit $?                # Exit with helper status
+                ;;
+            --version)
+                 _rcforge_show_version "$0" # Call helper
+                 exit 0                     # Exit after showing version
+                 ;;
             -p|--pattern)
                 # Ensure value exists and is not another option
-                if [[ -z "${2:-}" || "$2" == -* ]]; then ErrorMessage "Option '$1' requires a PATTERN argument."; return 1; fi # [cite: 1048]
+                if [[ -z "${2:-}" || "$2" == -* ]]; then
+                     ErrorMessage "Option '$key' requires a PATTERN argument."
+                     return 1
+                fi
                 options_ref["find_pattern"]="$2"
-                shift 2 # past argument and value [cite: 1049]
+                shift 2 # past argument and value
                 ;;
             -nr|--no-recursive)
-                options_ref["recursive"]=false # [cite: 1050]
-                shift # past argument [cite: 1050]
+                options_ref["recursive"]=false
+                shift # past argument
                 ;;
+             # End of options marker
+            --)
+                shift # Move past --
+                break # Stop processing options, remaining args are positional (none expected for this script)
+                ;;
+             # Unknown option
+            -*)
+                ErrorMessage "Unknown option: $key"
+                ShowHelp # Exits
+                return 1
+                ;;
+             # Positional argument (none expected)
             *)
-                ErrorMessage "Unknown option: $1" # [cite: 1051]
-                ShowHelp
+                ErrorMessage "Unexpected positional argument: $key"
+                ShowHelp # Exits
                 return 1
                 ;;
         esac
     done
-
-    # No positional arguments expected for this script currently
-    # Add validation here if needed in the future
 
     return 0 # Success
 }
@@ -114,49 +123,72 @@ ParseArguments() {
 # Function: main
 # Description: Main logic - parse args, find files, print content.
 # Usage: main "$@"
+# Returns: Exit status of the script.
 # ============================================================================
 main() {
+    # Use associative array for options (requires Bash 4+)
     declare -A options
-    ParseArguments options "$@" || exit $? # Parse args or exit
+    # Parse arguments, exit if parser returns non-zero (error)
+    # Note: --help, --summary, --version exit directly from ParseArguments now
+    ParseArguments options "$@" || exit 1
 
     # Use options from the array
     local find_pattern="${options[find_pattern]}"
     local max_depth_option="" # Default is recursive
     if [[ "${options[recursive]}" == "false" ]]; then
-        max_depth_option="-maxdepth 1" # [cite: 1050]
+        max_depth_option="-maxdepth 1"
     fi
 
     # Build find command arguments into an array for safety
-    local -a find_args=(".") # Start with current directory [cite: 1052]
+    local -a find_args=(".") # Start with current directory
 
     # Add maxdepth option if set
     if [[ -n "$max_depth_option" ]]; then
-        find_args+=("$max_depth_option") # [cite: 1053]
+        find_args+=("$max_depth_option")
     fi
 
-    # Always exclude .git directory
-    find_args+=(-path "./.git" -prune -o) # [cite: 1053]
+    # Always exclude .git directory and node_modules, and potentially others
+    find_args+=(\( -path "./.git" -o -path "./node_modules" \) -prune -o) # Exclude .git and node_modules
 
-    # Add the name pattern if specified
-    if [[ "$find_pattern" != "*" ]]; then
-         find_args+=(-name "$find_pattern") # [cite: 1054]
-    fi
+    # Add the name pattern
+    find_args+=(-name "$find_pattern")
 
     # Always look for files and print0
-    find_args+=(-type f -print0) # [cite: 1054]
+    find_args+=(-type f -print0)
+
+    # Flag to track if any files were found
+    local file_found=false
 
     # Execute find and loop through results safely
-    find "${find_args[@]}" | while IFS= read -r -d '' file; do # [cite: 1055]
-        # Print marker with filename
-        echo "# ========== <${file}>" # [cite: 1055]
+    # Use Bash process substitution and while loop for safety with filenames
+    while IFS= read -r -d '' file; do
+        file_found=true # Mark that we found at least one file
+        # Print marker with filename (ensure path is relative to PWD)
+        # Use parameter expansion to remove leading ./ if present
+        local display_path="${file#./}"
+        echo "# ========== <./${display_path}>"
         # Print file content safely
-        cat "$file" # [cite: 1055]
+        cat -- "$file" # Use -- to handle filenames starting with -
         # Add a newline after file content for separation
-        echo "" # [cite: 1055]
-    done
+        echo ""
+    done < <(find "${find_args[@]}")
+    # Capture find exit status? Usually not needed unless checking for find errors itself
+
+    # Report if no files were found matching criteria
+    if [[ "$file_found" == "false" ]]; then
+         InfoMessage "No files found matching pattern '$find_pattern' ${options[recursive]:+in current directory only}."
+    fi
+    return 0 # Success
 }
 
-# Execute main function, passing all script arguments
-main "$@"
+# ============================================================================
+# Script Execution
+# ============================================================================
+# Execute main function if run directly or via rc command wrapper
+# Use sourced IsExecutedDirectly function
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $? # Exit with status from main
+fi
 
 # EOF

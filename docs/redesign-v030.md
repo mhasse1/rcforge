@@ -4,10 +4,6 @@
 
 The rcForge project has evolved through multiple iterations, with each version addressing specific challenges in shell configuration management. The v0.3.0 redesign represents a significant architectural shift aimed at simplifying, securing, and streamlining the shell configuration system.
 
-### Project Name Use in Code
-
-The correct name of the project is `rcForge`.  For camel_case applications it should be written `RcForge`. To shorten the function or variable name, use `rc`.
-
 ## Design Philosophy
 
 ### Core Principles

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # utility-functions.sh - Common utilities for command-line scripts
 # Author: rcForge Team
-# Date: 2025-04-08 # Updated Date - Add _extract_summary helper, correct format
+# Date: 2025-04-08 # Updated Date - Final version from discussion
 # Version: 0.4.1
 # Category: system/library
-# Description: This library provides common utilities for rcForge command-line scripts. Assumes shell-colors.sh sourced previously.
+# Description: This library provides common utilities for rcForge command-line scripts.
 
 # --- Include Guard ---
 if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
@@ -13,13 +13,16 @@ fi
 _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true # NOT Exported
 # --- End Include Guard ---
 
-# --- Dependency Check ---
-# Check if messaging functions from shell-colors.sh are available
-if ! command -v InfoMessage &>/dev/null; then
-    echo "ERROR: utility-functions.sh requires shell-colors.sh to be sourced first." >&2
-    return 1 # Indicate failure if dependencies missing
+# --- Source Shell Colors Library --- ###
+# Assume shell-colors.sh is in the same directory or found via RCFORGE_LIB
+if [[ -f "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+else
+    echo "ERROR: Cannot source required library: shell-colors.sh" >&2
+    return 1
 fi
-# --- End Check ---
+# --- End Source Shell Colors --- ###
 
 # ============================================================================
 # GLOBAL CONSTANTS & VARIABLES (Readonly, NOT Exported)
@@ -236,47 +239,57 @@ _rcforge_show_help() {
 }
 
 # ============================================================================
-# Function: _extract_summary
+# Function: ExtractSummary
 # Description: Extracts the RC Summary comment line from a given script file.
 #              Falls back to the Description line if RC Summary is missing.
-#              Intended as an internal helper.
-# Usage: _extract_summary "/path/to/script.sh"
+#              Intended to be called by utility scripts handling --summary.
+# Usage: ExtractSummary "/path/to/script.sh"
 # Arguments:
 #   $1 (required) - Full path to the script file to parse.
 # Returns: Echoes the summary string or a default message. Status 0 or 1.
 # ============================================================================
-_extract_summary() {
+ExtractSummary() {
     local script_file="${1:-}"
     local summary=""
 
     # Validate input
     if [[ -z "$script_file" ]]; then
-        if command -v WarningMessage &>/dev/null; then WarningMessage "No script path provided to _extract_summary."; else echo "Warning: No script path provided to _extract_summary." >&2; fi
+        if command -v WarningMessage &>/dev/null; then WarningMessage "No script path provided to ExtractSummary."; else echo "Warning: No script path provided to ExtractSummary." >&2; fi
+        echo "(Error: No script path provided)"
         return 1
     elif [[ ! -f "$script_file" ]]; then
         if command -v WarningMessage &>/dev/null; then WarningMessage "Script file not found for summary: $script_file"; else echo "Warning: Script file not found for summary: $script_file" >&2; fi
+        echo "(Error: Script file not found)"
         return 1
     elif [[ ! -r "$script_file" ]]; then
         if command -v WarningMessage &>/dev/null; then WarningMessage "Script file not readable for summary: $script_file"; else echo "Warning: Script file not readable for summary: $script_file" >&2; fi
+        echo "(Error: Script file not readable)"
         return 1
     fi
 
-    # Try to extract RC Summary first, handle grep failure gracefully
-    summary=$(grep -m 1 '^# RC Summary:' "$script_file" | sed -e 's/^# RC Summary: //' -e 's/^[[:space:]]*//' || true)
-
-    # If RC Summary was empty or missing, try Description
-    if [[ -z "$summary" ]]; then
-        summary=$(grep -m 1 '^# Description:' "$script_file" | sed -e 's/^# Description: //' -e 's/^[[:space:]]*//' || true)
+    # Try RC Summary first
+    summary=$(grep -m 1 '^# RC Summary:' "$script_file" || true) # Ignore grep status 1 (no match)
+    if [[ -n "$summary" ]]; then
+        summary=$(echo "$summary" | sed -e 's/^# RC Summary: //' -e 's/^[[:space:]]*//')
     fi
 
-    # Provide a default if summary still couldn't be found
-    : "${summary:=No summary available for $(basename "${script_file}")}"
+    # Try Description if summary empty
+    if [[ -z "$summary" ]]; then
+        summary=$(grep -m 1 '^# Description:' "$script_file" || true) # Ignore grep status 1
+        if [[ -n "$summary" ]]; then
+             summary=$(echo "$summary" | sed -e 's/^# Description: //' -e 's/^[[:space:]]*//')
+        fi
+    fi
 
+    # Provide default
+    : "${summary:=No summary available for $(basename "${script_file}")}"
     echo "$summary"
-    # Return status based on whether summary was found before default?
-    [[ "$summary" == "No summary available for"* ]] && return 1 || return 0
+
+    # Return status
+    if [[ "$summary" == "No summary available for"* ]]; then return 1; else return 0; fi
 }
-# --- IMPORTANT: Do NOT export _extract_summary ---
+# --- IMPORTANT: Do NOT export ExtractSummary ---
+
 
 # ============================================================================
 # ARGUMENT PROCESSING FUNCTIONS (Internal Helpers - NOT Exported)
@@ -287,12 +300,12 @@ _extract_summary() {
 ProcessCommonArgs() {
     local arg="${1:-}"
     local calling_script_path="${BASH_SOURCE[1]:-$0}"
-    local specific_help_text="${2:-}"
+    local specific_help_text="${2:-}" # Optional specific help text from caller
 
     case "$arg" in
         --help|-h) _rcforge_show_help "$specific_help_text"; exit 0 ;;
         --version) _rcforge_show_version "$calling_script_path"; exit 0 ;;
-        --summary) _extract_summary "$calling_script_path"; exit $? ;; # Use new helper, exit with its status
+        --summary) ExtractSummary "$calling_script_path"; exit $? ;; # Use new function, exit with its status
         *)
           echo "$arg" # Return unhandled arg
           return 0   # Indicate arg was not one of the common ones handled
@@ -304,25 +317,23 @@ ProcessArguments() {
     local arg=""
     local processed_arg=""
     for arg in "$@"; do
-        processed_arg=$(ProcessCommonArgs "$arg")
-        # If ProcessCommonArgs handled it, it exits. If not, it echoes arg.
+        # Pass along remaining args potentially for specific help text
+        processed_arg=$(ProcessCommonArgs "$arg" "${@:2}")
         if [[ -n "$processed_arg" ]]; then
-            printf '%s\n' "$processed_arg" # Echo unhandled args for potential further processing
+            printf '%s\n' "$processed_arg"
         fi
+        # ProcessCommonArgs exits on handled args
     done
 }
-
 
 # ============================================================================
 # SELF-EXECUTION HANDLING (Corrected Check)
 # ============================================================================
 # Check if THIS library file is being executed directly
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  # Check if InfoMessage is defined before using it
   if command -v InfoMessage &>/dev/null; then
       InfoMessage "This is a utility library meant to be sourced by other scripts."
       echo ""
-      # Check if _rcforge_show_help is defined before calling it
       if command -v _rcforge_show_help &>/dev/null; then
            _rcforge_show_help "This script provides common functions and is not meant to be executed directly."
       else
@@ -332,7 +343,7 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
       echo "INFO: This is a utility library meant to be sourced..." # Fallback echo
       echo "ERROR: Cannot show full help as messaging functions are unavailable (source shell-colors.sh first)." >&2
   fi
-  echo "To use this library, ensure shell-colors.sh is sourced first, then source this file:"
+  echo "To use this library, source it AFTER sourcing shell-colors.sh:"
   echo ""
   echo "  source \"\${RCFORGE_LIB:-~/.config/rcforge/system/lib}/shell-colors.sh\""
   echo "  source \"\${RCFORGE_LIB:-~/.config/rcforge/system/lib}/utility-functions.sh\""

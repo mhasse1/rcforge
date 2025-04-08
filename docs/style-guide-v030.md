@@ -51,25 +51,54 @@ This style guide defines the coding standards, best practices, and conventions f
 
 Note that in many cases this document is still aspirational and as code is revised, attepts are being made to bring things up to the latest standards.
 
+One more note, if at times the instructions seem pedantic, it is because I found edge cases when working witih AI coding assistants and these explicit instructions were required to address those cases.
+
 ## General Principles
 
 1. **Clarity Over Cleverness**
+
    - Write code that is easy to understand, not code that makes you look smart
+   
    - Prioritize readability over complex one-liners
+   
    - Add comments to explain non-obvious logic
+   
+   - Do not string multiple commands onto the same line
+   
+     - See standards for `if...then` and `loops`. There are appropriate use cases for these constructs.
+   
+     - Examples:
+   
+           # Acceptable:
+           if [[ -z "$header" ]]; then
+           	continue
+           else
+           	exit 1
+           fi
+           
+           ## Acceptable for simple cases:
+           [[ -z "$header" ]] && continue || exit 1
+           
+           ## Not acceptable:
+           if [[ -z "$header" || ! "$header" == *": "* ]]; then; continue; fi
+   
 2. **DRY (Don't Repeat Yourself)**
+
    - Reuse existing functions and utilities
    - Create modular, reusable code
    - Avoid copy-pasting code blocks
+   
 3. **KISS (Keep It Simple, Stupid)**
    - Prefer simple solutions
    - Break complex logic into smaller, manageable functions
    - Avoid unnecessary complexity
+   
 4. **Fail Gracefully**
    - Always have a Plan B (and sometimes a Plan C)
    - Implement robust error handling
    - Provide meaningful error messages that help diagnose issues
    - Never let an unexpected error crash the entire system
+   
 5. **Convention over Configuration**
    - Embrace sensible defaults that work out of the box
    - Reduce the need for extensive configuration by making smart, consistent design choices
@@ -80,6 +109,17 @@ Note that in many cases this document is still aspirational and as code is revis
 
 > **⚠️ WARNING: #!/usr/bin/env bash**
 > It is critical to use `#!/usr/bin/env bash` instead of `#!/bin/bash`. This ensures the greatest cross-system compatibility, particularly with Darwin and other systems with a default install of Bash <4.0.
+
+**Project Name in Code**
+
+The correct name of the project is `rcForge`.  For camel_case applications it should be written `RcForge`. To shorten the function or variable name, use `rc`.
+
+### Project Libraries
+
+**Primary Library:** Most shared functionality (messaging, colors, common checks, context detection) is provided by `${RCFORGE_LIB}/utility-functions.sh`.
+
+* **Sourcing Strategy:** Scripts needing these common functions should `source` the main `utility-functions.sh` library using the `$RCFORGE_LIB` variable (see Script Structure example for safe sourcing).
+* **Nested Sourcing:** The `utility-functions.sh` library internally sources `shell-colors.sh`. Therefore, scripts should **not** typically source `shell-colors.sh` directly. Sourcing only `utility-functions.sh` provides access to both utility functions and color/messaging capabilities.
 
 ### Script Structure
 
@@ -92,7 +132,7 @@ Note that in many cases this document is still aspirational and as code is revis
 # Description: More detailed explanation of the script's purpose
 
 # Source shared utilities
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
@@ -137,13 +177,7 @@ Main functions serve as the primary entry point for script execution, providing 
 
 - Place the `main()` function near the end of the script, before the final execution block
 
-- The
-
-  ```
-  main()
-  ```
-
-   function should:
+- The `main()`  function should:
 
   - Encapsulate the primary script logic
   - Handle high-level flow control
@@ -303,22 +337,34 @@ fi
 
 ### Function Design
 
-1. Function Naming
-   - Other than `main`, and command line functions like `rc` that are lower case as part of the UX design, use pascal case for all functions, e.g., `FunctionName`
-   - Be descriptive about the function's purpose
-   - Examples: `InstallDependencies()`, `ValidateConfiguration()`
-   - Include function headings as demonstrated in 2. Function Structure below.
-   - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
+1. **Function Naming**
+
+   - **General Rule:** Use **PascalCase** (e.g., `MyFunction`) for most functions defined within scripts (utilities, core scripts, rc-scripts), except for specific entry points like `main` or user-facing commands like `rc` which use lowercase.
+
+    - **Library Function Distinction ("Public" vs. "Internal"):**
+        Since Bash lacks formal public/private scope control, we use naming conventions within library files (`system/lib/`) to indicate intended usage:
+        - **Public Library Functions (PascalCase):** Functions intended to be called directly by other scripts that `source` the library should follow the standard **PascalCase** convention (e.g., `InfoMessage`, `DetectShell`, `CommandExists`). These form the public API of the library.
+        - **Internal Library Helpers (\_snake\_case):** Functions intended *only* for use by other functions *within the same library file* should use a leading underscore followed by **lowercase\_snake\_case** (e.g., `_extract_summary`, `_print_wrapped_message`). The leading underscore clearly signals that this function is an internal implementation detail and should generally not be called directly from outside the library file. This convention improves clarity about function scope and intended usage.
+
+    - **Descriptive Names:** Regardless of convention, all function names should be descriptive about their purpose.
+
+    - **Examples:**
+        - `InstallDependencies()` (Local function in a utility script)
+        - `SectionHeader()` (Public function defined in a library, called by utilities)
+        - `_calculate_padding()` (Internal helper function within a library, called only by `SectionHeader`)
+        - `_extract_summary()` (Internal helper function within `utility-functions.sh`)
 
 2. **Function Structure**
 
    Restrict long comment lines to 72 characters and indent the following lines. See `Usage` in the example below.
 
    ```bash
+   # end of previous logic (note single empty line after this one)
+   
    # ============================================================================
    # Function: FunctionName
    # Description: Clear, concise description of what the function does
-   # Usage: Demonstrate how to call the function [Optional, not required for 
+   # Usage: Demonstrate how to call the function [Optional, not required for
    #        simple implementations or if no arguments]
    # Arguments: ["None" if no arguments]
    #   arg1 (required) - Description of first argument

@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 # diag.sh - Visualize rcForge configuration loading order
 # Author: rcForge Team
-# Date: 2025-04-07 # Updated Date - Fix summary exit, explicit source
+# Date: 2025-04-08 # Updated for full refactor
 # Version: 0.4.1
 # Category: system/utility
 # RC Summary: Creates diagrams of rcForge configuration loading sequence
 # Description: Generates visual representations of shell configuration loading sequence
 
-# Source necessary libraries explicitly
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+# Source necessary libraries (utility-functions sources shell-colors)
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
-# set -o nounset # Keep disabled for now, review later
-set -o pipefail # Good practice for pipelines like grep|sed
-# set -o errexit # Let functions handle errors
+set -o nounset # Re-enabled
+set -o pipefail
+# set -o errexit # Let functions handle errors and return status
 
 # ============================================================================
 # GLOBAL CONSTANTS
@@ -22,23 +21,11 @@ set -o pipefail # Good practice for pipelines like grep|sed
 # Use sourced constants, provide fallback just in case
 [ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.4.1}"
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
-readonly gc_default_output_dir="${HOME}/.config/rcforge/docs" # Default output dir
+readonly GC_DEFAULT_OUTPUT_DIR="${HOME}/.config/rcforge/docs" # Default output dir
 
 # ============================================================================
-# UTILITY FUNCTIONS (Local to diag.sh or Sourced)
+# LOCAL HELPER FUNCTIONS
 # ============================================================================
-
-# ============================================================================
-# Function: ShowSummary
-# Description: Echos summary string and exits 0. Called for 'rc list'.
-# Usage: ShowSummary
-# Exits: 0
-# ============================================================================
-ShowSummary() {
-    # grep potentially fails if line missing - handle with || true
-    grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //' || true
-    exit 0 # Exit successfully after printing summary
-}
 
 # ============================================================================
 # Function: ShowHelp
@@ -47,6 +34,9 @@ ShowSummary() {
 # Exits: 0
 # ============================================================================
 ShowHelp() {
+    local script_name
+    script_name=$(basename "$0")
+
     echo "diag - rcForge Configuration Diagram Generator (v${gc_version})"
     echo ""
     echo "Description:"
@@ -55,7 +45,7 @@ ShowHelp() {
     echo ""
     echo "Usage:"
     echo "  rc diag [options]"
-    echo "  $(basename "$0") [options]" # Show direct usage too
+    echo "  ${script_name} [options]"
     echo ""
     echo "Options:"
     echo "  --hostname=NAME   Specify hostname (default: current hostname)"
@@ -65,13 +55,14 @@ ShowHelp() {
     echo "  --verbose, -v     Enable verbose output"
     echo "  --help, -h        Show this help message"
     echo "  --summary         Show a one-line description (for rc help)"
+    echo "  --version         Show version information"
     echo ""
     echo "Examples:"
     echo "  rc diag                                  # Diagram for current shell/hostname"
     echo "  rc diag --shell=bash                         # Generate Bash diagram"
     echo "  rc diag --hostname=laptop --shell=zsh      # Diagram for laptop's Zsh config"
     echo "  rc diag --format=ascii --output=~/diag.txt # Output ASCII to specific file"
-    exit 0 # Exit after showing help
+    exit 0
 }
 
 # ============================================================================
@@ -81,12 +72,18 @@ ShowHelp() {
 # Returns: 0 if valid, 1 if invalid.
 # ============================================================================
 ValidateShellType() {
-    local shell="$1"
-    if [[ "$shell" != "bash" && "$shell" != "zsh" ]]; then
-        ErrorMessage "Invalid shell type specified: '$shell'. Must be 'bash' or 'zsh'."
-        return 1
-    fi
-    return 0
+    local shell_to_check="${1:-}" # Use default empty for nounset
+    local -r supported_shells=("bash" "zsh") # Make local readonly
+    local supported=""
+
+    for supported in "${supported_shells[@]}"; do
+        if [[ "$shell_to_check" == "$supported" ]]; then
+            return 0 # Format is supported
+        fi
+    done
+
+    ErrorMessage "Invalid shell type specified: '$shell_to_check'. Must be 'bash' or 'zsh'."
+    return 1
 }
 
 # ============================================================================
@@ -96,17 +93,17 @@ ValidateShellType() {
 # Returns: 0 if valid, 1 if invalid.
 # ============================================================================
 ValidateFormat() {
-    local format="$1"
-    local supported_formats=("mermaid" "graphviz" "ascii")
-    local supported="" # Loop variable
+    local format_to_check="${1:-}" # Use default empty for nounset
+    local -r supported_formats=("mermaid" "graphviz" "ascii")
+    local supported=""
 
     for supported in "${supported_formats[@]}"; do
-        if [[ "$format" == "$supported" ]]; then
+        if [[ "$format_to_check" == "$supported" ]]; then
             return 0 # Format is supported
         fi
     done
 
-    ErrorMessage "Unsupported diagram format specified: '$format'."
+    ErrorMessage "Unsupported diagram format specified: '$format_to_check'."
     WarningMessage "Supported formats are: ${supported_formats[*]}"
     return 1
 }
@@ -161,7 +158,7 @@ GenerateMermaidDiagram() {
 
     # Start Building Diagram String
     diagram+="# rcForge Configuration Loading Order (Mermaid Diagram)\n"
-    diagram+=" \`\`\`mermaid\n" # Use triple backticks
+    diagram+=" \`\`\`mermaid\n"
     diagram+="flowchart TD\n"
     diagram+="    StartNode([Start rcForge])\n"
     diagram+="    EndNode([End rcForge])\n\n"
@@ -176,7 +173,8 @@ GenerateMermaidDiagram() {
         IFS='_' read -r -a parts <<< "${filename%.sh}"
         hostname="${parts[1]:-unknown}"
         environment="${parts[2]:-unknown}"
-        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g') # Join remaining parts
+        # Join remaining parts for description, handle potential empty case
+        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g') || description=""
 
         local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}"
         node_id="Node_${sanitized_filename}"
@@ -220,7 +218,7 @@ GenerateMermaidDiagram() {
          fi
     done
 
-    diagram+=" \`\`\`\n" # Use triple backticks
+    diagram+=" \`\`\`\n"
     printf '%b' "$diagram"
 }
 
@@ -259,7 +257,7 @@ GenerateAsciiDiagram() {
     done
 
     # Build Diagram
-    diagram+=" \`\`\`text\n" # Use triple backticks
+    diagram+=" \`\`\`text\n"
     diagram+="# rcForge Configuration Loading Order (ASCII Diagram)\n\n"
     diagram+="START rcForge\n   |\n   V\n"
     local processed_a_node=false
@@ -271,7 +269,7 @@ GenerateAsciiDiagram() {
         IFS='_' read -r -a parts <<< "${filename%.sh}"
         hostname="${parts[1]:-unknown}"
         environment="${parts[2]:-unknown}"
-        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g')
+        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g') || description=""
 
         conflict_marker=""
         if [[ -v "conflicting_seqs[$seq_num]" ]]; then conflict_marker=" (CONFLICT)"; fi
@@ -283,7 +281,7 @@ GenerateAsciiDiagram() {
     if [[ "$processed_a_node" != "true" ]]; then
          diagram="${diagram%   |\n   V\n}"
     fi
-    diagram+="END rcForge\n \`\`\`\n" # Use triple backticks
+    diagram+="END rcForge\n \`\`\`\n"
     printf '%b' "$diagram"
 }
 
@@ -342,13 +340,13 @@ GenerateGraphvizDiagram() {
         IFS='_' read -r -a parts <<< "${filename%.sh}"
         hostname="${parts[1]:-unknown}"
         environment="${parts[2]:-unknown}"
-        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g')
+        description=$(printf "%s" "${parts[@]:3}" | sed 's/_/ /g') || description=""
 
         local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}"
         node_id="Node_${sanitized_filename}"
         quoted_node_id="\"${node_id}\""
 
-        description="${description//\"/\\\"}" # Escape quotes for DOT label
+        description="${description//\"/\\\"}" # Escape double quotes for DOT label
         node_label="${seq_num}: ${hostname}/${environment}\\n${description}" # Use \\n
 
         node_attrs=""
@@ -377,19 +375,35 @@ GenerateGraphvizDiagram() {
 # Function: GenerateDiagram
 # Description: Generate diagram in specified format and write to output file.
 # Usage: GenerateDiagram format output_file is_verbose file1 [file2...]
+# Returns: 0 on success, 1 on failure.
 # ============================================================================
 GenerateDiagram() {
-    local format="$1"
-    local output_file="$2"
-    local is_verbose="$3"
+    local format="${1:-}"
+    local output_file="${2:-}"
+    local is_verbose="${3:-false}"
     shift 3
     local -a files=("$@")
     local output_dir
     local diagram_output=""
 
+    # Validate essential arguments
+     if [[ -z "$format" || -z "$output_file" ]]; then
+         ErrorMessage "Internal error: Format and output file must be specified for GenerateDiagram."
+         return 1
+     fi
+
     output_dir=$(dirname "$output_file")
-    mkdir -p "$output_dir" || { ErrorMessage "Failed to create output directory: $output_dir"; return 1; }
-    chmod 700 "$output_dir" || WarningMessage "Could not set permissions (700) on $output_dir"
+    # Check if directory creation is needed and possible
+    if [[ ! -d "$output_dir" ]]; then
+         if ! mkdir -p "$output_dir"; then
+             ErrorMessage "Failed to create output directory: $output_dir"
+             return 1
+         fi
+         if ! chmod 700 "$output_dir"; then
+              WarningMessage "Could not set permissions (700) on newly created $output_dir"
+         fi
+    fi
+
 
     InfoMessage "Generating diagram (format: $format)..."
 
@@ -400,12 +414,16 @@ GenerateDiagram() {
         *) ErrorMessage "Internal error: Unsupported format '$format' in GenerateDiagram."; return 1 ;;
     esac
 
+    # Write output to file
     if printf '%s\n' "$diagram_output" > "$output_file"; then
-        chmod 600 "$output_file" || WarningMessage "Could not set permissions (600) on $output_file"
+        if ! chmod 600 "$output_file"; then
+             WarningMessage "Could not set permissions (600) on $output_file"
+        fi
         SuccessMessage "Diagram generated successfully: $output_file"
         if [[ "$is_verbose" == "true" ]]; then
             InfoMessage "  Format: $format"
             InfoMessage "  Based on ${#files[@]} configuration files."
+            # Attempt to open file (background)
             if command -v open &> /dev/null; then open "$output_file" &
             elif command -v xdg-open &> /dev/null; then xdg-open "$output_file" &
             else InfoMessage "Could not automatically open the diagram file."; fi
@@ -413,88 +431,166 @@ GenerateDiagram() {
         return 0
     else
         ErrorMessage "Failed to write diagram to: $output_file"
+        # Clean up empty file if write failed
         [[ ! -s "$output_file" ]] && rm -f "$output_file" &>/dev/null
         return 1
     fi
 }
 
+# ============================================================================
+# Function: ParseArguments (Refactored Standard Loop)
+# Description: Parse command-line arguments for diag script.
+# Usage: declare -A options; ParseArguments options "$@"
+# Returns: Populates associative array by reference. Returns 0 on success, 1 on error.
+#          Exits directly for --help, --summary, --version.
+# ============================================================================
 ParseArguments() {
     local -n options_ref="$1"; shift
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."; return 1; fi
+    # Ensure Bash 4.3+ for namerefs (-n)
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+        ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
+        return 1
+    fi
 
-    # --- FIX: Call functions outside command substitution for assignment ---
+    # Set defaults using sourced functions
     local default_host; default_host=$(DetectCurrentHostname)
     options_ref["target_hostname"]="${default_host}"
-
-    local default_shell; default_shell=$(DetectShell) # <<< Use correct function name
+    local default_shell; default_shell=$(DetectShell)
     options_ref["target_shell"]="${default_shell}"
-    # --- End FIX ---
-
     options_ref["output_file"]=""
     options_ref["format"]="mermaid"
     options_ref["verbose_mode"]=false
 
-    # Check for help/summary first (ShowHelp/ShowSummary exit directly)
-    if [[ "$#" -gt 0 ]]; then case "$1" in --help|-h) ShowHelp ;; --summary) ShowSummary ;; esac; fi
-
-    while [[ "$#" -gt 0 ]]; do
-        case "$1" in
-            --help|-h) ShowHelp ;; # Exits
-            --summary) ShowSummary ;; # Exits
-            --hostname=*) options_ref["target_hostname"]="${1#*=}"; shift ;;
+    # Single loop for arguments
+    while [[ $# -gt 0 ]]; do
+        local key="$1"
+        case "$key" in
+            -h|--help)
+                ShowHelp # Exits
+                ;;
+            --summary)
+                ExtractSummary "$0"; exit $? # Call helper and exit
+                ;;
+            --version)
+                 _rcforge_show_version "$0"; exit 0 # Call helper and exit
+                 ;;
+            --hostname=*)
+                options_ref["target_hostname"]="${key#*=}"
+                shift ;;
+            --hostname)
+                shift # Move past --hostname flag
+                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--hostname requires a value."; return 1; fi
+                options_ref["target_hostname"]="$1"
+                shift # Move past value
+                ;;
             --shell=*)
-                options_ref["target_shell"]="${1#*=}"
+                options_ref["target_shell"]="${key#*=}"
+                if ! ValidateShellType "${options_ref["target_shell"]}"; then return 1; fi
+                shift ;;
+            --shell)
+                shift # Move past --shell flag
+                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--shell requires a value (bash or zsh)."; return 1; fi
+                options_ref["target_shell"]="$1"
                  if ! ValidateShellType "${options_ref["target_shell"]}"; then return 1; fi
+                shift # Move past value
+                ;;
+            --output=*)
+                options_ref["output_file"]="${key#*=}"
                 shift ;;
-            --output=*) options_ref["output_file"]="${1#*=}"; shift ;;
+            --output)
+                shift # Move past --output flag
+                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--output requires a filename."; return 1; fi
+                options_ref["output_file"]="$1"
+                shift # Move past value
+                ;;
             --format=*)
-                options_ref["format"]="${1#*=}"
+                 options_ref["format"]="${key#*=}"
                  if ! ValidateFormat "${options_ref["format"]}"; then return 1; fi
-                shift ;;
-            --verbose|-v) options_ref["verbose_mode"]=true; shift ;;
-            *) ErrorMessage "Unknown parameter or unexpected argument: $1"; ShowHelp; return 1 ;;
+                 shift ;;
+            --format)
+                shift # Move past --format flag
+                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--format requires a value."; return 1; fi
+                options_ref["format"]="$1"
+                 if ! ValidateFormat "${options_ref["format"]}"; then return 1; fi
+                shift # Move past value
+                ;;
+            -v|--verbose)
+                options_ref["verbose_mode"]=true
+                shift # Move past flag
+                ;;
+             # End of options marker
+            --)
+                shift # Move past --
+                break # Stop processing options
+                ;;
+             # Unknown option
+            -*)
+                ErrorMessage "Unknown option: $key"
+                ShowHelp # Exits
+                return 1
+                ;;
+             # Positional argument (none expected)
+            *)
+                ErrorMessage "Unexpected positional argument: $key"
+                ShowHelp # Exits
+                return 1
+                ;;
         esac
     done
 
-    # Final validation
-     if ! ValidateShellType "${options_ref["target_shell"]}"; then WarningMessage "Default shell detection failed or resulted in unsupported shell."; return 1; fi
-    return 0
+    # Final validation of potentially defaulted shell type
+    if ! ValidateShellType "${options_ref["target_shell"]}"; then
+         # Error already printed by ValidateShellType if default was invalid
+         return 1
+    fi
+    return 0 # Success
 }
 
 # ============================================================================
 # Function: main
+# Description: Main execution logic for the diag script.
+# Usage: main "$@"
+# Returns: 0 on success, 1 on failure.
 # ============================================================================
 main() {
     local rcforge_dir
-    rcforge_dir=$(DetermineRcForgeDir) # Use sourced function
+    # Use sourced DetectRcForgeDir
+    rcforge_dir=$(DetectRcForgeDir)
+    # Use associative array for options (requires Bash 4+)
     declare -A options
-    local -a config_files
+    local -a config_files=() # Ensure array is declared locally
     local default_filename=""
+    local find_output=""
+    local find_status=0
+    local gen_status=0
 
-    # Parse Arguments, exit if error or help/summary shown by ParseArguments
+    # Parse Arguments, exit if parser returns non-zero (error)
+    # Note: --help, --summary, --version exit directly from ParseArguments
     ParseArguments options "$@" || exit 1
 
-    # Determine default output file path
-    if [[ -z "${options[output_file]}" ]]; then
+    # Determine default output file path if not provided
+    if [[ -z "${options[output_file]:-}" ]]; then
          default_filename="loading_order_${options[target_hostname]}_${options[target_shell]}"
+         # Add extension based on format
          case "${options[format]}" in
              mermaid) default_filename+=".md" ;;
              graphviz) default_filename+=".dot" ;;
              ascii) default_filename+=".txt" ;;
          esac
-         options[output_file]="${gc_default_output_dir}/${default_filename}"
+         # Ensure default output dir exists
+         mkdir -p "${GC_DEFAULT_OUTPUT_DIR}" || { ErrorMessage "Cannot create default output directory: ${GC_DEFAULT_OUTPUT_DIR}"; return 1; }
+         options[output_file]="${GC_DEFAULT_OUTPUT_DIR}/${default_filename}"
     fi
 
+    # Use sourced SectionHeader
     SectionHeader "rcForge Configuration Diagram Generation (v${gc_version})"
 
     # Find config files using the *sourced* FindRcScripts function directly
-    # Need to handle potential error return from FindRcScripts (dir missing)
-    local find_output
     find_output=$(FindRcScripts "${options[target_shell]}" "${options[target_hostname]}")
-    local find_status=$?
+    find_status=$?
 
     if [[ $find_status -ne 0 ]]; then
-        # Error message printed by FindRcScripts
+        # Error message already printed by FindRcScripts
         return 1 # Propagate error
     elif [[ -z "$find_output" ]]; then
         InfoMessage "No configuration files found for ${options[target_shell]}/${options[target_hostname]}. Diagram not generated."
@@ -510,25 +606,21 @@ main() {
         "${options[output_file]}" \
         "${options[verbose_mode]}" \
         "${config_files[@]}"
+    gen_status=$?
 
-    return $?
+    # Return status of GenerateDiagram
+    return $gen_status
 }
 
 
+# ============================================================================
+# Script Execution
+# ============================================================================
 # Execute main function if run directly or via rc command wrapper
-# Check if IsExecutedDirectly is defined before calling it
-if command -v IsExecutedDirectly &> /dev/null ; then
-    if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
-        main "$@"
-        exit $?
-    fi
-else
-    # Fallback if library sourcing failed completely
-    echo "ERROR: Cannot determine execution context (IsExecutedDirectly not found)." >&2
-    if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-         main "$@"
-         exit $?
-    fi
+# Use sourced IsExecutedDirectly function
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $? # Exit with status from main
 fi
 
 # EOF

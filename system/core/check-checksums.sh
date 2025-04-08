@@ -22,13 +22,13 @@ readonly gc_supported_rc_files=(
 )
 
 # ============================================================================
-# Function: DetermineRcforgeDir
+# Function: DetermineRcForgeDir
 # Description: Determine the effective rcForge root directory.
 #              Checks RCFORGE_ROOT env var first, then defaults to standard user config path.
-# Usage: DetermineRcforgeDir
+# Usage: DetermineRcForgeDir
 # Returns: Echoes the path to the rcForge configuration directory.
 # ============================================================================
-DetermineRcforgeDir() {
+DetermineRcForgeDir() {
     # Use RCFORGE_ROOT if set and is a directory, otherwise default
     if [[ -n "${RCFORGE_ROOT:-}" && -d "${RCFORGE_ROOT}" ]]; then
         echo "${RCFORGE_ROOT}"
@@ -198,7 +198,7 @@ main() {
 
     # Determine rcForge directory using sourced function
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Call sourced function
+    rcforge_dir=$(DetermineRcForgeDir) # Call sourced function
 
     # Define and create checksum directory if it doesn't exist
     local checksum_dir="${rcforge_dir}/checksums"

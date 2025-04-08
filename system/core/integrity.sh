@@ -46,7 +46,7 @@ ShowHelp() {
 }
 
 # ============================================================================
-# DetermineRcforgeDir (REMOVED - Now sourced from utility-functions.sh)
+# DetermineRcForgeDir (REMOVED - Now sourced from utility-functions.sh)
 # ============================================================================
 
 # ============================================================================
@@ -257,7 +257,7 @@ main() {
 
     # Determine rcForge directory (use sourced function)
     local rcforge_dir
-    rcforge_dir=$(DetermineRcforgeDir) # Uses sourced function
+    rcforge_dir=$(DetermineRcForgeDir) # Uses sourced function
     if [[ ! -d "$rcforge_dir" ]]; then
          ErrorMessage "rcForge installation directory not found: $rcforge_dir"
          exit 1
