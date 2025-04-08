@@ -18,17 +18,17 @@ set -o nounset
 # set -o errexit # Disable errexit to allow custom error handling below
 
 # ============================================================================
-# Helper Functions (Internal to rc-command.sh)
+# Helper Functions (Internal to rc-command.sh - Use PascalCase per Style Guide)
 # ============================================================================
 
 # ============================================================================
-# Function: _rc_scan_utils (Unchanged)
+# Function: RcScanUtils
 # Description: Scans user and system util dirs, populates maps for commands, overrides, conflicts.
-# Usage: declare -A commands_map overrides_map conflict_map; _rc_scan_utils commands_map overrides_map conflict_map
+# Usage: declare -A commands_map overrides_map conflict_map; RcScanUtils commands_map overrides_map conflict_map
 # Arguments: $1=command map name, $2=override map name, $3=conflict map name
-# Returns: 0 on success, populates arrays by reference. (Requires Bash 4.3+)
+# Returns: 0 on success, 1 on major error, populates arrays by reference. (Requires Bash 4.3+)
 # ============================================================================
-_rc_scan_utils() {
+RcScanUtils() {
     local -n _commands_map="$1"
     local -n _overrides_map="$2"
     local -n _conflict_map="$3"
@@ -39,80 +39,75 @@ _rc_scan_utils() {
     local ext=""
     declare -A found_system_cmds # Track system commands by basename
     declare -A found_user_cmds   # Track user commands by basename -> fullpath(s)
+    local find_exit_status=0 # Not currently used, but could be for stricter error checking
 
     # --- Scan System Utilities ---
     if [[ -d "$sys_dir" ]]; then
+        # ---- Use portable find + shell -x check ----
         while IFS= read -r -d '' file; do
-            base_name=$(basename "$file")
-            # Handle files with and without extensions for basename extraction
-            if [[ "$base_name" == *.* ]]; then
-                ext="${base_name##*.}"
-                base_name="${base_name%.*}"
-            else
-                ext="" # No extension
+            # Check if executable using shell's -x test
+            if [[ -x "$file" ]]; then
+                base_name=$(basename "$file")
+                if [[ "$base_name" == *.* ]]; then ext="${base_name##*.}"; base_name="${base_name%.*}"; else ext=""; fi
+                [[ -z "$base_name" || "$base_name" == .* ]] && continue
+                found_system_cmds["$base_name"]="$file"
             fi
-            # Skip if basename is empty or starts with .
-            [[ -z "$base_name" || "$base_name" == .* ]] && continue
-
-            found_system_cmds["$base_name"]="$file" # Store full path
-        done < <(find "$sys_dir" -maxdepth 1 -type f -executable -print0 2>/dev/null)
+        done < <(find "$sys_dir" -maxdepth 1 -type f -print0 2>/dev/null) # Removed non-portable -executable
+        # find_exit_status=$? # Capture status if needed
     fi
 
     # --- Scan User Utilities ---
     if [[ -d "$user_dir" ]]; then
+         # ---- Use portable find + shell -x check ----
         while IFS= read -r -d '' file; do
-             base_name=$(basename "$file")
-             if [[ "$base_name" == *.* ]]; then
-                 ext="${base_name##*.}"
-                 base_name="${base_name%.*}"
-             else
-                 ext=""
+             # Check if executable using shell's -x test
+             if [[ -x "$file" ]]; then
+                 base_name=$(basename "$file")
+                 if [[ "$base_name" == *.* ]]; then ext="${base_name##*.}"; base_name="${base_name%.*}"; else ext=""; fi
+                 [[ -z "$base_name" || "$base_name" == .* ]] && continue
+                if [[ -v "found_user_cmds[$base_name]" ]]; then
+                    found_user_cmds["$base_name"]+=",${file}"
+                else
+                    found_user_cmds["$base_name"]="$file"
+                fi
              fi
-             [[ -z "$base_name" || "$base_name" == .* ]] && continue
-
-            # Append to list for this basename (handling potential conflicts)
-            if [[ -v "found_user_cmds[$base_name]" ]]; then
-                found_user_cmds["$base_name"]+=",${file}" # Comma-separate conflicting paths
-            else
-                found_user_cmds["$base_name"]="$file"
-            fi
-        done < <(find "$user_dir" -maxdepth 1 -type f -executable -print0 2>/dev/null)
+        done < <(find "$user_dir" -maxdepth 1 -type f -print0 2>/dev/null) # Removed non-portable -executable
+        # find_exit_status=$? # Capture status if needed
     fi
 
     # --- Build Final Maps ---
-    # Add all system commands first
+    # Ensure maps are clear before populating (good practice if function might be called multiple times)
+    _commands_map=()
+    _overrides_map=()
+    _conflict_map=()
+    # Add system commands
     for base_name in "${!found_system_cmds[@]}"; do
         _commands_map["$base_name"]="${found_system_cmds[$base_name]}"
     done
-
-    # Add/Override with user commands and detect conflicts/overrides
+    # Add/override with user commands
     for base_name in "${!found_user_cmds[@]}"; do
         local user_paths="${found_user_cmds[$base_name]}"
         if [[ "$user_paths" == *,* ]]; then
-            # Conflict (multiple user utils with same basename)
             _conflict_map["$base_name"]="$user_paths"
-            # Decide which one to put in commands map? Arbitrarily first for now, but execution will fail.
-             _commands_map["$base_name"]="${user_paths%%,*}"
+             _commands_map["$base_name"]="${user_paths%%,*}" # Keep first arbitrarily for map, conflict noted
         else
-            # Single user util, add to commands map
-             _commands_map["$base_name"]="$user_paths"
-             # Check if it overrides a system command
+             _commands_map["$base_name"]="$user_paths" # Override system entry
              if [[ -v "found_system_cmds[$base_name]" ]]; then
-                 _overrides_map["$base_name"]="${found_system_cmds[$base_name]}"
+                 _overrides_map["$base_name"]="${found_system_cmds[$base_name]}" # Note the override
              fi
         fi
     done
 
-    return 0
+    return 0 # Success
 }
 
 
 # ============================================================================
-# Function: _rc_show_framework_help (NEW - Replaces part of old _rc_show_help)
+# Function: RcShowFrameworkHelp
 # Description: Displays help information about the rc command framework itself.
-# Usage: _rc_show_framework_help
+# Usage: RcShowFrameworkHelp
 # ============================================================================
-_rc_show_framework_help() {
+RcShowFrameworkHelp() {
     # Use gc_version if available, fallback to RCFORGE_VERSION
     local version_to_display="${gc_version:-${RCFORGE_VERSION:-unknown}}"
     echo "rcForge Command Framework (v${version_to_display})"
@@ -143,16 +138,22 @@ _rc_show_framework_help() {
 }
 
 # ============================================================================
-# Function: _rc_list_commands (NEW - Replaces part of old _rc_show_help)
+# Function: RcListCommands
 # Description: Scans and lists available commands with summaries and override notes.
-# Usage: _rc_list_commands
+# Usage: RcListCommands
 # ============================================================================
-_rc_list_commands() {
+RcListCommands() {
     # Use gc_version if available, fallback to RCFORGE_VERSION
     local version_to_display="${gc_version:-${RCFORGE_VERSION:-unknown}}"
     declare -A commands_map overrides_map conflict_map
-    _rc_scan_utils commands_map overrides_map conflict_map # Populate the maps
 
+    # Populate the maps AND check the exit status
+    if ! RcScanUtils commands_map overrides_map conflict_map; then
+        ErrorMessage "Error scanning utility directories. Cannot list commands."
+        return 1 # Return error status
+    fi
+
+    # If RcScanUtils succeeded, maps should be populated (or empty)
     echo "rcForge Utility Commands (v${version_to_display})"
     echo ""
     echo "Available commands:"
@@ -163,36 +164,78 @@ _rc_list_commands() {
     local override_note=""
     local conflict_note=""
     local display_name=""
+    local term_width=80 # Default width
+    local wrap_width=76 # Default wrap width (80 - 4 for indent)
+    local fold_exists=false
 
-    # Sort commands alphabetically for display
-    for cmd in $(printf "%s\n" "${!commands_map[@]}" | sort); do
-        script_path="${commands_map[$cmd]}"
-        summary=$("$script_path" summary 2>/dev/null || echo "Error fetching summary")
+    # Try to get actual terminal width
+    if command -v GetTerminalWidth &>/dev/null; then # Check if function from shell-colors exists
+         term_width=$(GetTerminalWidth)
+         wrap_width=$(( term_width > 10 ? term_width - 4 : 76 )) # Ensure wrap_width is reasonable
+    fi
+    # Check if fold command exists
+    command -v fold >/dev/null && fold_exists=true
 
-        # Check for override indicator
-        override_note=""
-        if [[ -v "overrides_map[$cmd]" ]]; then
-            override_note=" ${YELLOW}(user override)${RESET}" # Add color
-        fi
+    # Check if commands_map is empty before trying to loop
+    if [[ ${#commands_map[@]} -eq 0 ]]; then
+        InfoMessage "  (No commands found in system or user utility directories)"
+        echo "" # Add blank line after message
+    else
+        # Sort commands alphabetically for display
+        for cmd in $(printf "%s\n" "${!commands_map[@]}" | sort); do
+            script_path="${commands_map[$cmd]}"
+            # Ensure script_path exists and is executable before calling summary
+            if [[ -z "$script_path" || ! -x "$script_path" ]]; then
+                 summary="Error: Invalid script path for '$cmd'"
+            else
+                 summary=$("$script_path" --summary 2>/dev/null || echo "Error fetching summary")
+            fi
 
-        # Check for execution conflict indicator
-        conflict_note=""
-        display_name="$cmd"
-        if [[ -v "conflict_map[$cmd]" ]]; then
-            conflict_note=" ${RED}(CONFLICT)${RESET}" # Add color
-            summary="Multiple executables found - see 'rc --conflicts'" # Override summary for conflicts
-            display_name="${RED}${cmd}${RESET}" # Colorize command name
-        fi
+            # Check for override indicator
+            override_note=""
+            if [[ ${overrides_map[$cmd]+_} ]]; # Robust check
+            then
+                override_note=" ${YELLOW}(user override)${RESET}" # Add color
+            fi
 
-        # Format and print
-        printf "  %-25b %s%s%s\n" "$display_name" "$summary" "$override_note" "$conflict_note" # Adjusted padding
-    done
+            # Check for execution conflict indicator
+            conflict_note=""
+            display_name="$cmd" # Default display name is plain command
+            if [[ ${conflict_map[$cmd]+_} ]]; # Robust check
+            then
+                conflict_note=" ${RED}(CONFLICT)${RESET}" # Add color
+                summary="Multiple executables found - see 'rc --conflicts'" # Override summary
+                display_name="${RED}${cmd}${RESET}" # Colorize command name RED for conflict
+            else
+                # ---- ADDED: Make non-conflicting command name GREEN ----
+                display_name="${GREEN}${cmd}${RESET}"
+                # ---- END ADDED ----
+            fi
 
-    echo ""
+            # --- Two-Line Output Format ---
+            # Line 1: Command Name (now colored) + Notes (indented by 2 spaces)
+            printf "  %b%b%b\n" "$display_name" "$override_note" "$conflict_note"
 
-    # Add conditional footer for conflicts/overrides
+            # Line 2: Wrapped Summary (indented by 4 spaces)
+            if [[ "$fold_exists" == "true" ]]; then
+                # Wrap using fold
+                 printf '%s\n' "$summary" | fold -s -w "$wrap_width" | while IFS= read -r line; do
+                     printf "    %s\n" "$line"
+                 done
+            else
+                # Print unwrapped if fold command is not available
+                printf "    %s\n" "$summary"
+            fi
+            echo "" # Add blank line between entries
+            # --- END Two-Line Output Format ---
+
+        done
+    fi # End check for empty commands_map
+
+    # Add conditional footer for conflicts/overrides (keep as is)
     if [[ "${#overrides_map[@]}" -gt 0 || "${#conflict_map[@]}" -gt 0 ]]; then
-        InfoMessage "[Note: User overrides and/or execution conflicts detected. Run 'rc --conflicts' for details.]" #
+        InfoMessage "[Note: User overrides and/or execution conflicts detected. Run 'rc --conflicts' for details.]"
+        echo "" # Add spacing after note
     fi
 
     echo "Use 'rc <command> help' for detailed information about a command."
@@ -201,17 +244,19 @@ _rc_list_commands() {
 
 
 # ============================================================================
-# Function: _rc_show_conflicts (Unchanged)
+# Function: RcShowConflicts
+# Description: Shows user overrides and execution conflicts.
+# Usage: RcShowConflicts
 # ============================================================================
-_rc_show_conflicts() {
+RcShowConflicts() {
     declare -A commands_map overrides_map conflict_map
-    _rc_scan_utils commands_map overrides_map conflict_map # Populate the maps
+    RcScanUtils commands_map overrides_map conflict_map # Populate the maps (Call updated name)
 
     local found_issue=false
 
     if [[ "${#overrides_map[@]}" -gt 0 ]]; then
         found_issue=true
-        SectionHeader "User Overrides"
+        SectionHeader "User Overrides" # Assumes SectionHeader is available via utility-functions.sh
         local cmd=""
         for cmd in $(printf "%s\n" "${!overrides_map[@]}" | sort); do
              local user_path="${commands_map[$cmd]}" # User path is the effective path
@@ -225,15 +270,15 @@ _rc_show_conflicts() {
 
     if [[ "${#conflict_map[@]}" -gt 0 ]]; then
         found_issue=true
-        SectionHeader "Execution Conflicts (Ambiguous Commands)"
+        SectionHeader "Execution Conflicts (Ambiguous Commands)" # Assumes SectionHeader is available
         local cmd=""
         for cmd in $(printf "%s\n" "${!conflict_map[@]}" | sort); do
              local conflicting_paths="${conflict_map[$cmd]}"
              # Extract directory from first path
              local first_path="${conflicting_paths%%,*}"
              local conflict_dir=$(dirname "$first_path")
-             ErrorMessage "Conflict for command '${cmd}' in ${conflict_dir}:" #
-             echo "$conflicting_paths" | tr ',' '\n' | sed 's/^/  - /' #
+             ErrorMessage "Conflict for command '${cmd}' in ${conflict_dir}:"
+             echo "$conflicting_paths" | tr ',' '\n' | sed 's/^/  - /'
              echo ""
         done
     fi
@@ -243,9 +288,10 @@ _rc_show_conflicts() {
     fi
 }
 
-
 # ============================================================================
-# Function: rc (Full Implementation - Updated Dispatch Logic)
+# Function: rc (Exported Command Implementation)
+# Description: Main dispatcher function for the 'rc' command.
+# Usage: rc <command> [options...]
 # ============================================================================
 rc() {
     # --- Argument Parsing ---
@@ -253,181 +299,101 @@ rc() {
     local command=""
     local -a cmd_args=() # Store remaining args
 
-    # Handle global options like --system first
+    # (Argument parsing logic remains the same as before)
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --system|-s)
-                force_system=true
-                shift
-                ;;
-            --help|-h) # Treat help as a potential command
-                command="help"
-                shift
-                cmd_args=("$@") # Capture remaining args for potential 'rc help <command>'
-                break # Stop option processing
-                ;;
-            --conflicts) # Treat as a command
-                command="--conflicts"
-                shift
-                # Conflicts command doesn't take args, but capture for consistency
-                cmd_args=("$@")
-                break # Stop option processing
-                ;;
-             list) # Treat list as a command
-                 command="list"
-                 shift
-                 # List command doesn't take args
-                 cmd_args=("$@")
-                 break
-                 ;;
-            --summary) # Treat summary as a command (internal use mostly)
-                 command="summary"
-                 shift
-                 cmd_args=("$@")
-                 break
-                 ;;
-            # Add --version maybe?
-
-            # Stop processing global options if a non-option is encountered
-            # or if '--' is encountered
+            --system|-s) force_system=true; shift ;;
+            --help|-h) command="help"; shift; cmd_args=("$@"); break ;;
+            --conflicts) command="--conflicts"; shift; cmd_args=("$@"); break ;;
+             list) command="list"; shift; cmd_args=("$@"); break ;;
+            --summary) command="summary"; shift; cmd_args=("$@"); break ;;
             -- | -*)
-                # If it's '--', consume it and stop option processing
-                # If it's an unknown option starting with '-', error out later
-                # If it's not starting with '-', assume it's the command
-                if [[ "$1" == "--" ]]; then
-                    shift
-                    break # Stop option processing
-                fi
-                # Check if it looks like an unknown *global* option
-                if [[ "$1" == --* || "$1" == -[^-]* ]]; then
-                     # Let the command dispatch handle it later if it's not a known global one
-                     # This allows commands to have their own options starting with '-'
-                     break # Assume it might be a command or command option
-                else
-                    # Doesn't start with '-', assume it's the command
-                    command="$1"
-                    shift
-                    cmd_args=("$@")
-                    break # Stop option processing
-                fi
-                ;;
-            *) # First non-option argument is the command
-                command="$1"
-                shift
-                cmd_args=("$@") # The rest are args for the command
-                break # Stop option processing
-                ;;
+                if [[ "$1" == "--" ]]; then shift; break; fi
+                if [[ "$1" == --* || "$1" == -[^-]* ]]; then break; else command="$1"; shift; cmd_args=("$@"); break; fi ;;
+            *) command="$1"; shift; cmd_args=("$@"); break ;;
         esac
     done
-
-    # Default to 'list' if no command was provided after option processing
     [[ -z "$command" ]] && command="list"
+    # --- End Argument Parsing ---
 
     # --- Core Command Handling ---
     case "$command" in
         help)
-            # Check if 'help' was followed by a command name
             if [[ ${#cmd_args[@]} -gt 0 && "${cmd_args[0]}" != --* && "${cmd_args[0]}" != -* ]]; then
-                # User wants help for a specific command: rc help <utility_command>
                 local target_cmd="${cmd_args[0]}"
-                shift # Remove target command from args list
-                # Now dispatch normally, but force the argument 'help'
-                # Re-run dispatch logic (could be cleaner with a goto or function)
-                command="$target_cmd" # Set command to the utility name
-                cmd_args=("help" "${cmd_args[@]:1}") # Prepend 'help', pass rest of original args
+                command="$target_cmd"
+                cmd_args=("help" "${cmd_args[@]:1}")
                 # Fall through to the *) case below
             else
-                # User wants help about the 'rc' framework itself
-                _rc_show_framework_help # Call NEW help function
-                return 0
+                RcShowFrameworkHelp
+                return 0 # Return success after showing framework help
             fi
-            ;; # End of specific 'help' case, fall through requires removing this or restructuring
+             # Fallthrough intended here if specific command help was requested
+            ;; # Still need ;; here for syntax if fallthrough doesn't happen via *)
 
         list)
-            _rc_list_commands # Call NEW list function
-             # Check for extraneous arguments to 'list'
-            if [[ ${#cmd_args[@]} -gt 0 ]]; then
-                WarningMessage "'rc list' does not accept additional arguments. Ignoring: ${cmd_args[*]}"
-            fi
+            RcListCommands
+             if [[ ${#cmd_args[@]} -gt 0 ]]; then WarningMessage "'rc list' does not accept additional arguments. Ignoring: ${cmd_args[*]}"; fi
             return 0
             ;;
 
         --conflicts)
-             _rc_show_conflicts # Call existing conflicts function
-             # Check for extraneous arguments to '--conflicts'
-            if [[ ${#cmd_args[@]} -gt 0 ]]; then
-                WarningMessage "'rc --conflicts' does not accept additional arguments. Ignoring: ${cmd_args[*]}"
-            fi
+             RcShowConflicts
+             if [[ ${#cmd_args[@]} -gt 0 ]]; then WarningMessage "'rc --conflicts' does not accept additional arguments. Ignoring: ${cmd_args[*]}"; fi
              return 0
              ;;
         summary)
-             # This shouldn't typically be called directly by user
              echo "rc - rcForge command execution framework."
              return 0
              ;;
         search)
-             ErrorMessage "Search functionality not yet implemented."
-             return 1
+             ErrorMessage "Search functionality not yet implemented." # No exit code needed, ErrorMessage just prints
+             return 1 # Return error from rc function
              ;;
+         *) # Handle dispatching to utility scripts
+             # --- Utility Script Dispatch Logic ---
+             local target_script=""
+             local user_dir="${RCFORGE_USER_UTILS:-/invalid_path}"
+             local sys_dir="${RCFORGE_UTILS:-/invalid_path}"
+             local -a search_dirs=()
+             local -a found_scripts=()
+             local dir=""
+             local file=""
+
+             # Determine search order
+             if [[ "$force_system" == "true" ]]; then search_dirs=("$sys_dir"); else search_dirs=("$user_dir" "$sys_dir"); fi
+
+             # Find potential script files
+             for dir in "${search_dirs[@]}"; do
+                 if [[ -d "$dir" ]]; then
+                      while IFS= read -r -d '' file; do
+                          if [[ -x "$file" ]]; then found_scripts+=("$file"); fi
+                      done < <(find "$dir" -maxdepth 1 \( -name "${command}" -o -name "${command}.*" \) -type f -print0 2>/dev/null)
+                 fi
+                 if [[ ${#found_scripts[@]} -gt 0 && "$force_system" == "false" && "$dir" == "$user_dir" ]]; then break; fi
+             done
+
+              # --- Handle Results ---
+             if [[ ${#found_scripts[@]} -eq 0 ]]; then
+                 # --- MODIFIED: Call ErrorMessage WITHOUT exit code, then RETURN ---
+                 ErrorMessage "rc command not found: '$command'" # Just print the error
+                 return 127 # Return code 127 from rc function
+                 # --- END MODIFIED ---
+             elif [[ ${#found_scripts[@]} -eq 1 ]]; then
+                 target_script="${found_scripts[0]}"
+                 bash "$target_script" "${cmd_args[@]}" # Execute using bash
+                 return $? # Return the script's exit code
+             else
+                 # Conflict (Ambiguous command) - this already uses return, which is correct
+                  ErrorMessage "Ambiguous command '$command'. Found multiple executables:"
+                  printf '  - %s\n' "${found_scripts[@]}" >&2
+                  InfoMessage "Please rename or remove conflicting files, or use '--system' flag if applicable."
+                  return 1 # Return error from rc function
+             fi
+             # --- End Utility Script Dispatch ---
+            ;; # End of default *) case
+
     esac # End of core command case statement
-
-
-    # --- Utility Script Dispatch Logic ---
-    # This part only runs if the command wasn't list, help, conflicts, etc.
-    local target_script=""
-    local user_dir="${RCFORGE_USER_UTILS:-/invalid_path}"
-    local sys_dir="${RCFORGE_UTILS:-/invalid_path}"
-    local -a search_dirs=()
-    local -a found_scripts=()
-    local dir=""
-    local file=""
-    local base_name="" # Need basename for conflict check
-
-    # Determine search order based on --system flag
-    if [[ "$force_system" == "true" ]]; then
-        InfoMessage "Forcing use of system utility for '$command'..." # Inform user
-        search_dirs=("$sys_dir")
-    else
-        search_dirs=("$user_dir" "$sys_dir")
-    fi
-
-
-    # Find executable files matching command basename
-    for dir in "${search_dirs[@]}"; do
-        if [[ -d "$dir" ]]; then
-            # Use find to locate executables matching pattern "command.*" or just "command"
-            # Need to handle potential errors from find if dir is unreadable
-             while IFS= read -r -d '' file; do
-                 found_scripts+=("$file")
-             done < <(find "$dir" -maxdepth 1 -name "${command}" -type f -executable -print0 2>/dev/null ; \
-                      find "$dir" -maxdepth 1 -name "${command}.*" -type f -executable -print0 2>/dev/null )
-        fi
-        # If we found scripts in the first directory (user dir, unless --system) and we are not forcing system, stop searching
-        if [[ ${#found_scripts[@]} -gt 0 && "$force_system" == "false" && "$dir" == "$user_dir" ]]; then
-            break
-        fi
-    done
-
-     # --- Handle Results ---
-    if [[ ${#found_scripts[@]} -eq 0 ]]; then
-        # No command found
-        ErrorMessage "rc command not found: '$command'" 127 # Exit 127: Command not found
-    elif [[ ${#found_scripts[@]} -eq 1 ]]; then
-        # Exactly one found, execute it
-        target_script="${found_scripts[0]}"
-         # Check verbosity - requires VerboseMessage to be available
-         # VerboseMessage "true" "Executing: $target_script ${cmd_args[*]:-(no args)}"
-        "$target_script" "${cmd_args[@]}" # Pass remaining args
-        return $? # Return the script's exit code
-    else
-        # Conflict: Multiple executables found for the command name in the *chosen* directory level (user or system)
-         ErrorMessage "Ambiguous command '$command'. Found multiple executables:"
-         printf '  - %s\n' "${found_scripts[@]}" >&2
-         InfoMessage "Please rename or remove conflicting files, or use '--system' flag if applicable."
-         return 1 # Indicate error
-    fi
-    # --- End Utility Script Dispatch ---
-
 }
 # Ensure the full implementation is also exported if sourced directly somehow
 export -f rc

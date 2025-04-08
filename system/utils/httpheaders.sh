@@ -33,6 +33,7 @@ set -o nounset  # Treat unset variables as errors
 # ============================================================================
 ShowSummary() {
     grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
+    exit 0
 }
 
 # ============================================================================
@@ -68,6 +69,8 @@ Examples:
   rc httpheaders -j -f https://redirecting-site.com
   rc httpheaders -s headers.txt https://api.example.com
 EOF
+
+    exit 0
 }
 
 # ============================================================================
@@ -172,13 +175,13 @@ ParseArguments() {
      if [[ "$#" -eq 1 ]]; then
          case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;;
+             --summary) ShowSummary; return 0 ;;
          esac
      # Also handle case where summary/help might be first but other args exist
      elif [[ "$#" -gt 0 ]]; then
           case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;;
+             --summary) ShowSummary; return 0 ;;
          esac
      fi
     # --- End pre-parse ---
@@ -188,7 +191,7 @@ ParseArguments() {
         case "$1" in
             # Help/Summary handled above, but keep for safety if called mid-args
             --help|-h) ShowHelp; return 1 ;;
-            --summary) ShowSummary; return 1 ;;
+            --summary) ShowSummary; return 0 ;;
             --verbose|-v) options_ref["is_verbose"]=true; shift ;;
             --json|-j) options_ref["output_format"]="json"; shift ;;
             --follow|-f) options_ref["follow_redirects"]=true; shift ;;

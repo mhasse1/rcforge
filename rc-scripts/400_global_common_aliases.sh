@@ -22,25 +22,19 @@ alias home='cd "$HOME"'
 # alias dl='cd "$HOME/Downloads"'   # Uncomment or modify
 
 # Directory listing aliases (with fallbacks)
-if command -v exa >/dev/null 2>&1; then
-  # Use exa if available (modern replacement for ls)
-  alias ls='exa --group-directories-first'
-  alias ll='exa -l --group-directories-first --header --git' # Long format, header, git status
-  alias la='exa -la --group-directories-first --header --git' # Long format, all files
-  alias lt='exa --tree --level=2' # Tree view, limited depth
-  # alias lg='exa -l --git' # Covered by ll/la now
-elif ls --color=auto &>/dev/null; then
-  # GNU ls (Linux) with color support
-  alias ls='ls --color=auto --group-directories-first -F' # Add file type indicators (-F)
-  alias ll='ls -lh --color=auto --group-directories-first -F' # Human-readable sizes
-  alias la='ls -lah --color=auto --group-directories-first -F' # Include hidden files
-else
+if IsBSD; then
   # BSD ls (macOS) with color support
   export CLICOLOR=1       # Enable colors for BSD ls
   export LSCOLORS="exfxcxdxbxegedabagacad" # Optional: Customize LSCOLORS
   alias ls='ls -G -F'     # Enable color and file type indicators
   alias ll='ls -lhGF'   # Human-readable sizes
   alias la='ls -lahGF'  # Include hidden files
+else
+  # GNU ls (Linux) with color support
+  alias ls='ls --color=auto --group-directories-first -F' # Add file type indicators (-F)
+  alias ll='ls -lh --color=auto --group-directories-first -F' # Human-readable sizes
+  alias la='ls -lah --color=auto --group-directories-first -F' # Include hidden files
+
 fi
 
 # ============================================================================

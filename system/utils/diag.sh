@@ -34,6 +34,7 @@ readonly gc_default_output_dir="${HOME}/.config/rcforge/docs" # Default output d
 # ============================================================================
 ShowSummary() {
     grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
+    exit 0
 }
 
 # ============================================================================
@@ -67,6 +68,8 @@ ShowHelp() {
     echo "  rc diag --shell=bash                         # Generate Bash diagram"
     echo "  rc diag --hostname=laptop --shell=zsh      # Diagram for laptop's Zsh config"
     echo "  rc diag --format=ascii --output=~/diag.txt # Output ASCII to specific file"
+
+    exit 0
 }
 
 # ============================================================================
@@ -166,7 +169,9 @@ FindConfigFiles() {
 
 # ============================================================================
 # Function: GenerateMermaidDiagram
-# Description: Generate a Mermaid flowchart diagram from a list of files.
+# Description: Generate a Mermaid flowchart diagram from a list of files,
+#              showing nodes sequentially and highlighting sequence conflicts
+#              using direct 'style' commands. Uses unique node IDs based on filenames.
 # Usage: GenerateMermaidDiagram file1 [file2...]
 # Arguments: One or more sorted config file paths.
 # Returns: Echoes Mermaid diagram markdown text.
@@ -181,115 +186,112 @@ GenerateMermaidDiagram() {
     local hostname=""
     local environment=""
     local description=""
-    local node_id=""
-    local node_class=""
-    local prev_node="StartNode"
-    local is_first_node=true # Not currently used, keep for structure
+    local node_id=""            # Will be based on sanitized filename
+    local node_label=""         # Separate variable for the visible label
+    local prev_node_id="StartNode" # Start linking from StartNode
 
+    # --- Data Structures ---
+    declare -A seq_counts
+    declare -A conflicting_seqs
+    declare -A node_id_to_seq_num # Map generated node ID back to its sequence number
+
+    # --- Pass 1: Identify Conflicts and Store Node Seq Info ---
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+        seq_counts["$seq_num"]=$(( ${seq_counts[$seq_num]:-0} + 1 ))
+
+        # Construct node ID and store its sequence number
+        if [[ "$filename" == *.sh ]]; then IFS='_' read -r -a parts <<< "${filename%.sh}"; else IFS='_' read -r -a parts <<< "$filename"; fi
+        hostname="${parts[1]:-unknown}"
+        environment="${parts[2]:-unknown}"
+        local current_node_id="Node_${filename//[^a-zA-Z0-9._-]/_}" # Use sanitized filename for ID
+        node_id_to_seq_num["$current_node_id"]="$seq_num"
+    done
+
+    # Mark conflicting sequences
+    for seq_num in "${!seq_counts[@]}"; do
+        if [[ "${seq_counts[$seq_num]}" -gt 1 ]]; then
+            conflicting_seqs["$seq_num"]=true
+        fi
+    done
+    # --- End Pass 1 ---
+
+    # --- Start Building Diagram String ---
     diagram+="# rcForge Configuration Loading Order (Mermaid Diagram)\n"
     diagram+="\`\`\`mermaid\n"
     diagram+="flowchart TD\n"
-    diagram+="    classDef global fill:#f9f,stroke:#333,stroke-width:2px\n"
-    diagram+="    classDef hostname fill:#bbf,stroke:#333,stroke-width:2px\n"
-    diagram+="    classDef common fill:#dfd,stroke:#333,stroke-width:1px\n"
-    diagram+="    classDef shell fill:#ffd,stroke:#333,stroke-width:1px\n\n"
+    # Define standard node style implicitly, will override for conflicts later
     diagram+="    StartNode([Start rcForge])\n"
+    diagram+="    EndNode([End rcForge])\n\n"
+    # --- End Initial Definitions ---
+
+    # --- Pass 2: Define nodes and sequential links ---
+    local processed_a_node=false # Track if any nodes were processed
+    local -A defined_nodes # Keep track of nodes already defined to apply style later
 
     for file in "${files[@]}"; do
         filename=$(basename "$file")
         seq_num="${filename%%_*}"
-        IFS='_' read -r -a parts <<< "${filename%.sh}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue # Skip invalid sequence numbers
+
+        # Extract parts
+        if [[ "$filename" == *.sh ]]; then IFS='_' read -r -a parts <<< "${filename%.sh}"; description="${filename#*_*_*_}"; description="${description%.sh}"; else IFS='_' read -r -a parts <<< "$filename"; description="${filename#*_*_*_}"; fi
         hostname="${parts[1]:-unknown}"
         environment="${parts[2]:-unknown}"
-        description="${filename#*_*_*_}"
-        description="${description%.sh}"
 
-        node_id="Node_${seq_num}_${hostname}_${environment}"
-        node_id="${node_id//[^a-zA-Z0-9_]/_}"
+        # Create Unique Node ID
+        local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}"
+        node_id="Node_${sanitized_filename}"
 
-        node_class=""
-        [[ "$hostname" == "global" ]] && node_class+=" global" || node_class+=" hostname"
-        [[ "$environment" == "common" ]] && node_class+=" common" || node_class+=" shell"
-        node_class=$(echo "$node_class" | xargs)
+        # Sanitize description for Label
+        description="${description//\"/ }"; description="${description//\`/ }"
+        node_label="${seq_num}: ${hostname}/${environment}<br>${description}"
 
-        diagram+="    ${node_id}[\"${seq_num}: ${hostname}/${environment}<br>${description}\"]\n"
-        diagram+="    $prev_node --> $node_id\n"
-        diagram+="    class $node_id $node_class\n"
+        # Define node
+        diagram+="    ${node_id}[\"${node_label}\"]\n"
+        # Link from previous node
+        diagram+="    $prev_node_id --> $node_id\n"
 
-        prev_node="$node_id"
-        is_first_node=false
+        # Store this node ID for later styling if needed
+        defined_nodes["$node_id"]=1
+
+        # Update previous node for next link
+        prev_node_id="$node_id"
+        processed_a_node=true
     done
+    # --- End Pass 2 ---
 
-    diagram+="    EndNode([End rcForge])\n"
-    diagram+="    $prev_node --> EndNode\n"
+    # --- Final Link to EndNode ---
+    if [[ "$processed_a_node" == "true" ]]; then
+        diagram+="    $prev_node_id --> EndNode\n"
+    else
+        diagram+="    StartNode --> EndNode\n"
+    fi
+    diagram+="\n"
+    # --- End Final Link ---
+
+    # --- Pass 3: Apply Direct Styles for Conflicts ---
+    local conflict_style="fill:#fdd,stroke:#f00,stroke-width:2px" # Pinkish fill, red border
+    for node_id in "${!defined_nodes[@]}"; do
+         local current_seq_num="${node_id_to_seq_num[$node_id]:-}"
+         # Apply conflict style if the sequence number was marked as conflicting
+         if [[ -n "$current_seq_num" && -v "conflicting_seqs[$current_seq_num]" ]]; then
+              diagram+="    style $node_id $conflict_style\n"
+         fi
+    done
+    # --- End Pass 3 ---
+
+
     diagram+=" \`\`\`\n"
-
-    printf '%s' "$diagram"
-}
-
-# ============================================================================
-# Function: GenerateGraphvizDiagram
-# Description: Generate a Graphviz DOT diagram from a list of files.
-# Usage: GenerateGraphvizDiagram file1 [file2...]
-# Arguments: One or more sorted config file paths.
-# Returns: Echoes Graphviz DOT diagram text suitable for 'dot' command.
-# ============================================================================
-GenerateGraphvizDiagram() {
-    local -a files=("$@")
-    local diagram=""
-    local file=""
-    local filename=""
-    local seq_num=""
-    local -a parts
-    local hostname=""
-    local environment=""
-    local description=""
-    local node_id=""
-    local fill_color=""
-    local prev_node="start_node"
-
-    diagram+="// rcForge Configuration Loading Order (Graphviz DOT Diagram)\n"
-    diagram+="digraph rcForgeLoadingOrder {\n"
-    diagram+="    rankdir=TD;\n"
-    diagram+="    node [shape=box, style=filled, fontname=\"Helvetica,Arial,sans-serif\"];\n"
-    diagram+="    edge [fontname=\"Helvetica,Arial,sans-serif\"];\n\n"
-    diagram+="    start_node [label=\"Start rcForge\", shape=oval];\n"
-    diagram+="    end_node [label=\"End rcForge\", shape=oval];\n\n"
-
-    for file in "${files[@]}"; do
-        filename=$(basename "$file")
-        seq_num="${filename%%_*}"
-        IFS='_' read -r -a parts <<< "${filename%.sh}"
-        hostname="${parts[1]:-unknown}"
-        environment="${parts[2]:-unknown}"
-        description="${filename#*_*_*_}"
-        description="${description%.sh}"
-
-        node_id="Node_${seq_num}_${hostname}_${environment}"
-        node_id="${node_id//[^a-zA-Z0-9_]/_}"
-
-        if [[ "$hostname" == "global" ]]; then
-            [[ "$environment" == "common" ]] && fill_color="#f9f" || fill_color="#ffdddd"
-        else
-            [[ "$environment" == "common" ]] && fill_color="#ddddff" || fill_color="#ddffdd"
-        fi
-
-        description="${description//\"/\\\"}"
-        diagram+="    ${node_id} [label=\"${seq_num}: ${hostname}/${environment}\\n${description}\", fillcolor=\"${fill_color}\"];\n"
-        diagram+="    ${prev_node} -> ${node_id};\n"
-
-        prev_node="$node_id"
-    done
-
-    diagram+="    ${prev_node} -> end_node;\n"
-    diagram+="}\n"
-
-    printf '%s' "$diagram"
+    printf '%b' "$diagram"
 }
 
 # ============================================================================
 # Function: GenerateAsciiDiagram
-# Description: Generate a simple ASCII text diagram from a list of files.
+# Description: Generate a simple ASCII text diagram from a list of files,
+#              indicating sequence conflicts with a text marker. Uses sequential layout.
 # Usage: GenerateAsciiDiagram file1 [file2...]
 # Arguments: One or more sorted config file paths.
 # Returns: Echoes ASCII diagram text.
@@ -304,6 +306,24 @@ GenerateAsciiDiagram() {
     local hostname=""
     local environment=""
     local description=""
+    local conflict_marker=""
+
+    # --- Identify Conflicting Sequence Numbers ---
+    declare -A seq_counts
+    declare -A conflicting_seqs
+
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+        seq_counts["$seq_num"]=$(( ${seq_counts[$seq_num]:-0} + 1 ))
+    done
+    for seq_num in "${!seq_counts[@]}"; do
+        if [[ "${seq_counts[$seq_num]}" -gt 1 ]]; then
+            conflicting_seqs["$seq_num"]=true
+        fi
+    done
+    # --- End Conflict Identification ---
 
     diagram+="# rcForge Configuration Loading Order (ASCII Diagram)\n"
     diagram+="\`\`\`\n"
@@ -311,24 +331,287 @@ GenerateAsciiDiagram() {
     diagram+="   |\n"
     diagram+="   V\n"
 
+    local processed_a_node=false
     for file in "${files[@]}"; do
         filename=$(basename "$file")
         seq_num="${filename%%_*}"
-        IFS='_' read -r -a parts <<< "${filename%.sh}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+
+        # Extract parts
+        if [[ "$filename" == *.sh ]]; then IFS='_' read -r -a parts <<< "${filename%.sh}"; description="${filename#*_*_*_}"; description="${description%.sh}"; else IFS='_' read -r -a parts <<< "$filename"; description="${filename#*_*_*_}"; fi
         hostname="${parts[1]:-unknown}"
         environment="${parts[2]:-unknown}"
-        description="${filename#*_*_*_}"
-        description="${description%.sh}"
 
-        diagram+="[${seq_num}] ${hostname}/${environment} - ${description}\n"
+        # Determine conflict marker
+        conflict_marker=""
+        if [[ -v "conflicting_seqs[$seq_num]" ]]; then
+             conflict_marker=" (CONFLICT)"
+        fi
+
+        # Add line to diagram
+        diagram+="[${seq_num}] ${hostname}/${environment} - ${description}${conflict_marker}\n"
         diagram+="   |\n"
         diagram+="   V\n"
+        processed_a_node=true
     done
+
+    if [[ "$processed_a_node" != "true" ]]; then
+         # If no nodes were processed, remove the initial arrow
+         # Use parameter expansion for robust removal of last two lines
+         diagram="${diagram%   |\n   V\n}"
+    fi
 
     diagram+="END rcForge\n"
     diagram+="\`\`\`\n"
 
-    printf '%s' "$diagram"
+    # --- CORRECTED: Use %b to interpret \n ---
+    printf '%b' "$diagram"
+    # --- END CORRECTED ---
+}
+
+# ============================================================================
+# Function: GenerateMermaidDiagram
+# Description: Generate a Mermaid flowchart diagram from a list of files,
+#              showing nodes sequentially and highlighting sequence conflicts
+#              by styling the connecting LINKS red. Uses unique node IDs based on filenames.
+# Usage: GenerateMermaidDiagram file1 [file2...]
+# Arguments: One or more sorted config file paths.
+# Returns: Echoes Mermaid diagram markdown text.
+# ============================================================================
+GenerateMermaidDiagram() {
+    local -a files=("$@")
+    local diagram=""
+    local file=""
+    local filename=""
+    local seq_num=""
+    local -a parts
+    local hostname=""
+    local environment=""
+    local description=""
+    local node_id=""            # Based on sanitized filename
+    local node_label=""         # Separate variable for the visible label
+    local prev_node_id="StartNode" # Start linking from StartNode
+
+    # --- Data Structures ---
+    declare -A seq_counts
+    declare -A conflicting_seqs
+    declare -A node_id_to_seq_num # Map generated node ID back to its sequence number
+    local -A defined_nodes # Keep track of node IDs defined
+    local -a defined_links_source=() # Store source node ID for each link
+    local -a defined_links_target=() # Store target node ID for each link
+
+    # --- Pass 1: Identify Conflicts and Store Node Seq Info ---
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+        seq_counts["$seq_num"]=$(( ${seq_counts[$seq_num]:-0} + 1 ))
+
+        # Construct node ID and store its sequence number
+        local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}"
+        local current_node_id="Node_${sanitized_filename}"
+        node_id_to_seq_num["$current_node_id"]="$seq_num"
+    done
+
+    # Mark conflicting sequences
+    for seq_num in "${!seq_counts[@]}"; do
+        if [[ "${seq_counts[$seq_num]}" -gt 1 ]]; then
+            conflicting_seqs["$seq_num"]=true
+        fi
+    done
+    # --- End Pass 1 ---
+
+    # --- Start Building Diagram String ---
+    diagram+="# rcForge Configuration Loading Order (Mermaid Diagram)\n"
+    diagram+="\`\`\`mermaid\n"
+    diagram+="flowchart TD\n"
+    diagram+="    StartNode([Start rcForge])\n"
+    diagram+="    EndNode([End rcForge])\n\n"
+    # --- End Initial Definitions ---
+
+    # --- Pass 2: Define nodes and sequential links ---
+    local processed_a_node=false # Track if any nodes were processed
+
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue # Skip invalid sequence numbers
+
+        # Extract parts
+        if [[ "$filename" == *.sh ]]; then IFS='_' read -r -a parts <<< "${filename%.sh}"; description="${filename#*_*_*_}"; description="${description%.sh}"; else IFS='_' read -r -a parts <<< "$filename"; description="${filename#*_*_*_}"; fi
+        hostname="${parts[1]:-unknown}"
+        environment="${parts[2]:-unknown}"
+
+        # Create Unique Node ID
+        local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}"
+        node_id="Node_${sanitized_filename}"
+
+        # Sanitize description for Label
+        description="${description//\"/ }"; description="${description//\`/ }"
+        node_label="${seq_num}: ${hostname}/${environment}<br>${description}"
+
+        # Define node
+        diagram+="    ${node_id}[\"${node_label}\"]\n"
+        # Define Link from previous node AND store link info
+        diagram+="    $prev_node_id --> $node_id\n"
+        defined_links_source+=("$prev_node_id")
+        defined_links_target+=("$node_id")
+
+        # Store this node ID
+        defined_nodes["$node_id"]=1
+
+        # Update previous node for next link
+        prev_node_id="$node_id"
+        processed_a_node=true
+    done
+    # --- End Pass 2 ---
+
+    # --- Final Link to EndNode ---
+    if [[ "$processed_a_node" == "true" ]]; then
+        diagram+="    $prev_node_id --> EndNode\n"
+        defined_links_source+=("$prev_node_id")
+        defined_links_target+=("EndNode")
+    else
+        diagram+="    StartNode --> EndNode\n"
+        defined_links_source+=("StartNode")
+        defined_links_target+=("EndNode")
+    fi
+    diagram+="\n"
+    # --- End Final Link ---
+
+    # --- Pass 3: Apply Link Styles for Conflicts ---
+    local conflict_link_style="stroke:red,stroke-width:2px"
+    local link_index=0
+    for (( link_index=0; link_index < ${#defined_links_source[@]}; link_index++ )); do
+         local source_node_id="${defined_links_source[$link_index]}"
+         local target_node_id="${defined_links_target[$link_index]}"
+
+         # Get sequence numbers for source and target (if they are script nodes)
+         local source_seq_num="${node_id_to_seq_num[$source_node_id]:-}"
+         local target_seq_num="${node_id_to_seq_num[$target_node_id]:-}"
+
+         # Apply conflict style if EITHER the source OR target node sequence is conflicting
+         local apply_style=false
+         if [[ -n "$source_seq_num" && -v "conflicting_seqs[$source_seq_num]" ]]; then
+              apply_style=true
+         fi
+         if [[ -n "$target_seq_num" && -v "conflicting_seqs[$target_seq_num]" ]]; then
+              apply_style=true
+         fi
+
+         if [[ "$apply_style" == "true" ]]; then
+              # Mermaid linkStyle is 0-based index
+              diagram+="    linkStyle $link_index $conflict_link_style\n"
+         fi
+    done
+    # --- End Pass 3 ---
+
+    diagram+=" \`\`\`\n"
+    printf '%b' "$diagram"
+}
+
+# ============================================================================
+# Function: GenerateGraphvizDiagram
+# Description: Generate a Graphviz DOT diagram from a list of files,
+#              highlighting sequence conflicts with color. Uses sequential layout.
+#              Ensures Node IDs containing special characters are quoted.
+# Usage: GenerateGraphvizDiagram file1 [file2...]
+# Arguments: One or more sorted config file paths.
+# Returns: Echoes Graphviz DOT diagram text suitable for 'dot' command.
+# ============================================================================
+GenerateGraphvizDiagram() {
+    local -a files=("$@")
+    local diagram=""
+    local file=""
+    local filename=""
+    local seq_num=""
+    local -a parts
+    local hostname=""
+    local environment=""
+    local description=""
+    local node_id=""            # Based on sanitized filename
+    local quoted_node_id=""     # Node ID enclosed in quotes if needed
+    local node_label=""
+    local node_attrs=""         # For fillcolor, color attributes
+    local prev_node_id="start_node" # Match start/end node names used below
+    local quoted_prev_node_id="start_node" # Quoted version for links
+
+    # --- Identify Conflicting Sequence Numbers ---
+    declare -A seq_counts
+    declare -A conflicting_seqs
+
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+        seq_counts["$seq_num"]=$(( ${seq_counts[$seq_num]:-0} + 1 ))
+    done
+    for seq_num in "${!seq_counts[@]}"; do
+        if [[ "${seq_counts[$seq_num]}" -gt 1 ]]; then
+            conflicting_seqs["$seq_num"]=true
+        fi
+    done
+    # --- End Conflict Identification ---
+
+    diagram+="// rcForge Configuration Loading Order (Graphviz DOT Diagram)\n"
+    diagram+="digraph rcForgeLoadingOrder {\n"
+    diagram+="    rankdir=TD;\n"
+    diagram+="    node [shape=box, style=filled, fontname=\"Helvetica,Arial,sans-serif\"];\n"
+    diagram+="    edge [fontname=\"Helvetica,Arial,sans-serif\"];\n\n"
+    diagram+="    start_node [label=\"Start rcForge\", shape=oval, style=\"\", fillcolor=\"\"];\n" # No fill for start/end
+    diagram+="    end_node [label=\"End rcForge\", shape=oval, style=\"\", fillcolor=\"\"];\n\n"
+
+    local processed_a_node=false
+    for file in "${files[@]}"; do
+        filename=$(basename "$file")
+        seq_num="${filename%%_*}"
+        [[ ! "$seq_num" =~ ^[0-9]{3}$ ]] && continue
+
+        # Extract parts
+        if [[ "$filename" == *.sh ]]; then IFS='_' read -r -a parts <<< "${filename%.sh}"; description="${filename#*_*_*_}"; description="${description%.sh}"; else IFS='_' read -r -a parts <<< "$filename"; description="${filename#*_*_*_}"; fi
+        hostname="${parts[1]:-unknown}"
+        environment="${parts[2]:-unknown}"
+
+        # Create Unique Node ID
+        local sanitized_filename="${filename//[^a-zA-Z0-9._-]/_}" # Keep . and - for now
+        node_id="Node_${sanitized_filename}"
+        quoted_node_id="\"${node_id}\"" # Always quote generated IDs
+
+        # Sanitize description for Label & escape for DOT
+        description="${description//\"/\\\"}" # Escape double quotes for DOT label
+        node_label="${seq_num}: ${hostname}/${environment}\\n${description}" # Use \\n for newline in DOT
+
+        # Determine Node Attributes (Coloring)
+        node_attrs=""
+        if [[ -v "conflicting_seqs[$seq_num]" ]]; then
+             # Conflicting node: light pink fill, red border
+             node_attrs="fillcolor=\"#fdd\", color=\"red\", style=\"filled,bold\""
+        else
+             # Standard node: default fill (e.g., Light gray)
+             node_attrs="fillcolor=\"#eeeeee\""
+        fi
+
+        # Define node with attributes (use quoted ID)
+        diagram+="    ${quoted_node_id} [label=\"${node_label}\", ${node_attrs}];\n"
+        # Link from previous node (use quoted IDs)
+        diagram+="    ${quoted_prev_node_id} -> ${quoted_node_id};\n"
+
+        # Update previous node for next link (store both quoted and unquoted)
+        prev_node_id="$node_id"
+        quoted_prev_node_id="$quoted_node_id"
+        processed_a_node=true
+    done
+
+    # Final Link to EndNode (use quoted ID for last node)
+    if [[ "$processed_a_node" == "true" ]]; then
+        diagram+="    ${quoted_prev_node_id} -> end_node;\n"
+    else
+        diagram+="    start_node -> end_node;\n"
+    fi
+    diagram+="}\n"
+
+    # Use %b to interpret escapes like \n and \\n
+    printf '%b' "$diagram"
 }
 
 # ============================================================================
@@ -408,20 +691,20 @@ ParseArguments() {
     options_ref["output_file"]="" # [cite: 743]
     options_ref["format"]="mermaid" # [cite: 743]
     options_ref["verbose_mode"]=false # [cite: 743]
-    $options_ref["args"]=() # For any future positional args
+    #options_ref["args"]=() # For any future positional args
 
     # --- Pre-parse checks for summary/help ---
      # Check BEFORE the loop if only summary/help is requested
      if [[ "$#" -eq 1 ]]; then
          case "$1" in
             --help|-h) ShowHelp; return 1 ;;
-            --summary) ShowSummary; return 1 ;; # Handle summary
+            --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      # Also handle case where summary/help might be first but other args exist
      elif [[ "$#" -gt 0 ]]; then
           case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      fi
     # --- End pre-parse ---
@@ -429,7 +712,7 @@ ParseArguments() {
     while [[ "$#" -gt 0 ]]; do
         case "$1" in
             --help|-h) ShowHelp; return 1 ;; # [cite: 744]
-            --summary) ShowSummary; return 1 ;; # [cite: 745]
+            --summary) ShowSummary; return 0 ;; # [cite: 745]
             --hostname=*) options_ref["target_hostname"]="${1#*=}"; shift ;; # [cite: 745]
             --shell=*)
                 options_ref["target_shell"]="${1#*=}"

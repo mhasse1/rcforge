@@ -34,6 +34,7 @@ readonly gc_supported_shells=("bash" "zsh")
 # ============================================================================
 ShowSummary() {
     grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
+    exit 0
 }
 
 # ============================================================================
@@ -70,6 +71,8 @@ ShowHelp() {
     echo "  rc seqcheck --all              # Check all possible execution paths"
     echo "  rc seqcheck --fix              # Interactively fix conflicts for current context"
     echo "  rc seqcheck --all --dry-run    # Show potential conflicts everywhere"
+
+    exit 0
 }
 
 # ============================================================================
@@ -511,20 +514,20 @@ ParseArguments() {
     options_ref["fix_conflicts"]=false # [cite: 870]
     options_ref["is_interactive"]=true # [cite: 870]
     options_ref["is_dry_run"]=false # [cite: 870]
-    options_ref["args"]=() # For any future positional args
+    #options_ref["args"]=() # For any future positional args
 
     # --- Pre-parse checks for summary/help ---
      # Check BEFORE the loop if only summary/help is requested
      if [[ "$#" -eq 1 ]]; then
          case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      # Also handle case where summary/help might be first but other args exist
      elif [[ "$#" -gt 0 ]]; then
           case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      fi
     # --- End pre-parse ---
@@ -532,7 +535,7 @@ ParseArguments() {
     while [[ "$#" -gt 0 ]]; do # [cite: 872]
         case "$1" in
             --help|-h) ShowHelp; return 1 ;; # [cite: 873]
-            --summary) ShowSummary; return 1 ;; # [cite: 874]
+            --summary) ShowSummary; return 0 ;; # [cite: 874]
             --hostname=*) options_ref["target_hostname"]="${1#*=}"; shift ;; # [cite: 874]
             --shell=*)
                 options_ref["target_shell"]="${1#*=}"

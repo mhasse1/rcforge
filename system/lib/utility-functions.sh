@@ -195,7 +195,7 @@ DetectOS() {
 # Returns: 0 (true) if macOS, 1 (false) otherwise.
 # ============================================================================
 IsMacOS() {
-  [[ "$(DetectOS)" == "macos" ]] # Call PascalCase
+  [[ "$(DetectOS)" == "macos" ]]
 }
 
 # ============================================================================
@@ -205,8 +205,21 @@ IsMacOS() {
 # Returns: 0 (true) if Linux, 1 (false) otherwise.
 # ============================================================================
 IsLinux() {
-  [[ "$(DetectOS)" == "linux" ]] # Call PascalCase
+  [[ "$(DetectOS)" == "linux" ]]
 }
+
+# ============================================================================
+# Function: IsBSD
+# Description: Checks if the current operating system is BSD
+# Usage: if IsBSD; then ... fi
+# Returns: 0 (true) if BSD, 1 (false) otherwise.
+# ============================================================================
+IsBSD() {
+  [[ "$(DetectOS)" == "macos" ]]
+  # add FreeBSD, etc. as added
+}
+
+
 
 # ============================================================================
 # Function: CommandExists
@@ -456,6 +469,7 @@ export -f DetectShell
 export -f DetectOS
 export -f IsMacOS
 export -f IsLinux
+export -f IsBSD
 export -f CommandExists
 export -f ShowVersion
 export -f ShowHelp

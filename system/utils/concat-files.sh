@@ -23,15 +23,16 @@ set -o pipefail
 # ============================================================================
 ShowSummary() {
     grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
+    exit 0
 }
 
 
 # ============================================================================
-# Function: DisplayHelp
+# Function: ShowHelp
 # Description: Show help message for the script.
-# Usage: DisplayHelp
+# Usage: ShowHelp
 # ============================================================================
-DisplayHelp() {
+ShowHelp() {
     echo "Usage: $0 [options]"
     echo ""
     echo "Description:"
@@ -44,6 +45,8 @@ DisplayHelp() {
     echo ""
     echo "Example:"
     echo "  $0 -p '*.sh' -nr   # Concatenate all .sh files in the current directory only"
+
+    exit 0
 }
 
 # ============================================================================
@@ -65,22 +68,22 @@ ParseArguments() {
      # Check BEFORE the loop if only summary/help is requested
      if [[ "$#" -eq 1 ]]; then
          case "$1" in
-             -h|--help) DisplayHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             -h|--help) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      # Also handle case where summary/help might be first but other args exist
      elif [[ "$#" -gt 0 ]]; then
           case "$1" in
-             -h|--help) DisplayHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             -h|--help) ShowHelp; return 1 ;;
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      fi
     # --- End pre-parse ---
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -h|--help) DisplayHelp; return 1 ;;
-            --summary) ShowSummary; return 1 ;; # Handle summary
+            -h|--help) ShowHelp; return 1 ;;
+            --summary) ShowSummary; return 0 ;; # Handle summary
             -p|--pattern)
                 # Ensure value exists and is not another option
                 if [[ -z "${2:-}" || "$2" == -* ]]; then ErrorMessage "Option '$1' requires a PATTERN argument."; return 1; fi # [cite: 1048]
@@ -93,7 +96,7 @@ ParseArguments() {
                 ;;
             *)
                 ErrorMessage "Unknown option: $1" # [cite: 1051]
-                DisplayHelp
+                ShowHelp
                 return 1
                 ;;
         esac

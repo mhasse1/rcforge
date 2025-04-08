@@ -14,10 +14,6 @@ system/utils
 FILES:
 # Source Path (relative to project root)        Destination Path (relative to ~/.config/rcforge)
 rcforge.sh                                      rcforge.sh
-system/lib/shell-colors.sh                      system/lib/shell-colors.sh
-system/core/functions.sh                        system/core/functions.sh
-LICENSE                                         docs/LICENSE
-README.md                                       docs/README.md
 rc-scripts/050_global_common_path.sh            rc-scripts/050_global_common_path.sh
 rc-scripts/200_global_common_config.sh          rc-scripts/200_global_common_config.sh
 rc-scripts/210_global_bash_config.sh            rc-scripts/210_global_bash_config.sh
@@ -39,3 +35,5 @@ system/utils/diag.sh                            system/utils/diag.sh
 system/utils/export.sh                          system/utils/export.sh
 system/utils/httpheaders.sh                     system/utils/httpheaders.sh
 system/utils/seqcheck.sh                        system/utils/seqcheck.sh
+LICENSE                                         docs/LICENSE
+README.md                                       docs/README.md

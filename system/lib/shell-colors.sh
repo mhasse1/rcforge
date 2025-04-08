@@ -361,11 +361,11 @@ SectionHeader() {
     if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
         printf "\n%b%s%b\n" "${color}" "$line" "${RESET}"
         printf "%b%*s %s %*s%b\n" "${color}" "$padding" "" "${text}" "$r_padding" "" "${RESET}"
-        printf "%b%s%b\n\n" "${color}" "$line" "${RESET}"
+        printf "%b%s%b\n" "${color}" "$line" "${RESET}"
     else
         printf "\n%s\n" "$line"
         printf "%*s %s %*s\n" "$padding" "" "${text}" "$r_padding" ""
-        printf "%s\n\n" "$line"
+        printf "%s\n" "$line"
     fi
 }
 

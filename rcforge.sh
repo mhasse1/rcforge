@@ -77,8 +77,11 @@ PerformIntegrityChecks() {
     local check_script_path=""
     local check_name=""
 
-    if command -v SectionHeader &> /dev/null; then SectionHeader "rcForge Integrity Checks"; else
-         echo -e "\n${BOLD}${CYAN}rcForge Integrity Checks${RESET}\n${CYAN}==============================${RESET}\n"; fi
+    if command -v SectionHeader &> /dev/null; then
+        SectionHeader "rcForge Integrity Checks"
+    else
+        echo -e "\n${BOLD}${CYAN}rcForge Integrity Checks${RESET}\n${CYAN}==============================${RESET}\n"
+    fi
 
     local -A checks=(
         ["Sequence Conflict Check"]="${RCFORGE_UTILS}/seqcheck.sh"
@@ -249,8 +252,9 @@ main() {
     # --- Abort Check ---
     local user_input=""
     local timeout_seconds=1
+    SectionHeader "${CYAN}INFO:${RESET} Initializing rcForge"
     # Use printf for potentially colored/formatted output consistency
-    printf "%b" "${CYAN}INFO:${RESET} Initializing rcForge... (Press '.' within ${timeout_seconds}s to abort): "
+    printf "%b" "${CYAN}INFO:${RESET} Initializing rcForge... (Press '.' within ${timeout_seconds}s to abort)..."
     # Read one character (-N 1), silently (-s), with a timeout (-t)
     if read -s -N 1 -t "$timeout_seconds" user_input; then
         # Read completed (didn't time out)
@@ -267,14 +271,14 @@ main() {
         # Read timed out (exit status > 128 in Bash for read -t timeout)
         # Or read failed for another reason
         if [[ $? -gt 128 ]]; then
-             echo "Timeout." # Indicate timeout clearly
+             echo "continuing." # Indicate timeout clearly
              # Continue loading automatically after timeout
         else
              # Handle other potential read errors if necessary
              WarningMessage "Read command failed unexpectedly during abort check. Continuing..."
         fi
     fi
-    echo "" # Add a newline for cleaner output flow
+    # echo "" # Add a newline for cleaner output flow
     # --- End Abort Check ---
 
 

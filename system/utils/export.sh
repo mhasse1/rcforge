@@ -35,6 +35,7 @@ readonly gc_default_export_dir="${HOME}/.config/rcforge/exports"
 # ============================================================================
 ShowSummary() {
     grep '^# RC Summary:' "$0" | sed 's/^# RC Summary: //'
+    exit 0
 }
 
 # ============================================================================
@@ -70,6 +71,8 @@ ShowHelp() {
     echo "  rc export --shell=zsh --hostname=laptop      # Export zsh configs for 'laptop'"
     echo "  rc export --shell=bash --output=~/bashrc.exp # Export to specific file"
     echo "  rc export --shell=zsh --force -v             # Export zsh, overwrite, verbose"
+
+    exit 0
 }
 
 # ============================================================================
@@ -331,13 +334,13 @@ ParseArguments() {
      if [[ "$#" -eq 1 ]]; then
          case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      # Also handle case where summary/help might be first but other args exist
      elif [[ "$#" -gt 0 ]]; then
           case "$1" in
              --help|-h) ShowHelp; return 1 ;;
-             --summary) ShowSummary; return 1 ;; # Handle summary
+             --summary) ShowSummary; return 0 ;; # Handle summary
          esac
      fi
     # --- End pre-parse ---
@@ -345,7 +348,7 @@ ParseArguments() {
     while [[ "$#" -gt 0 ]]; do # [cite: 1014]
         case "$1" in
             --help|-h) ShowHelp; return 1 ;; # [cite: 1014]
-            --summary) ShowSummary; return 1 ;; # [cite: 1015]
+            --summary) ShowSummary; return 0 ;; # [cite: 1015]
             --shell=*)
                 options_ref["shell_type"]="${1#*=}"
                 if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi #

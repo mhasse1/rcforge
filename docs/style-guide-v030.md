@@ -304,9 +304,9 @@ fi
 ### Function Design
 
 1. Function Naming
-   - Other than `main`, use pascal case for core system functions, e.g., `FunctionName`
+   - Other than `main`, and command line functions like `rc` that are lower case as part of the UX design, use pascal case for all functions, e.g., `FunctionName`
    - Be descriptive about the function's purpose
-   - Examples: `InstallDependencies()`, `validate_configuration()`
+   - Examples: `InstallDependencies()`, `ValidateConfiguration()`
    - Include function headings as demonstrated in 2. Function Structure below.
    - When it does not interfere with the archecture of the script, all functions should be declared at the top of the script file.
 
@@ -506,7 +506,7 @@ set -o nounset
 set -o errexit
 
 # Display help information
-show_help() {
+ShowHelp() {
     cat << EOF
 utility-name - Detailed description
 
@@ -527,7 +527,7 @@ EOF
 }
 
 # Display summary (used by rc help command)
-show_summary() {
+ShowSummary() {
     echo "One-line description for RC help display"
 }
 
@@ -536,11 +536,11 @@ main() {
     # Process arguments
     case "${1:-}" in
         help|--help|-h)
-            show_help
+            ShowHelp
             return 0
             ;;
         summary|--summary)
-            show_summary
+            ShowSummary
             return 0
             ;;
         # Add other argument handling here
@@ -708,8 +708,8 @@ export RCFORGE_APP_NAME="rcForge"
 export RCFORGE_VERSION="0.3.0"
 
 # For local use in a script
-readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 ```
 
 #### Example Library with Exported Functions and Variables
@@ -829,9 +829,9 @@ rc utility-name --verbose /path/to/file
 ```
 ```
 
-### RC Command Help Documentation
+### rc Command Help Documentation
 
-Each RC command utility should include:
+Each rc command utility should include:
 
 1. **Inline Documentation**:
    - Header comment with utility name and description
