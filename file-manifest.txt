@@ -36,4 +36,4 @@ system/utils/concat-files.sh                    system/utils/concat-files.sh
 system/utils/diag.sh                            system/utils/diag.sh
 system/utils/export.sh                          system/utils/export.sh
 system/utils/httpheaders.sh                     system/utils/httpheaders.sh
-system/utils/seqcheck.sh                        system/utils/seqcheck.sh
+system/utils/chkseq.sh                          system/utils/chkseq.sh
