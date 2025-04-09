@@ -3,7 +3,7 @@
 
 Tired of chaotic shell configuration files that have grown over years? Ever log into a new machine and feel lost without your personalized aliases, functions, and prompt? rcForge is a modular, maintainable open-source system designed to bring order and consistency to your Bash and Zsh environments across all your machines. Born from a 15+ year personal journey and refined with AI collaboration, rcForge helps you transform shell config chaos into a robust, organized, and portable setup. (Note: rcForge's core utilities require Bash version 4.3 or higher.)
 
-## Why Choose rcForge? Taming the Terminal Chaos
+## Why Choose rcForge? Taming the Terminal Chaos 
 
 If you've ever felt the frustration of inconsistent shell environments across machines, or if your `.bashrc` or `.zshrc` has grown into a monolithic beast that's hard to manage, rcForge offers a structured, maintainable solution. Here’s what rcForge brings to the table:
 
