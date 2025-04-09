@@ -1,7 +1,7 @@
 # Choose a theme that supports dark mode (see GitHub Pages docs for supported themes)
 # Example: Using the default 'Primer' theme (which might not be dark by default, but is common)
 # or try others like 'jekyll-theme-minimal', 'jekyll-theme-cayman', 'jekyll-theme-midnight'
-theme: Midnight # Replace with your chosen theme
+theme: jekyll-theme-midnight # Replace with your chosen theme
 
 # Basic Jekyll plugins often used with GitHub Pages
 plugins:
