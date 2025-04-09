@@ -485,6 +485,7 @@ flowchart TD
 - One big feature will be categorization of utilities 
   - Use the scrit comment blocks like I did for the summary function
 	- `rc list network` should list all of my network utilities, etc.
+- rc diag - add "full system diagram" that include conditionals to show branching
 
 0.7.0 - Reserved for refactoring and major design issues
 - Tentative: Integration of scripts from ~/bin and ~/src
