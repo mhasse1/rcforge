@@ -1,4 +1,5 @@
-# ![image-20250409000424252](/Users/mark/Library/Application Support/typora-user-images/image-20250409000424252.png)rcForge: Shell Configuration Management
+![image-20250409000424252](https://github.com/mhasse1/rcforge/blob/e50393fd9dd3b61250eca0c206035e157bbebdaf/res/stickman-rcforge-logo-trans.png)
+# rcForge: Shell Configuration Management
 
 Tired of chaotic shell configuration files that have grown over years? Ever log into a new machine and feel lost without your personalized aliases, functions, and prompt? rcForge is a modular, maintainable open-source system designed to bring order and consistency to your Bash and Zsh environments across all your machines. Born from a 15+ year personal journey and refined with AI collaboration, rcForge helps you transform shell config chaos into a robust, organized, and portable setup. (Note: rcForge's core utilities require Bash version 4.3 or higher.)
 
@@ -46,8 +47,7 @@ rc export --shell=bash
 rcForge uses a simple but powerful system based on sequentially numbered scripts stored in `~/.config/rcforge/rc-scripts/`. These files follow a naming convention (`###_host_env_desc.sh`) that allows rcForge to automatically load the correct configurations for your current hostname (or global defaults) and shell (Bash or Zsh).
 
 This modular approach breaks down complex configurations into manageable pieces. To see this in action, here's an example execution path for a Bash configuration on a machine named 'laptop':
-
-![image-20250409000320999](/Users/mark/Library/Application Support/typora-user-images/image-20250409000320999.png)
+![image-20250409000320999](https://github.com/mhasse1/rcforge/blob/e50393fd9dd3b61250eca0c206035e157bbebdaf/res/Simple%20rcForge%20Scipt%20Load.drawio.pngg)
 
 ### Key features include:
 
