@@ -65,7 +65,7 @@ Ready to dive deeper or contribute?
 
 * **rcForge Website:** [rcforge.org](https://rcforge.org) - Project overview and installation instructions. 
 * **GitHub Repository:** [rcforge on GitHub](https://github.com/mhasse1/rcforge) - Find the full source code, report issues, or suggest features.
-* **Read the Story:** [From Chaos to Control: How I Transformed My Shell Config Into an Open Source Project](URL_TO_YOUR_ARTICLE_HERE) - Learn more about the journey behind rcForge. *(Optional: Add link once published)*
+* **Read the Story:** [From Chaos to Control: How I Transformed My Shell Config Into an Open Source Project](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc) - Learn more about the journey behind rcForge. 
 
 ---
 *rcForge - Taming the Terminal Chaos*
