@@ -20,7 +20,7 @@ If you've ever felt the frustration of inconsistent shell environments across ma
 
 * **User Control:** It runs entirely in your user space, requires no root privileges, even for install, and you can easily override any system utility with your own version.
 
-* **Don't Panic:** The system provides an emergency exit immediately as the process starts. You can use this if your configuration ever loops or kicks you out of your shell before you can fix it.
+* **Don't Panic:** The system provides an emergency exit immediately as the process starts. You can use this if your configuration ever loops or kicks you out of your system.
 
   ```[INFO] Initializing rcForge v0.4.1. (Press '.' within 1s to abort).```
 
@@ -66,7 +66,7 @@ This modular approach breaks down complex configurations into manageable pieces.
 * **Cross-Shell Compatibility:** Supports Bash and Zsh, sharing common configs.
 * **The "rc" Command Framework:** A unified interface (`rc help`, `rc diag`, `rc export`, etc.) to manage your setup and run utilities. Easily add your own commands!
 * **Conflict Detection & Visualization:** Tools (`rc chkseq`, `rc diag`) identify issues and show loading order.
-* **Export Capability:** Package your configuration into a single file for remote systems (`rc export`).
+* **Export Capability:** Package your configuration into a single file for transport (`rc export`).
 
 ## Find Out More
 
