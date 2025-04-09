@@ -1,0 +1,22 @@
+# Choose a theme that supports dark mode (see GitHub Pages docs for supported themes)
+# Example: Using the default 'Primer' theme (which might not be dark by default, but is common)
+# or try others like 'jekyll-theme-minimal', 'jekyll-theme-cayman', 'jekyll-theme-midnight'
+theme: Midnight # Replace with your chosen theme
+
+# Basic Jekyll plugins often used with GitHub Pages
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Optional: Explicitly configure Markdown processor and Rouge for highlighting
+markdown: kramdown
+kramdown:
+  input: GFM # GitHub Flavored Markdown
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight' # Class used for styling code blocks
+    # You can often choose a Rouge theme here if the Jekyll theme doesn't override it
+    # Example: Use a built-in Rouge theme like 'monokai.sublime' or 'github'
+    # block:
+    #   line_numbers: false # Optional: disable line numbers
+    #   start_line: 1
