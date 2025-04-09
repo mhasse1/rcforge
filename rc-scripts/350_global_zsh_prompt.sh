@@ -5,10 +5,6 @@
 # Category: rc-script/zsh
 # Description: Configures a customized Zsh prompt with git information and exit status
 
-# Skip if not running in Zsh
-if [[ -z "${ZSH_VERSION:-}" ]]; then
-  return 0
-fi
 
 # ============================================================================
 # ZSH PROMPT SETUP
@@ -162,11 +158,12 @@ add-zsh-hook precmd SetTerminalTitle
 # Style 1: Minimal, single-line prompt
 # PROMPT='%F{green}%n@%m%f:%F{blue}$(ShortPwd)%f${vcs_info_msg_0_} $(RootPrompt) '
 
-# Style 2: Two-line prompt with status indicator (default)
+# Style 2: Three-line prompt with status indicator (default)
 # Note: Ensure newline is correctly handled, often needs careful quoting or %{%} markers
 # Using prompt expansion within single quotes is generally safer in Zsh
-PROMPT='%(?.%F{green}✓%f.%F{red}✗%f) [%F{cyan}%n%f@%F{yellow}%m%f] %F{green}%~%f${vcs_info_msg_0_}
-%# '
+PROMPT='
+%(?.%F{green}✓%f.%F{red}✗%f) [%F{cyan}%n%f@%F{yellow}%m%f] %F{green}%~%f${vcs_info_msg_0_}
+'
 # This uses Zsh conditional %(?.success.failure), %~ for pwd, %# for root/user prompt char
 
 # Alternative Style 2 (Using Functions): Needs careful newline handling

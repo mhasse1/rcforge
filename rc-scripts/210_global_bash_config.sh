@@ -5,11 +5,6 @@
 # Category: rc-script/bash
 # Description: Configuration settings specific to Bash shell
 
-# Skip if not running in Bash
-if [[ -z "${BASH_VERSION:-}" ]]; then
-  return 0
-fi
-
 # Note: No 'set -e' or 'set -u' here as this is sourced by interactive shells.
 
 # ============================================================================
@@ -21,28 +16,28 @@ set -o vi # Enable vi command line editing mode
 
 # --- History ---
 # Variables are set in common config (HISTSIZE, HISTFILESIZE, HISTCONTROL, HISTTIMEFORMAT, HISTIGNORE)
-shopt -s histappend      # Append to history file, don't overwrite
-shopt -s cmdhist         # Save multi-line commands as single history entry
-shopt -s lithist         # Preserve embedded newlines in multi-line history entries
-shopt -s histverify      # Allow editing history substitutions before execution
+shopt -s histappend # Append to history file, don't overwrite
+shopt -s cmdhist    # Save multi-line commands as single history entry
+shopt -s lithist    # Preserve embedded newlines in multi-line history entries
+shopt -s histverify # Allow editing history substitutions before execution
 
 # --- Display ---
-shopt -s checkwinsize    # Update window size after each command
+shopt -s checkwinsize # Update window size after each command
 
 # --- Navigation ---
 # Enable extended cd features (requires Bash 4.0+)
 shopt -s autocd 2>/dev/null || true   # Change directory by typing directory name
-shopt -s cdspell          # Autocorrect minor spelling errors in 'cd' command
+shopt -s cdspell                      # Autocorrect minor spelling errors in 'cd' command
 shopt -s dirspell 2>/dev/null || true # Autocorrect directory spelling in commands
-shopt -s cdable_vars      # Allow 'cd varname' if $varname is a directory path
+shopt -s cdable_vars                  # Allow 'cd varname' if $varname is a directory path
 
 # --- Globbing ---
 shopt -s globstar 2>/dev/null || true # Enable ** recursive globbing (Bash 4.0+)
-shopt -s extglob          # Enable extended pattern matching features (+, ?, *, !, @)
-shopt -s nocaseglob       # Make filename globbing case-insensitive
+shopt -s extglob                      # Enable extended pattern matching features (+, ?, *, !, @)
+shopt -s nocaseglob                   # Make filename globbing case-insensitive
 
 # --- Other ---
-shopt -s hostcomplete     # Enable hostname completion (Tab after @)
+shopt -s hostcomplete # Enable hostname completion (Tab after @)
 
 # ============================================================================
 # HISTORY CONFIGURATION (Variables set in common config)

@@ -31,10 +31,10 @@ fi
 # ============================================================================
 DEBUG_MODE="${DEBUG_MODE:-false}"
 # Use pattern to avoid readonly errors if sourced multiple times
-[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
-[ -v gc_copyright ] || readonly gc_copyright="Copyright (c) $(date +%Y) rcForge Team"
-[ -v gc_license ] || readonly gc_license="Released under the MIT License"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[[ -v gc_copyright ]] || readonly gc_copyright="Copyright (c) $(date +%Y) rcForge Team"
+[[ -v gc_license ]] || readonly gc_license="Released under the MIT License"
 
 # ============================================================================
 # CONTEXT DETECTION FUNCTIONS (Selectively Exported)
@@ -157,35 +157,50 @@ FindRcScripts() {
 		return 1
 	fi
 
-	local nullglob_enabled_locally=false # Track if we need to unset it
+	#---
 
-	if [[ -n "${ZSH_VERSION:-}" ]]; then
-		# Zsh: Check if null_glob is NOT set, enable it, and remember to unset
-		if [[ ! -o null_glob ]]; then
-			setopt null_glob
-			nullglob_enabled_locally=true
-		fi
-	elif [[ -n "${BASH_VERSION:-}" ]]; then
-		# Bash: Check if nullglob IS set, enable it if not, remember to unset if we enabled it
-		if ! shopt -q nullglob; then
-			shopt -s nullglob
-			nullglob_enabled_locally=true
-		fi
-	fi
+    # config_files=() is already declared at the top of the function
 
-	for pattern in "${patterns[@]}"; do
-		for file in $pattern; do
-			[[ -f "$file" ]] && config_files+=("$file")
-		done
-	done
+    local find_cmd_output # Variable to store find output
+    local find_status     # Variable to store find status
 
-	if [[ "$nullglob_enabled_locally" == "true" ]]; then
-		if [[ -n "${ZSH_VERSION:-}" ]]; then
-			unsetopt null_glob
-		elif [[ -n "${BASH_VERSION:-}" ]]; then
-			shopt -u nullglob
-		fi
-	fi
+    # Build the find command arguments safely
+    local -a find_args=("$scripts_dir" -maxdepth 1 \( -false ) # Start with a false condition
+    for pattern in "${patterns[@]}"; do
+        # Extract just the filename pattern
+        local filename_pattern="${pattern##*/}"
+        find_args+=(-o -name "$filename_pattern")
+    done
+    find_args+=(\) -type f -print) # End grouping and specify file type
+
+    # Execute find, capture output and status
+    find_cmd_output=$(find "${find_args[@]}" 2>/dev/null)
+    find_status=$?
+
+    if [[ $find_status -ne 0 ]]; then
+        WarningMessage "find command failed while searching for rc-scripts (status: $find_status)."
+        # Optional: Show find args used for debugging
+        # DebugMessage "Find arguments were: ${find_args[*]}"
+        return 1
+    fi
+
+    # Populate the config_files array using the appropriate shell method
+    if [[ -n "$find_cmd_output" ]]; then # Only process if find actually found something
+        if IsZsh; then
+            # Zsh: Use array assignment with line splitting
+            config_files=( ${(f)find_cmd_output} ) # Assign to config_files
+        elif IsBash; then
+            # Bash: Use mapfile
+            mapfile -t config_files <<< "$find_cmd_output" # Assign to config_files
+        else
+            # Fallback for other shells (less robust)
+            config_files=( $(echo "$find_cmd_output") ) # Assign to config_files
+        fi
+    else
+        config_files=() # Ensure array is empty if find returned nothing
+    fi
+
+	#---
 
 	if [[ ${#config_files[@]} -eq 0 ]]; then
 		return 0
@@ -202,10 +217,10 @@ FindRcScripts() {
 # Returns: 0 if likely executed directly, 1 if likely sourced.
 # ============================================================================
 IsExecutedDirectly() {
-	if [[ -n "${ZSH_VERSION:-}" ]]; then
+	if IsZsh; then
 		# Zsh: Simpler heuristic - compare $0 to its basename. Less reliable if $0 changes during sourcing.
 		[[ "$0" == *"$(basename "$0")"* ]]
-	elif [[ -n "${BASH_VERSION:-}" ]]; then
+	elif IsBash; then
 		# Bash: Use the original BASH_SOURCE check if reliable, or the same simple heuristic
 		# Using the simple heuristic for consistency here:
 		[[ "$0" == *"$(basename "$0")"* ]]

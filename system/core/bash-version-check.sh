@@ -16,8 +16,8 @@ set -o nounset # Treat unset variables as errors
 
 # Global constants
 readonly gc_required_bash_version="4.3" # UPDATED requirement to 4.3+
-[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 
 # ============================================================================
 # Function: CheckBashVersion
@@ -33,7 +33,7 @@ CheckBashVersion() {
     local is_verbose="${2:-false}"                      # Accept verbose flag
 
     # Check if running in Bash
-    if [[ -z "${BASH_VERSION:-}" ]]; then
+    if IsBash; then
         WarningMessage "Not running in Bash shell. Current shell: $(basename "${SHELL:-unknown}")"
         # Still return 1 as the check technically fails if not bash
         return 1
@@ -83,27 +83,27 @@ DisplayUpgradeInstructions() {
     echo ""
 
     case "$os_type" in
-    macOS)
-        InfoMessage "1. Install Homebrew (if not installed):"
-        echo '   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
-        InfoMessage "2. Install latest Bash:"
-        echo "   brew install bash"
-        InfoMessage "3. Add new Bash to allowed shells:"
-        echo "   sudo bash -c \"echo $(brew --prefix)/bin/bash >> /etc/shells\""
-        InfoMessage "4. Change default shell (optional, requires logout/login):"
-        echo "   chsh -s $(brew --prefix)/bin/bash"
-        ;;
-    Linux)
-        InfoMessage "Use your distribution's package manager. Examples:"
-        echo "  Debian/Ubuntu: sudo apt update && sudo apt install --only-upgrade bash"
-        echo "  Fedora/RHEL:   sudo dnf upgrade bash"
-        echo "  Arch Linux:    sudo pacman -Syu bash" # Often -Syu updates bash
-        ;;
-    *)
-        WarningMessage "Could not determine specific Linux distribution."
-        InfoMessage "Please use your system's package manager or build Bash from source:"
-        InfoMessage "https://www.gnu.org/software/bash/"
-        ;;
+        macOS)
+            InfoMessage "1. Install Homebrew (if not installed):"
+            echo '   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+            InfoMessage "2. Install latest Bash:"
+            echo "   brew install bash"
+            InfoMessage "3. Add new Bash to allowed shells:"
+            echo "   sudo bash -c \"echo $(brew --prefix)/bin/bash >> /etc/shells\""
+            InfoMessage "4. Change default shell (optional, requires logout/login):"
+            echo "   chsh -s $(brew --prefix)/bin/bash"
+            ;;
+        Linux)
+            InfoMessage "Use your distribution's package manager. Examples:"
+            echo "  Debian/Ubuntu: sudo apt update && sudo apt install --only-upgrade bash"
+            echo "  Fedora/RHEL:   sudo dnf upgrade bash"
+            echo "  Arch Linux:    sudo pacman -Syu bash" # Often -Syu updates bash
+            ;;
+        *)
+            WarningMessage "Could not determine specific Linux distribution."
+            InfoMessage "Please use your system's package manager or build Bash from source:"
+            InfoMessage "https://www.gnu.org/software/bash/"
+            ;;
     esac
 }
 
@@ -259,22 +259,22 @@ main() {
     # Process command-line arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --help | -h) ShowHelp ;; # Exits
-        --summary)
-            ShowSummary
-            exit $?
-            ;; # Exits with status
-        --version)
-            _rcforge_show_version "$0"
-            exit 0
-            ;; # Exits
-        --verbose | -v) is_verbose=true ;;
-        --list) list_bash=true ;;
-        *)
-            ErrorMessage "Unknown option: $1"
-            ShowHelp # Show help before exiting
-            exit 1
-            ;;
+            --help | -h) ShowHelp ;; # Exits
+            --summary)
+                ShowSummary
+                exit $?
+                ;; # Exits with status
+            --version)
+                _rcforge_show_version "$0"
+                exit 0
+                ;; # Exits
+            --verbose | -v) is_verbose=true ;;
+            --list) list_bash=true ;;
+            *)
+                ErrorMessage "Unknown option: $1"
+                ShowHelp # Show help before exiting
+                exit 1
+                ;;
         esac
         shift
     done
@@ -289,7 +289,7 @@ main() {
     fi
 
     # Display current Bash information if running Bash
-    if [[ -n "${BASH_VERSION:-}" ]]; then
+    if IsBash; then
         InfoMessage "Current Bash version: ${BASH_VERSION}"
     else
         InfoMessage "Currently not running in Bash (Shell: $(basename "${SHELL:-unknown}"))"
@@ -304,7 +304,7 @@ main() {
     else
         # CheckBashVersion prints specific warning if not bash
         # If it was bash but version too low:
-        if [[ -n "${BASH_VERSION:-}" ]]; then
+        if IsBash; then
             # ErrorMessage already displayed by DisplayUpgradeInstructions essentially
             echo ""
             DisplayUpgradeInstructions # Call local function

@@ -6,8 +6,6 @@
 # Category: core
 # Description: Main loader script for rcForge shell configuration system. Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 
-export RCFORGE_SKIP_CHECKS=1
-
 # ============================================================================
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
 # ============================================================================
@@ -40,6 +38,10 @@ else
 	return 1 # Stop sourcing
 fi
 # --- End Sourcing ---
+
+if IsZsh; then
+	export RCFORGE_SKIP_CHECKS=1
+fi
 
 # ============================================================================
 # Shell Detection and Integrity Checks
@@ -217,7 +219,8 @@ main() {
 			return 1
 		fi
 	else
-		if [[ $read_cmd_status -gt 128 || (-n "${ZSH_VERSION:-}" && $read_cmd_status -ne 0) ]]; then
+		# if [[ $read_cmd_status -gt 128 || (-n "${ZSH_VERSION:-}" && $read_cmd_status -ne 0) ]]; then
+		if [[ $read_cmd_status -gt 128 || (IsZsh && $read_cmd_status -ne 0) ]]; then
 			echo " Continuing."
 		else
 			WarningMessage "Read command failed unexpectedly during abort check. Continuing..."
@@ -253,13 +256,13 @@ main() {
 
 	# ... (conditional logic for Zsh/Bash array assignment) ...
 	# Example for Zsh block (apply similarly for Bash/fallback if needed):
-	if [[ -n "${ZSH_VERSION:-}" ]]; then
+	if IsZsh; then
 		config_files_to_load=()
 		local line
 		while IFS= read -r line; do
 			[[ -n "$line" ]] && config_files_to_load+=("$line")
 		done <<<"$find_output"
-	elif [[ -n "${BASH_VERSION:-}" ]]; then
+	elif IsBash; then
 		# Bash: Use mapfile
 		mapfile -t config_files_to_load <<<"$find_output"
 	else

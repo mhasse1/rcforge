@@ -10,23 +10,23 @@
 
 # Source the development paths first to define PROJECT_ROOT, RCFORGE_LIB etc.
 # Determine location relative to this script file.
-SCRIPT_DIR_SYNC=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR_SYNC=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 if [[ -f "${SCRIPT_DIR_SYNC}/source-paths-include.sh" ]]; then
-     # shellcheck disable=SC1090
-     source "${SCRIPT_DIR_SYNC}/source-paths-include.sh" # Defines PROJECT_ROOT, RCFORGE_LIB etc.
+    # shellcheck disable=SC1090
+    source "${SCRIPT_DIR_SYNC}/source-paths-include.sh" # Defines PROJECT_ROOT, RCFORGE_LIB etc.
 else
-     echo "ERROR: Cannot source required include file: ${SCRIPT_DIR_SYNC}/source-paths-include.sh" >&2
-     exit 1
+    echo "ERROR: Cannot source required include file: ${SCRIPT_DIR_SYNC}/source-paths-include.sh" >&2
+    exit 1
 fi
 
 # Now source utility functions using RCFORGE_LIB defined in the include
 if [[ -n "${RCFORGE_LIB:-}" && -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
-     # shellcheck disable=SC1090
-     source "${RCFORGE_LIB}/utility-functions.sh"
+    # shellcheck disable=SC1090
+    source "${RCFORGE_LIB}/utility-functions.sh"
 else
-     echo "ERROR: Cannot source required library: ${RCFORGE_LIB}/utility-functions.sh" >&2
-     echo "       (RCFORGE_LIB evaluated to: '${RCFORGE_LIB:-}')" >&2
-     exit 1
+    echo "ERROR: Cannot source required library: ${RCFORGE_LIB}/utility-functions.sh" >&2
+    echo "       (RCFORGE_LIB evaluated to: '${RCFORGE_LIB:-}')" >&2
+    exit 1
 fi
 
 # Set strict error handling
@@ -38,8 +38,8 @@ set -o pipefail
 # GLOBAL CONSTANTS (Not Exported)
 # ============================================================================
 # Use constants sourced from utility-functions.sh if available, else provide fallback
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.4.1}" # Script version might differ
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-0.4.1}" # Script version might differ
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
 
 # MANIFEST_FILE is relative to PROJECT_ROOT (which is now pwd assumption)
 readonly MANIFEST_FILE_BASENAME="file-manifest.txt"
@@ -96,9 +96,12 @@ EOF
 # Returns: Populates associative array. Returns 0 on success, 1 on error. Exits on help/version.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1"; shift
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
-        ErrorMessage "Internal script error. Requires Bash 4.3+." ; return 1; fi
+    local -n options_ref="$1"
+    shift
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
+        ErrorMessage "Internal script error. Requires Bash 4.3+."
+        return 1
+    fi
 
     # Defaults
     options_ref["force_run"]=false
@@ -108,23 +111,46 @@ ParseArguments() {
     while [[ $# -gt 0 ]]; do
         local key="$1"
         case "$key" in
-            -h|--help) ShowHelp ;; # Exits
-            --version) _rcforge_show_version "$0"; exit 0 ;; # Exits
-            -f|--force) options_ref["force_run"]=true; shift ;;
-            --manifest=*) options_ref["manifest_path"]="${key#*=}"; shift ;;
-            -v|--verbose) options_ref["verbose_mode"]=true; shift ;;
-            --) shift; break ;; # End of options
-            -*) ErrorMessage "Unknown option: $key"; ShowHelp; return 1 ;;
-            *) ErrorMessage "Unexpected positional argument: $key"; ShowHelp; return 1 ;;
+            -h | --help) ShowHelp ;; # Exits
+            --version)
+                _rcforge_show_version "$0"
+                exit 0
+                ;; # Exits
+            -f | --force)
+                options_ref["force_run"]=true
+                shift
+                ;;
+            --manifest=*)
+                options_ref["manifest_path"]="${key#*=}"
+                shift
+                ;;
+            -v | --verbose)
+                options_ref["verbose_mode"]=true
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;; # End of options
+            -*)
+                ErrorMessage "Unknown option: $key"
+                ShowHelp
+                return 1
+                ;;
+            *)
+                ErrorMessage "Unexpected positional argument: $key"
+                ShowHelp
+                return 1
+                ;;
         esac
     done
 
-     # Validate manifest path post-parsing
+    # Validate manifest path post-parsing
     if [[ ! -f "${options_ref["manifest_path"]}" ]]; then
         ErrorMessage "Manifest file specified or defaulted does not exist: ${options_ref["manifest_path"]}"
         return 1
     fi
-     if [[ ! -r "${options_ref["manifest_path"]}" ]]; then
+    if [[ ! -r "${options_ref["manifest_path"]}" ]]; then
         ErrorMessage "Manifest file not readable: ${options_ref["manifest_path"]}"
         return 1
     fi
@@ -206,12 +232,14 @@ main() {
 
         # Section handling
         if [[ "$line" == "DIRECTORIES:" ]]; then
-            in_dirs_section=true; in_files_section=false
+            in_dirs_section=true
+            in_files_section=false
             VerboseMessage "$is_verbose" "Processing DIRECTORIES section..."
             continue
         fi
         if [[ "$line" == "FILES:" ]]; then
-            in_dirs_section=false; in_files_section=true
+            in_dirs_section=false
+            in_files_section=true
             VerboseMessage "$is_verbose" "Processing FILES section..."
             continue
         fi
@@ -226,7 +254,8 @@ main() {
             VerboseMessage "$is_verbose" "Creating directory: $dir_abs_path"
             if ! mkdir -p "$dir_abs_path"; then
                 ErrorMessage "Failed to create directory from manifest: $dir_abs_path (line $line_num)"
-                overall_status=1; continue
+                overall_status=1
+                continue
             fi
             if ! chmod 700 "$dir_abs_path"; then WarningMessage "Perms fail (700): $dir_abs_path"; fi
             dir_count=$((dir_count + 1))
@@ -234,10 +263,13 @@ main() {
         elif [[ "$in_files_section" == "true" ]]; then
             local source_repo_path=""
             local dest_install_path=""
-            read -r source_repo_path dest_install_path <<< "$line"
+            read -r source_repo_path dest_install_path <<<"$line"
 
             if [[ -z "$source_repo_path" || -z "$dest_install_path" ]]; then
-                WarningMessage "Manifest line ${line_num}: Invalid format. Skipping: '$line'"; overall_status=1; continue; fi
+                WarningMessage "Manifest line ${line_num}: Invalid format. Skipping: '$line'"
+                overall_status=1
+                continue
+            fi
 
             # source_repo_path is relative to PROJECT_ROOT (which is assumed PWD)
             local source_file="./${source_repo_path}" # Use relative path for source
@@ -246,13 +278,22 @@ main() {
             target_link_dir=$(dirname "$target_file")
 
             if [[ ! -f "$source_file" ]]; then
-                WarningMessage "Source file missing: $source_file (line $line_num). Skipping."; overall_status=1; continue; fi
-             if [[ ! -r "$source_file" ]]; then
-                WarningMessage "Source file unreadable: $source_file (line $line_num). Skipping."; overall_status=1; continue; fi
-             if [[ ! -d "$target_link_dir" ]]; then
+                WarningMessage "Source file missing: $source_file (line $line_num). Skipping."
+                overall_status=1
+                continue
+            fi
+            if [[ ! -r "$source_file" ]]; then
+                WarningMessage "Source file unreadable: $source_file (line $line_num). Skipping."
+                overall_status=1
+                continue
+            fi
+            if [[ ! -d "$target_link_dir" ]]; then
                 VerboseMessage "$is_verbose" "Target dir missing, creating: $target_link_dir"
                 if ! mkdir -p "$target_link_dir"; then
-                     ErrorMessage "Failed create target dir: $target_link_dir (line $line_num)"; overall_status=1; continue; fi
+                    ErrorMessage "Failed create target dir: $target_link_dir (line $line_num)"
+                    overall_status=1
+                    continue
+                fi
                 if ! chmod 700 "$target_link_dir"; then WarningMessage "Perms fail (700): $target_link_dir"; fi
             fi
 
@@ -261,15 +302,18 @@ main() {
             if ln "${source_file}" "${target_file}"; then
                 link_count=$((link_count + 1))
             else
-                ErrorMessage "Failed link: '$source_file' -> '$target_file'"; overall_status=1; fi
+                ErrorMessage "Failed link: '$source_file' -> '$target_file'"
+                overall_status=1
+            fi
         fi
-    done < "$manifest_path"
+    done <"$manifest_path"
 
     # --- Final Summary ---
     SectionHeader "Synchronization Summary"
     InfoMessage "Directories created in target: $dir_count"
     InfoMessage "Hard links created: $link_count"
-    if [[ $overall_status -eq 0 ]]; then SuccessMessage "Synchronization complete.";
+    if [[ $overall_status -eq 0 ]]; then
+        SuccessMessage "Synchronization complete."
     else WarningMessage "Synchronization finished with errors."; fi
 
     return $overall_status
@@ -280,17 +324,23 @@ main() {
 # ============================================================================
 # Check if manifest exists in current dir (running from project root is assumed)
 if [[ ! -f "${MANIFEST_FILE}" ]]; then
-     ErrorMessage "Script must be run from the project root directory (containing '${MANIFEST_FILE_BASENAME}'). Current dir: '$(pwd)'"
-     exit 1
+    ErrorMessage "Script must be run from the project root directory (containing '${MANIFEST_FILE_BASENAME}'). Current dir: '$(pwd)'"
+    exit 1
 fi
 
 # Execute main
 if command -v IsExecutedDirectly &>/dev/null; then
     # Use IsExecutedDirectly if available from sourced library
-    if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then main "$@"; exit $?; fi
+    if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+        main "$@"
+        exit $?
+    fi
 else
-     # Fallback check if library sourcing failed or IsExecutedDirectly isn't exported/available
-     if [[ "${BASH_SOURCE[0]}" == "${0}" ]] || [[ "$0" == *"rc"* ]]; then main "$@"; exit $?; fi
+    # Fallback check if library sourcing failed or IsExecutedDirectly isn't exported/available
+    if [[ "${BASH_SOURCE[0]}" == "${0}" ]] || [[ "$0" == *"rc"* ]]; then
+        main "$@"
+        exit $?
+    fi
 fi
 
 # EOF

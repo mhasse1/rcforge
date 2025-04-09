@@ -5,11 +5,6 @@
 # Category: rc-script/bash
 # Description: Sets the PS1 and PS2 prompt strings for Bash dynamically.
 
-# Skip if not running in Bash
-if [[ -z "${BASH_VERSION:-}" ]]; then
-  return 0
-fi
-
 # Note: Color variables (e.g., GREEN, RED, RESET) are sourced from shell-colors.sh
 #       and should be available here.
 
@@ -24,12 +19,12 @@ fi
 # ============================================================================
 _prompt_rootprompt() {
   if [[ $EUID -eq 0 ]]; then
-      # Use color vars from shell-colors.sh
-      printf "%b#%b" "${RED:-}" "${RESET:-}" # Add default empty value in case colors aren't set
+    # Use color vars from shell-colors.sh
+    printf "%b#%b" "${RED:-}" "${RESET:-}" # Add default empty value in case colors aren't set
   else
-      # Use default terminal color for '$'
-      printf "%s" "\$"
- fi
+    # Use default terminal color for '$'
+    printf "%s" "\$"
+  fi
 }
 
 # ============================================================================
@@ -38,29 +33,29 @@ _prompt_rootprompt() {
 # Usage: $(_prompt_gitbranch)
 # ============================================================================
 _prompt_gitbranch() {
-    local branch
-    local status_indicators=""
+  local branch
+  local status_indicators=""
 
-    # Check if git command exists and we are in a repo
-    if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
-        branch=$(git branch --show-current 2>/dev/null)
+  # Check if git command exists and we are in a repo
+  if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
+    branch=$(git branch --show-current 2>/dev/null)
 
-        if [[ -n "$branch" ]]; then
-            # Check for staged changes (+)
-            if ! git diff --quiet --cached; then
-                status_indicators+="${GREEN:-}+" # Green +
-            fi
-            # Check for unstaged changes (*)
-            if ! git diff --quiet; then
-                status_indicators+="${RED:-}*" # Red *
-            fi
-            # Untracked check removed for performance, add back if needed
+    if [[ -n "$branch" ]]; then
+      # Check for staged changes (+)
+      if ! git diff --quiet --cached; then
+        status_indicators+="${GREEN:-}+" # Green +
+      fi
+      # Check for unstaged changes (*)
+      if ! git diff --quiet; then
+        status_indicators+="${RED:-}*" # Red *
+      fi
+      # Untracked check removed for performance, add back if needed
 
-            # Output format: (branch<indicators>) - Use PURPLE/MAGENTA
-             printf " %b(%s%s%b)%b" "${MAGENTA:-}" "${branch}" "${status_indicators}" "${MAGENTA:-}" "${RESET:-}"
-        fi
+      # Output format: (branch<indicators>) - Use PURPLE/MAGENTA
+      printf " %b(%s%s%b)%b" "${MAGENTA:-}" "${branch}" "${status_indicators}" "${MAGENTA:-}" "${RESET:-}"
     fi
-    # No output if not in a git repo or no branch found
+  fi
+  # No output if not in a git repo or no branch found
 }
 
 # ============================================================================
@@ -82,26 +77,26 @@ _prompt_returnstatus() {
 # PROMPT BUILDING FUNCTION (Called by PROMPT_COMMAND)
 # ============================================================================
 _rcforge_build_prompt() {
-    local exit_status=$? # Capture exit status *immediately*
+  local exit_status=$? # Capture exit status *immediately*
 
-    # --- Build Prompt String ---
-    local status_indicator=$(_prompt_returnstatus "$exit_status") # Pass $?
-    local git_info=$(_prompt_gitbranch)
-    local prompt_symbol=$(_prompt_rootprompt)
+  # --- Build Prompt String ---
+  local status_indicator=$(_prompt_returnstatus "$exit_status") # Pass $?
+  local git_info=$(_prompt_gitbranch)
+  local prompt_symbol=$(_prompt_rootprompt)
 
-    # Assemble PS1 string, adding \[ \] around *all* non-printing parts
-    # Use color vars sourced from shell-colors.sh (e.g., CYAN, YELLOW, GREEN, RESET)
-    # Provide default empty values ":-" in case shell-colors wasn't sourced correctly
-    PS1="" # Start fresh
-    PS1+="\n" # Newline before prompt
-    PS1+="\[${status_indicator}\]" # Status (already has colors/reset)
-    PS1+=" \[${RESET:-}\][\[${CYAN:-}\]\u\[${RESET:-}\]@\[${YELLOW:-}\]\h\[${RESET:-}\]]" # user@host
-    PS1+=" \[${GREEN:-}\]\w\[${RESET:-}\]" # Working directory
-    PS1+="\[${git_info}\]" # Git info (already has colors/reset)
-    PS1+="\n" # Newline after first line
+  # Assemble PS1 string, adding \[ \] around *all* non-printing parts
+  # Use color vars sourced from shell-colors.sh (e.g., CYAN, YELLOW, GREEN, RESET)
+  # Provide default empty values ":-" in case shell-colors wasn't sourced correctly
+  PS1=""                                                                                # Start fresh
+  PS1+="\n"                                                                             # Newline before prompt
+  PS1+="\[${status_indicator}\]"                                                        # Status (already has colors/reset)
+  PS1+=" \[${RESET:-}\][\[${CYAN:-}\]\u\[${RESET:-}\]@\[${YELLOW:-}\]\h\[${RESET:-}\]]" # user@host
+  PS1+=" \[${GREEN:-}\]\w\[${RESET:-}\]"                                                # Working directory
+  PS1+="\[${git_info}\]"                                                                # Git info (already has colors/reset)
+  PS1+="\n"                                                                             # Newline after first line
 
-    # Set PS2 (Continuation prompt)
-    PS2="    "
+  # Set PS2 (Continuation prompt)
+  PS2="    "
 }
 
 # ============================================================================

@@ -19,8 +19,8 @@ set -o pipefail
 # GLOBAL CONSTANTS
 # ============================================================================
 # Use sourced constants, provide fallback just in case
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.4.1}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-0.4.1}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
 readonly GC_DEFAULT_EXPORT_DIR="${HOME}/.config/rcforge/exports"
 
 # ============================================================================
@@ -94,7 +94,7 @@ ValidateShellType() {
 # ============================================================================
 ProcessConfigFiles() {
     local shell_type="${1:-bash}" # Default shell just in case
-    local hostname="${2:-}" # Can be empty
+    local hostname="${2:-}"       # Can be empty
     local keep_debug="${3:-false}"
     local strip_comments="${4:-true}"
     shift 4
@@ -117,7 +117,10 @@ ProcessConfigFiles() {
             continue
         fi
         # Read file content safely
-        file_content=$(<"$file") || { WarningMessage "Error reading file: $file"; continue; }
+        file_content=$(<"$file") || {
+            WarningMessage "Error reading file: $file"
+            continue
+        }
 
         # Process content (stripping comments/debug)
         if [[ "$keep_debug" == "false" ]]; then
@@ -126,14 +129,14 @@ ProcessConfigFiles() {
             file_content=$(printf '%s\n' "$file_content" | grep -Ev '^[[:space:]]*debug_echo|^\s*#.*debug')
         fi
         if [[ "$strip_comments" == "true" ]]; then # keep_debug=true prevents this
-             # Remove lines starting with optional space then #, and blank lines
-             file_content=$(printf '%s\n' "$file_content" | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d')
+            # Remove lines starting with optional space then #, and blank lines
+            file_content=$(printf '%s\n' "$file_content" | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d')
         fi
 
         # Append processed content if not empty
         if [[ -n "$file_content" ]]; then
-             output_content+="# --- Source: $(basename "$file") ---\n"
-             output_content+="$file_content\n\n"
+            output_content+="# --- Source: $(basename "$file") ---\n"
+            output_content+="$file_content\n\n"
         fi
     done
 
@@ -190,7 +193,10 @@ ExportConfiguration() {
 
     export_dir=$(dirname "$output_path")
     # Ensure export directory exists
-    mkdir -p "$export_dir" || { ErrorMessage "Failed to create export directory: $export_dir"; return 1; }
+    mkdir -p "$export_dir" || {
+        ErrorMessage "Failed to create export directory: $export_dir"
+        return 1
+    }
     chmod 700 "$export_dir" || WarningMessage "Could not set permissions (700) on $export_dir"
 
     # Check for existing file
@@ -198,7 +204,7 @@ ExportConfiguration() {
         ErrorMessage "Output file already exists: $output_path. Use --force or -f to overwrite."
         return 1
     elif [[ -f "$output_path" && "$force_overwrite" == "true" ]]; then
-         WarningMessage "Overwriting existing file: $output_path"
+        WarningMessage "Overwriting existing file: $output_path"
     fi
 
     # Find config files using the *sourced* FindRcScripts function
@@ -214,7 +220,7 @@ ExportConfiguration() {
     fi
 
     # Load file list into array using mapfile
-    mapfile -t config_files <<< "$find_output"
+    mapfile -t config_files <<<"$find_output"
 
     if [[ "$is_verbose" == "true" ]]; then
         InfoMessage "Found ${#config_files[@]} configuration files to process:"
@@ -225,20 +231,20 @@ ExportConfiguration() {
     exported_config=$(ProcessConfigFiles "$shell_type" "$hostname" "$keep_debug" "$strip_comments" "${config_files[@]}")
 
     # Write the processed content to the output file
-    if printf '%s' "$exported_config" > "$output_path"; then # Use %s
-         if ! chmod 600 "$output_path"; then # Executable not needed for exported file
-              WarningMessage "Could not set permissions (600) on $output_path"
-         fi
-         SuccessMessage "Configuration successfully exported to: $output_path"
-         if [[ "$is_verbose" == "true" ]]; then
-              InfoMessage "Exported ${#config_files[@]} configuration files."
-         fi
-         return 0
+    if printf '%s' "$exported_config" >"$output_path"; then # Use %s
+        if ! chmod 600 "$output_path"; then                    # Executable not needed for exported file
+            WarningMessage "Could not set permissions (600) on $output_path"
+        fi
+        SuccessMessage "Configuration successfully exported to: $output_path"
+        if [[ "$is_verbose" == "true" ]]; then
+            InfoMessage "Exported ${#config_files[@]} configuration files."
+        fi
+        return 0
     else
-         ErrorMessage "Failed to write exported configuration to: $output_path"
-         # Clean up empty file if write failed
-         [[ ! -s "$output_path" ]] && rm -f "$output_path" &>/dev/null
-         return 1
+        ErrorMessage "Failed to write exported configuration to: $output_path"
+        # Clean up empty file if write failed
+        [[ ! -s "$output_path" ]] && rm -f "$output_path" &>/dev/null
+        return 1
     fi
 }
 
@@ -250,9 +256,10 @@ ExportConfiguration() {
 #          Exits directly for --help, --summary, --version.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1"; shift
+    local -n options_ref="$1"
+    shift
     # Ensure Bash 4.3+ for namerefs (-n)
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
         ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
         return 1
     fi
@@ -270,69 +277,88 @@ ParseArguments() {
     while [[ $# -gt 0 ]]; do
         local key="$1"
         case "$key" in
-            -h|--help)
+            -h | --help)
                 ShowHelp # Exits
                 ;;
             --summary)
-                ExtractSummary "$0"; exit $? # Call helper and exit
+                ExtractSummary "$0"
+                exit $? # Call helper and exit
                 ;;
             --version)
-                 _rcforge_show_version "$0"; exit 0 # Call helper and exit
-                 ;;
+                _rcforge_show_version "$0"
+                exit 0 # Call helper and exit
+                ;;
             --shell=*)
                 options_ref["shell_type"]="${key#*=}"
                 if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi
-                shift ;;
+                shift
+                ;;
             --shell)
                 shift # Move past --shell flag
-                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--shell requires a value (bash or zsh)."; return 1; fi
+                if [[ -z "${1:-}" || "$1" == -* ]]; then
+                    ErrorMessage "--shell requires a value (bash or zsh)."
+                    return 1
+                fi
                 options_ref["shell_type"]="$1"
-                 if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi
+                if ! ValidateShellType "${options_ref["shell_type"]}"; then return 1; fi
                 shift # Move past value
                 ;;
             --hostname=*)
                 options_ref["hostname"]="${key#*=}"
-                shift ;;
-             --hostname)
+                shift
+                ;;
+            --hostname)
                 shift # Move past --hostname flag
-                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--hostname requires a value."; return 1; fi
+                if [[ -z "${1:-}" || "$1" == -* ]]; then
+                    ErrorMessage "--hostname requires a value."
+                    return 1
+                fi
                 options_ref["hostname"]="$1"
                 shift # Move past value
                 ;;
             --output=*)
                 options_ref["output_file"]="${key#*=}"
-                shift ;;
+                shift
+                ;;
             --output)
                 shift # Move past --output flag
-                if [[ -z "${1:-}" || "$1" == -* ]]; then ErrorMessage "--output requires a filename."; return 1; fi
+                if [[ -z "${1:-}" || "$1" == -* ]]; then
+                    ErrorMessage "--output requires a filename."
+                    return 1
+                fi
                 options_ref["output_file"]="$1"
                 shift # Move past value
                 ;;
-            -v|--verbose)
+            -v | --verbose)
                 options_ref["verbose_mode"]=true
-                shift ;;
+                shift
+                ;;
             --keep-debug)
                 options_ref["keep_debug"]=true
                 options_ref["strip_comments"]=false # keep-debug implies keeping comments
-                shift ;;
-            -f|--force)
+                shift
+                ;;
+            -f | --force)
                 options_ref["force_overwrite"]=true
-                shift ;;
-             # End of options marker
+                shift
+                ;;
+                # End of options marker
             --)
                 shift # Move past --
                 break # Stop processing options
                 ;;
-             # Unknown option
+                # Unknown option
             -*)
                 ErrorMessage "Unknown option: $key"
                 ShowHelp # Exits
-                return 1 ;;
-             # Positional argument (none expected)
+                return 1
+                ;;
+                # Positional argument (none expected)
             *)
                 ErrorMessage "Unexpected positional argument: $key"
                 ShowHelp # Exits
-                return 1 ;;
+                return 1
+                ;;
         esac
     done
 

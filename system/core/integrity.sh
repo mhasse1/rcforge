@@ -16,8 +16,8 @@ set -o nounset # Treat unset variables as errors
 
 # Global constants initialized from environment variables set in rcforge.sh
 # Use sourced constants
-[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 
 # Define critical files needed for core operation
 readonly gc_required_files=(
@@ -211,7 +211,7 @@ CheckBashVersionLocal() {
     local is_verbose="$1"
     InfoMessage "Checking Bash version..."
 
-    if [[ -z "${BASH_VERSION:-}" ]]; then
+    if IsBash; then
         ErrorMessage "Not running in Bash shell. Current shell: $(basename "$SHELL")"
         WarningMessage "rcForge core requires Bash ${gc_min_bash_version}+."
         return 1 # Treat as failure for integrity check
@@ -240,20 +240,20 @@ main() {
     # Process command arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --verbose | -v) is_verbose=true ;;
-        --help | -h)
-            ShowHelp
-            exit 0
-            ;;
-        --summary)
-            ShowSummary
-            exit 0
-            ;;
-        *)
-            ErrorMessage "Unknown option: $1"
-            ShowHelp
-            exit 1
-            ;;
+            --verbose | -v) is_verbose=true ;;
+            --help | -h)
+                ShowHelp
+                exit 0
+                ;;
+            --summary)
+                ShowSummary
+                exit 0
+                ;;
+            *)
+                ErrorMessage "Unknown option: $1"
+                ShowHelp
+                exit 1
+                ;;
         esac
         shift
     done

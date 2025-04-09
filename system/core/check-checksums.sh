@@ -10,12 +10,12 @@
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
-set -o nounset  # Treat unset variables as errors
- # set -o errexit  # Exit immediately if a command exits with a non-zero status
+set -o nounset # Treat unset variables as errors
+# set -o errexit  # Exit immediately if a command exits with a non-zero status
 
 # Global constants initialized from environment variables set in rcforge.sh
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
-[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 readonly gc_supported_rc_files=(
     ".bashrc"
     ".zshrc"
@@ -36,7 +36,6 @@ DetermineRcForgeDir() {
         echo "$HOME/.config/rcforge"
     fi
 }
-
 
 # ============================================================================
 # Function: CalculateChecksum
@@ -141,7 +140,7 @@ VerifyRcFileChecksum() {
     if [[ ! -f "$checksum_file" ]]; then
         InfoMessage "Initializing checksum for $rc_name..."
         current_sum=$(CalculateChecksum "$rc_file") # Call PascalCase
-        echo "$current_sum" > "$checksum_file"
+        echo "$current_sum" >"$checksum_file"
         SuccessMessage "Checksum stored for $rc_name."
         return 0
     fi
@@ -162,7 +161,7 @@ VerifyRcFileChecksum() {
         # Update the checksum if fix flag is set
         if [[ "${RCFORGE_FIX_CHECKSUMS:-0}" -eq 1 ]]; then
             InfoMessage "Updating checksum for $rc_name..."
-            echo "$current_sum" > "$checksum_file"
+            echo "$current_sum" >"$checksum_file"
             SuccessMessage "Checksum updated for $rc_name."
             return 0 # Return 0 as the mismatch was resolved
         else
@@ -202,7 +201,10 @@ main() {
 
     # Define and create checksum directory if it doesn't exist
     local checksum_dir="${rcforge_dir}/checksums"
-    mkdir -p "$checksum_dir" || { ErrorMessage "Cannot create checksum directory: $checksum_dir"; if $is_sourced; then return 1; else exit 1; fi; }
+    mkdir -p "$checksum_dir" || {
+        ErrorMessage "Cannot create checksum directory: $checksum_dir"
+        if $is_sourced; then return 1; else exit 1; fi
+    }
     chmod 700 "$checksum_dir" || WarningMessage "Could not set permissions (700) on $checksum_dir"
 
     # Track if any mismatch occurred and wasn't fixed
@@ -212,8 +214,7 @@ main() {
 
     # Verify checksums for each supported RC file
     local rc_file_basename="" # Loop variable
-    for rc_file_basename in "${gc_supported_rc_files[@]}";
-    do
+    for rc_file_basename in "${gc_supported_rc_files[@]}"; do
         local full_rc_path="${HOME}/${rc_file_basename}"
         local checksum_path="${checksum_dir}/${rc_file_basename}.md5"
 
@@ -224,13 +225,11 @@ main() {
     done
 
     # Report final status
-    if [[ $any_unresolved_mismatch -eq 1 ]];
-    then
+    if [[ $any_unresolved_mismatch -eq 1 ]]; then
         WarningMessage "One or more RC files have changed. Run with --fix to update checksums."
     else
-        if [[ "${RCFORGE_FIX_CHECKSUMS:-0}" -ne 1 ]];
-        then
-             SuccessMessage "All RC file checksums verified successfully."
+        if [[ "${RCFORGE_FIX_CHECKSUMS:-0}" -ne 1 ]]; then
+            SuccessMessage "All RC file checksums verified successfully."
         fi
     fi
 
@@ -252,10 +251,10 @@ main() {
 _main_args=("$@") # Copy original args
 _is_sourced_arg=false
 if [[ "${_main_args[0]:-}" == "--sourced" ]]; then
-     _is_sourced_arg=true
-     # Remove --sourced for passing to main when executed directly
-     unset '_main_args[0]' # Remove element (might leave gap)
-     _main_args=("${_main_args[@]}") # Re-index array
+    _is_sourced_arg=true
+    # Remove --sourced for passing to main when executed directly
+    unset '_main_args[0]'           # Remove element (might leave gap)
+    _main_args=("${_main_args[@]}") # Re-index array
 fi
 
 # Only run main and exit if NOT sourced during rcforge.sh init
@@ -263,9 +262,8 @@ fi
 if ! $_is_sourced_arg || [[ "$0" == *"rc"* ]]; then
     if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
         main "${_main_args[@]}" # Pass potentially modified args
-        exit $? # Exit with the status from main
+        exit $?                 # Exit with the status from main
     fi
 fi
-
 
 # EOF

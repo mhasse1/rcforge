@@ -5,9 +5,9 @@
 # Version: 0.4.1
 # Category: system/core
 # RC Summary: Finds and executes user or system utility scripts
-# Description: Finds and executes user or system utility scripts, handles help and conflicts. 
+# Description: Finds and executes user or system utility scripts, handles help and conflicts.
 #              Runs as a standalone script invoked by the 'rc' wrapper function.
-
+bash --version
 # Source required libraries explicitly
 # Default paths used in case RCFORGE_LIB is not set (e.g., direct execution)
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
@@ -37,11 +37,11 @@ set -o pipefail
 # Returns: 0 on success, 1 on error.
 # ============================================================================
 _RcScanUtils() {
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then 
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
         ErrorMessage "Internal Error: _RcScanUtils requires Bash 4.3+ for namerefs."
         return 1
     fi
-    
+
     local -n _commands_map="$1"
     local -n _overrides_map="$2"
     local -n _conflict_map="$3"
@@ -65,7 +65,7 @@ _RcScanUtils() {
                 else
                     ext=""
                 fi
-                
+
                 # Skip hidden files or empty basenames
                 [[ -z "$base_name" || "$base_name" == .* ]] && continue
                 found_system_cmds["$base_name"]="$file"
@@ -84,10 +84,10 @@ _RcScanUtils() {
                 else
                     ext=""
                 fi
-                
+
                 # Skip hidden files or empty basenames
                 [[ -z "$base_name" || "$base_name" == .* ]] && continue
-                
+
                 # Check for multiple user utilities with same name
                 if [[ -v "found_user_cmds[$base_name]" ]]; then
                     found_user_cmds["$base_name"]+=",${file}"
@@ -111,7 +111,7 @@ _RcScanUtils() {
     # Add/override with user commands and mark overrides/conflicts
     for base_name in "${!found_user_cmds[@]}"; do
         local user_paths="${found_user_cmds[$base_name]}"
-        
+
         # Check for multiple user utilities with same name (conflict)
         if [[ "$user_paths" == *,* ]]; then
             _conflict_map["$base_name"]="$user_paths"
@@ -120,7 +120,7 @@ _RcScanUtils() {
         else
             # Add user command to commands map
             _commands_map["$base_name"]="$user_paths"
-            
+
             # Mark as override if system also has this command
             if [[ -v "found_system_cmds[$base_name]" ]]; then
                 _overrides_map["$base_name"]="${found_system_cmds[$base_name]}"
@@ -140,7 +140,7 @@ _RcScanUtils() {
 # ============================================================================
 ShowFrameworkHelp() {
     local version_to_display="${gc_version:-unknown}"
-    
+
     echo "rcForge Command Framework (v${version_to_display})"
     echo ""
     echo "Usage: rc [--system|-s] <command> [command-options] [arguments...]"
@@ -177,16 +177,16 @@ ShowFrameworkHelp() {
 ListCommands() {
     local version_to_display="${gc_version:-unknown}"
     declare -A commands_map overrides_map conflict_map
-    
+
     if ! _RcScanUtils commands_map overrides_map conflict_map; then
         ErrorMessage "Error scanning utility directories. Cannot list commands."
         return 1
     fi
-    
+
     echo "rcForge Utility Commands (v${version_to_display})"
     echo ""
     echo "Available commands:"
-    
+
     local cmd=""
     local summary=""
     local script_path=""
@@ -196,16 +196,16 @@ ListCommands() {
     local term_width=80
     local wrap_width=76
     local fold_exists=false
-    
+
     # Try to get terminal width if GetTerminalWidth is available
     if command -v GetTerminalWidth &>/dev/null; then
         term_width=$(GetTerminalWidth)
-        wrap_width=$(( term_width > 10 ? term_width - 4 : 76 ))
+        wrap_width=$((term_width > 10 ? term_width - 4 : 76))
     fi
-    
+
     # Check for fold command
     command -v fold >/dev/null && fold_exists=true
-    
+
     # Handle case with no commands found
     if [[ ${#commands_map[@]} -eq 0 ]]; then
         InfoMessage "  (No commands found in system or user utility directories)"
@@ -214,7 +214,7 @@ ListCommands() {
         # Iterate through commands in sorted order
         for cmd in $(printf "%s\n" "${!commands_map[@]}" | sort); do
             script_path="${commands_map[$cmd]}"
-            
+
             # Get command summary
             summary=""
             if [[ -z "$script_path" || ! -x "$script_path" ]]; then
@@ -223,13 +223,13 @@ ListCommands() {
                 summary=$(bash "$script_path" --summary 2>/dev/null) || summary="Error fetching summary"
                 [[ -z "$summary" ]] && summary="(No summary provided)"
             fi
-            
+
             # Prepare display information (override/conflict notes)
             override_note=""
             if [[ ${overrides_map[$cmd]+_} ]]; then
                 override_note=" ${YELLOW}(user override)${RESET}"
             fi
-            
+
             conflict_note=""
             display_name="$cmd"
             if [[ ${conflict_map[$cmd]+_} ]]; then
@@ -239,10 +239,10 @@ ListCommands() {
             else
                 display_name="${GREEN}${cmd}${RESET}"
             fi
-            
+
             # Display command name with notes
             printf "  %b%b%b\n" "$display_name" "$override_note" "$conflict_note" # %b for colors
-            
+
             # Display wrapped summary
             if [[ "$fold_exists" == "true" ]]; then
                 printf '%s\n' "$summary" | fold -s -w "$wrap_width" | while IFS= read -r line; do
@@ -251,19 +251,19 @@ ListCommands() {
             else
                 printf "    %s\n" "$summary"
             fi
-            
+
             echo ""
         done
     fi
-    
+
     # Show note about overrides/conflicts if any exist
     if [[ "${#overrides_map[@]}" -gt 0 || "${#conflict_map[@]}" -gt 0 ]]; then
         InfoMessage "[Note: User overrides and/or execution conflicts detected. Run 'rc --conflicts' for details.]"
         echo ""
     fi
-    
+
     echo "Use 'rc <command> help' for detailed information about a command."
-    
+
     return 0
 }
 
@@ -276,50 +276,50 @@ ListCommands() {
 # ============================================================================
 ShowConflicts() {
     declare -A commands_map overrides_map conflict_map
-    
+
     _RcScanUtils commands_map overrides_map conflict_map
-    
+
     local found_issue=false
-    
+
     # Display user overrides if any exist
     if [[ "${#overrides_map[@]}" -gt 0 ]]; then
         found_issue=true
         SectionHeader "User Overrides"
-        
+
         local cmd=""
         for cmd in $(printf "%s\n" "${!overrides_map[@]}" | sort); do
             local user_path="${commands_map[$cmd]}"
             local system_path="${overrides_map[$cmd]}"
-            
+
             WarningMessage "User utility '${cmd}' overrides system utility:"
             echo "  User:   ${user_path}"
             echo "  System: ${system_path}"
             echo ""
         done
     fi
-    
+
     # Display execution conflicts if any exist
     if [[ "${#conflict_map[@]}" -gt 0 ]]; then
         found_issue=true
         SectionHeader "Execution Conflicts (Ambiguous Commands)"
-        
+
         local cmd=""
         for cmd in $(printf "%s\n" "${!conflict_map[@]}" | sort); do
             local conflicting_paths="${conflict_map[$cmd]}"
             local first_path="${conflicting_paths%%,*}"
             local conflict_dir=$(dirname "$first_path")
-            
+
             ErrorMessage "Conflict for command '${cmd}' in ${conflict_dir}:"
             echo "$conflicting_paths" | tr ',' '\n' | sed 's/^/  - /'
             echo ""
         done
     fi
-    
+
     # Show success message if no issues found
     if [[ "$found_issue" == "false" ]]; then
         SuccessMessage "No user overrides or execution conflicts detected."
     fi
-    
+
     return 0
 }
 
@@ -334,15 +334,15 @@ main() {
     local force_system=false
     local command=""
     local -a cmd_args=()
-    
+
     # Process command-line arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --system|-s)
+            --system | -s)
                 force_system=true
                 shift
                 ;;
-            --help|-h)
+            --help | -h)
                 command="help"
                 shift
                 cmd_args=("$@")
@@ -379,7 +379,7 @@ main() {
                 ;;
         esac
     done
-    
+
     # Default to list if no command specified
     [[ -z "$command" ]] && command="list"
 
@@ -426,14 +426,14 @@ main() {
             local -a found_scripts=()
             local dir=""
             local file=""
-            
+
             # Determine search order based on --system flag
             if [[ "$force_system" == "true" ]]; then
                 search_dirs=("$sys_dir")
             else
                 search_dirs=("$user_dir" "$sys_dir")
             fi
-            
+
             # Search for matching command executable
             for dir in "${search_dirs[@]}"; do
                 if [[ -d "$dir" ]]; then
@@ -443,13 +443,13 @@ main() {
                         fi
                     done < <(find "$dir" -maxdepth 1 \( -name "${command}" -o -name "${command}.*" \) -type f -print0 2>/dev/null)
                 fi
-                
+
                 # Break after finding user overrides if not forcing system version
                 if [[ ${#found_scripts[@]} -gt 0 && "$force_system" == "false" && "$dir" == "$user_dir" ]]; then
                     break
                 fi
             done
-            
+
             # Handle command resolution results
             if [[ ${#found_scripts[@]} -eq 0 ]]; then
                 ErrorMessage "rc command not found: '$command'"

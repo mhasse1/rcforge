@@ -5,58 +5,53 @@
 # Category: rc-script/zsh
 # Description: Configuration settings specific to Zsh shell
 
-# Skip if not running in Zsh
-if [[ -z "${ZSH_VERSION:-}" ]]; then
-  return 0
-fi
-
 # ============================================================================
 # SHELL OPTIONS (setopt)
 # ============================================================================
 
 # --- Navigation ---
-setopt AUTO_CD              # Change directory without cd if it's a valid path
-setopt AUTO_PUSHD           # Automatically pushd directories when changing
-setopt PUSHD_IGNORE_DUPS    # Don't push duplicate directories onto the stack
-setopt PUSHD_SILENT         # Don't print the directory stack after pushd/popd
-setopt CDABLE_VARS          # Allow cd to variables that contain a directory path
+setopt AUTO_CD           # Change directory without cd if it's a valid path
+setopt AUTO_PUSHD        # Automatically pushd directories when changing
+setopt PUSHD_IGNORE_DUPS # Don't push duplicate directories onto the stack
+setopt PUSHD_SILENT      # Don't print the directory stack after pushd/popd
+setopt CDABLE_VARS       # Allow cd to variables that contain a directory path
 
 # --- History ---
-setopt APPEND_HISTORY       # Append to history file, don't overwrite
-setopt EXTENDED_HISTORY     # Save timestamp and duration
+setopt APPEND_HISTORY         # Append to history file, don't overwrite
+setopt EXTENDED_HISTORY       # Save timestamp and duration
 setopt HIST_EXPIRE_DUPS_FIRST # Expire duplicate entries first when trimming
-setopt HIST_IGNORE_DUPS     # Don't record commands that are duplicates of the previous one
-setopt HIST_IGNORE_ALL_DUPS # Avoid storing duplicates anywhere in the history
-setopt HIST_IGNORE_SPACE    # Don't record commands starting with a space
-setopt HIST_FIND_NO_DUPS    # Don't display duplicates when searching history
-setopt HIST_SAVE_NO_DUPS    # Don't save duplicate entries in the history file
-setopt HIST_VERIFY          # Show command with history expansion before running it
-setopt SHARE_HISTORY        # Share history between all Zsh sessions immediately
+setopt HIST_IGNORE_DUPS       # Don't record commands that are duplicates of the previous one
+setopt HIST_IGNORE_ALL_DUPS   # Avoid storing duplicates anywhere in the history
+setopt HIST_IGNORE_SPACE      # Don't record commands starting with a space
+setopt HIST_FIND_NO_DUPS      # Don't display duplicates when searching history
+setopt HIST_SAVE_NO_DUPS      # Don't save duplicate entries in the history file
+setopt HIST_VERIFY            # Show command with history expansion before running it
+setopt SHARE_HISTORY          # Share history between all Zsh sessions immediately
 
 # --- Completion ---
-setopt ALWAYS_TO_END        # Move cursor to the end of a completed word
-setopt AUTO_LIST            # Automatically list choices on ambiguous completion
-setopt AUTO_MENU            # Show completion menu on second consecutive tab press
-setopt COMPLETE_IN_WORD     # Allow completion from within a word
-setopt NO_NOMATCH           # Pass pattern to command if no match found (instead of error)
-setopt LIST_PACKED          # Show completion list packed compactly
-setopt MENU_COMPLETE        # Automatically select first completion match on menu
+setopt ALWAYS_TO_END    # Move cursor to the end of a completed word
+setopt AUTO_LIST        # Automatically list choices on ambiguous completion
+setopt AUTO_MENU        # Show completion menu on second consecutive tab press
+setopt COMPLETE_IN_WORD # Allow completion from within a word
+setopt NO_NOMATCH       # Pass pattern to command if no match found (instead of error)
+setopt LIST_PACKED      # Show completion list packed compactly
+setopt MENU_COMPLETE    # Automatically select first completion match on menu
 
 # --- Input/Output ---
-setopt CORRECT              # Enable command correction suggestion
+setopt CORRECT # Enable command correction suggestion
 # setopt CORRECT_ALL        # Enable correction for arguments too (can be annoying)
 setopt INTERACTIVE_COMMENTS # Allow comments in interactive shell sessions
 setopt NO_BEEP              # Disable audible bell on errors
 
 # --- Job Control ---
-setopt AUTO_RESUME          # Resume existing jobs automatically by name
-setopt LONG_LIST_JOBS       # List jobs in long format by default
-setopt NO_HUP               # Don't kill background jobs on shell exit
-setopt NOTIFY               # Report status of background jobs immediately
+setopt AUTO_RESUME    # Resume existing jobs automatically by name
+setopt LONG_LIST_JOBS # List jobs in long format by default
+setopt NO_HUP         # Don't kill background jobs on shell exit
+setopt NOTIFY         # Report status of background jobs immediately
 
 # --- Globbing ---
-setopt EXTENDED_GLOB        # Enable extended globbing features (^, #, ~)
-setopt GLOB_DOTS            # Include dotfiles in globbing results
+setopt EXTENDED_GLOB # Enable extended globbing features (^, #, ~)
+setopt GLOB_DOTS     # Include dotfiles in globbing results
 # setopt NO_CASE_GLOB       # Make globbing case-insensitive (use with caution)
 
 # ============================================================================
@@ -72,9 +67,9 @@ setopt GLOB_DOTS            # Include dotfiles in globbing results
 # Load essential modules if needed (often loaded by frameworks like Oh My Zsh)
 # Check if already loaded to avoid errors/redundancy
 zmodload zsh/complist || true
-autoload -Uz compinit || true    # Completion system
-autoload -Uz colors || true      # Color support
-autoload -Uz vcs_info || true    # Version control information
+autoload -Uz compinit || true # Completion system
+autoload -Uz colors || true   # Color support
+autoload -Uz vcs_info || true # Version control information
 autoload -Uz add-zsh-hook || true# Hook system
 autoload -Uz select-word-style || true # Word selection style
 
@@ -83,7 +78,7 @@ colors # Initialize color variables (%F{red}, etc.)
 
 # Initialize completion system only if not already initialized
 # Check for compstate variable; initialize if empty
-if [[ -z "$compstate[prompt]" ]]; then
+if [[ ! -v compstate[prompt] ]]; then
     # Speed up compinit by caching; specify cache file path
     _comp_cache_path="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
     if [[ -f "${_comp_cache_path}.zwc" ]]; then
@@ -93,7 +88,6 @@ if [[ -z "$compstate[prompt]" ]]; then
     fi
     unset _comp_cache_path # Clean up temp var
 fi
-
 
 # Select word style (make word boundaries similar to Bash)
 select-word-style bash
@@ -105,10 +99,9 @@ select-word-style bash
 # Configure completion behavior using zstyle
 
 # --- General ---
-zstyle ':completion:*' menu select=2      # Show menu on second tab, select with tab/arrows
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}" # Use LS_COLORS for completion listing
-zstyle ':completion:*' verbose yes         # Show descriptions for completion candidates
-zstyle ':completion:*' group-name ''       # Don't group completions by type explicitly
+zstyle ':completion:*' menu select=2 # Show menu on second tab, select with tab/arrows
+zstyle ':completion:*' verbose yes   # Show descriptions for completion candidates
+zstyle ':completion:*' group-name '' # Don't group completions by type explicitly
 
 # --- Matching ---
 # Case-insensitive matching
@@ -118,9 +111,9 @@ zstyle ':completion:*' completer _complete _match _correct _approximate
 zstyle ':completion:*' max-errors 2 numeric
 
 # --- Formatting ---
-zstyle ':completion:*:descriptions' format '%B%F{green}-- %d --%f%b' # Format descriptions
-zstyle ':completion:*:messages' format '%B%F{yellow}-- %d --%f%b'    # Format messages
-zstyle ':completion:*:warnings' format '%B%F{red}-- %d --%f%b'       # Format warnings
+zstyle ':completion:*:descriptions' format '%B%F{green}-- %d --%f%b'                   # Format descriptions
+zstyle ':completion:*:messages' format '%B%F{yellow}-- %d --%f%b'                      # Format messages
+zstyle ':completion:*:warnings' format '%B%F{red}-- %d --%f%b'                         # Format warnings
 zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,command -w -w" # Command for process completion
 
 # --- Caching (compinit handles main cache) ---
@@ -148,15 +141,15 @@ bindkey '^U' backward-kill-line # More standard kill whole line
 bindkey '^Y' yank
 bindkey '^R' history-incremental-search-backward
 bindkey '^S' history-incremental-search-forward # May need `setopt NO_FLOW_CONTROL`
-bindkey '^P' up-line-or-search # Or up-line-or-history
-bindkey '^N' down-line-or-search # Or down-line-or-history
+bindkey '^P' up-line-or-search                  # Or up-line-or-history
+bindkey '^N' down-line-or-search                # Or down-line-or-history
 bindkey '^F' forward-char
 bindkey '^B' backward-char
 bindkey '^D' delete-char-or-list # Be careful with list
 
 # Fix common terminal issues with backspace/delete
 bindkey '^?' backward-delete-char # Backspace
-bindkey '^[[3~' delete-char        # Delete key
+bindkey '^[[3~' delete-char       # Delete key
 
 # Word movement (Alt+Left/Right or Esc+B/F)
 bindkey '\eb' backward-word # Esc+B

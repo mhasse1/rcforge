@@ -5,11 +5,6 @@
 # Category: rc-script/zsh
 # Description: Configures and loads Zsh plugins. Defines helper functions.
 
-# Skip if not running in Zsh
-if [[ -z "${ZSH_VERSION:-}" ]]; then
-  return 0
-fi
-
 # ============================================================================
 # PLUGIN MANAGER SETUP
 # ============================================================================
