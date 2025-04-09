@@ -55,20 +55,24 @@ One more note, if at times the instructions seem pedantic, it is because I found
 
 ## General Principles
 
-1. **Clarity Over Cleverness**
+1. **No spaces or special characters in file names.**
+
+   * We want to be able to automate and scirpt quickly without playing around with IFS.
+
+2. **Clarity Over Cleverness**
 
    - Write code that is easy to understand, not code that makes you look smart
-   
+
    - Prioritize readability over complex one-liners
-   
+
    - Add comments to explain non-obvious logic
-   
+
    - Do not string multiple commands onto the same line
-   
+
      - See standards for `if...then` and `loops`. There are appropriate use cases for these constructs.
-   
+
      - Examples:
-   
+
            # Acceptable:
            if [[ -z "$header" ]]; then
            	continue
@@ -81,25 +85,25 @@ One more note, if at times the instructions seem pedantic, it is because I found
            
            ## Not acceptable:
            if [[ -z "$header" || ! "$header" == *": "* ]]; then; continue; fi
-   
-2. **DRY (Don't Repeat Yourself)**
+
+3. **DRY (Don't Repeat Yourself)**
 
    - Reuse existing functions and utilities
    - Create modular, reusable code
    - Avoid copy-pasting code blocks
-   
-3. **KISS (Keep It Simple, Stupid)**
+
+4. **KISS (Keep It Simple, Stupid)**
    - Prefer simple solutions
    - Break complex logic into smaller, manageable functions
    - Avoid unnecessary complexity
-   
-4. **Fail Gracefully**
+
+5. **Fail Gracefully**
    - Always have a Plan B (and sometimes a Plan C)
    - Implement robust error handling
    - Provide meaningful error messages that help diagnose issues
    - Never let an unexpected error crash the entire system
-   
-5. **Convention over Configuration**
+
+6. **Convention over Configuration**
    - Embrace sensible defaults that work out of the box
    - Reduce the need for extensive configuration by making smart, consistent design choices
    - Follow established patterns in shell scripting and the rcForge ecosystem

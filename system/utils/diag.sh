@@ -160,8 +160,8 @@ GenerateMermaidDiagram() {
     diagram+="# rcForge Configuration Loading Order (Mermaid Diagram)\n"
     diagram+=" \`\`\`mermaid\n"
     diagram+="flowchart TD\n"
-    diagram+="    StartNode([Start rcForge])\n"
-    diagram+="    EndNode([End rcForge])\n\n"
+    diagram+="    StartNode([Start rcForge script load])\n"
+    diagram+="    EndNode([End rcForge script load])\n\n"
 
     # Pass 2: Define nodes and sequential links
     local processed_a_node=false

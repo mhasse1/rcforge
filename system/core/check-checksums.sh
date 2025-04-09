@@ -3,7 +3,7 @@
 # Author: Mark Hasse
 # Date: 2025-04-06
 # Category: system/core # Updated Category for core script
-# Version: 0.4.0
+# Version: 0.4.1
 # Description: Checks and validates checksums for shell configuration files (.bashrc, .zshrc)
 
 # Source utility libraries

@@ -6,6 +6,7 @@
 # Category: system/library
 # Description: Provides color definitions, output formatting, and standardized messaging functions with dynamic wrapping. Intended to be sourced.
 
+# shellcheck disable=SC2034 # Disable unused variable warnings in this library file
 
 # --- Include Guard ---
 # Check if already sourced
@@ -337,6 +338,35 @@ DebugMessage() {
     local color_prefix="${CYAN}${prefix}${RESET}"
     local indent_width=8 # Length of "[DEBUG] "
     _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message" "stderr"
+    return 0
+}
+
+# ============================================================================
+# Function: VerboseMessage
+# Description: Print a message to stdout, wrapped and indented, only if verbose flag is true.
+# Usage: VerboseMessage is_verbose "Details..."
+# Arguments:
+#   $1 (required) - Boolean ('true' or 'false') indicating if verbose mode is active.
+#   $* (required) - The message text (all subsequent arguments).
+# Returns: 0. Prints to stdout only if $1 is 'true'.
+# ============================================================================
+VerboseMessage() {
+    local is_verbose="${1:-false}" # Default to false if not provided
+    # Check if the first argument is literally 'true'
+    if [[ "$is_verbose" != "true" ]]; then
+        return 0
+    fi
+    shift # Remove the boolean flag from the arguments
+    local message="${*}" # Use the rest as the message
+    local prefix="[VERBOSE]"
+    # Use Magenta for verbose messages
+    local color_prefix="${MAGENTA}${prefix}${RESET}"
+    local indent_width=10 # Length of "[VERBOSE] "
+
+    # Check if message is non-empty after shifting
+    if [[ -n "$message" ]]; then
+      _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
+    fi
     return 0
 }
 

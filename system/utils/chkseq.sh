@@ -403,7 +403,7 @@ CheckSeqConflicts() {
                 # Use sourced colors/bold
                 echo -e "${RED}Conflict at sequence ${BOLD}${seq_num}${RESET}${RED}:${RESET}"
                 # Indent list using sed for consistency
-                echo "$files_string" | tr ',' '\n' | sed 's/^  /'
+                echo "$files_string" | tr ',' '\n' | sed 's/^/  /'
                 echo ""
             fi
         done

@@ -6,6 +6,8 @@
 # Category: system/library
 # Description: This library provides common utilities for rcForge command-line scripts.
 
+# shellcheck disable=SC2034 # Disable unused variable warnings in this library file
+
 # --- Include Guard ---
 if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
     return 0

@@ -1,0 +1,21 @@
+# ~/.config/rcforge/.shellcheckrc
+
+# Default shell for files without explicit shebang or directive
+shell=bash
+
+# Disable specific checks project-wide if they conflict with style guide
+disable=SC2155 #Declare and assign separately
+
+# Specify paths for shellcheck to find sourced files (like your libraries)
+# This helps resolve SC1090 and SC1091 warnings for sourced files.
+# Adjust path relative to project root.
+source-path=./system/lib
+source-path=./system/core
+
+external-sources=true
+
+
+
+# --------------------------
+# --- Handling Zsh Files ---
+# shellcheck shell=zsh
