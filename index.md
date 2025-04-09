@@ -28,9 +28,29 @@ Ultimately, rcForge is designed to bring order to the potential chaos of shell c
 
 ## Getting Started
 
-**Prerequisite:** rcForge's core utilities require Bash v4.3+. macOS users typically need to install a newer version using [Homebrew](https://brew.sh/): `brew install bash`. Ensure this version is available in your PATH before proceeding.
+**Prerequisite:** rcForge's core utilities require Bash v4.3+. macOS users typically need to install a newer version using [Homebrew](https://brew.sh/): `brew install bash`. Ensure this version is available in your PATH before proceeding. 
 
-Installing rcForge is straightforward:
+```
+which bash
+/opt/homebrew/bin/bash
+
+bash --version
+GNU bash, version 5.2.37(1)-release (aarch64-apple-darwin24.2.0)
+Copyright (C) 2022 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+
+This is free software; you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+```
+
+If `which` finds the wrong version, `/bin/bash` for example, check that the Homebrew path is ahead of the macOS standard folders in your path statement.
+
+```
+echo $PATH
+/opt/homebrew/bin:/opt/homebrew/sbin:/usr/bin:/bin:/usr/sbin:/sbin
+```
+
+Installing or upgrading rcForge is straightforward:
 
 ```bash
 # Installs or upgrades rcForge to ~/.config/rcforge
