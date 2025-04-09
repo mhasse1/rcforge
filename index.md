@@ -63,7 +63,7 @@ This modular approach breaks down complex configurations into manageable pieces.
 
 Ready to dive deeper or contribute?
 
-* **rcForge Website:** [rcforge.org](https://rcforge.org) - Project overview and installation instructions. 
+* **Documentation:** [rcForge Wiki](https://github.com/mhasse1/rcforge/wiki) - Documentation is kept on the GitHub wiki.. 
 * **GitHub Repository:** [rcforge on GitHub](https://github.com/mhasse1/rcforge) - Find the full source code, report issues, or suggest features.
 * **Read the Story:*** **[[From Chaos to Control]](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc): Read the story behind rcForge 
 
