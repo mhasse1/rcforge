@@ -51,11 +51,11 @@ LoadPlugin() {
     elif [[ -f "$plugin_path/$plugin_name.sh" ]]; then
       # Source .sh file if others not found (less common for zsh plugins)
       source "$plugin_path/$plugin_name.sh"
-    # else
+      # else
       # Optionally warn if directory exists but no loadable file found
       # echo "Warning: No loadable file found for plugin '$plugin_name' in $plugin_path"
     fi
-  # else
+    # else
     # Optionally warn if plugin directory doesn't exist
     # echo "Warning: Plugin directory not found for '$plugin_name': $plugin_path"
   fi
@@ -79,19 +79,19 @@ InstallPlugin() {
   if [[ ! -d "$plugin_path" ]]; then
     # Check if git exists first
     if ! command -v git &>/dev/null; then
-         echo "${RED}ERROR:${RESET} 'git' command not found. Cannot install plugin '$plugin_name'." >&2
-         return 1
+      echo "${RED}ERROR:${RESET} 'git' command not found. Cannot install plugin '$plugin_name'." >&2
+      return 1
     fi
     # Use messaging functions if available (might be too early?)
     echo "Installing plugin: $plugin_name" # Simple echo for robustness
     # Perform clone, capture status
     if git clone --depth=1 "$repo_url" "$plugin_path"; then
-        return 0 # Success
+      return 0 # Success
     else
-        echo "${RED}ERROR:${RESET} Failed to clone plugin '$plugin_name' from $repo_url." >&2
-        # Clean up potentially empty directory
-        rm -rf "$plugin_path" &>/dev/null || true
-        return 1 # Failure
+      echo "${RED}ERROR:${RESET} Failed to clone plugin '$plugin_name' from $repo_url." >&2
+      # Clean up potentially empty directory
+      rm -rf "$plugin_path" &>/dev/null || true
+      return 1 # Failure
     fi
   else
     # Use messaging functions if available
@@ -99,7 +99,6 @@ InstallPlugin() {
     return 0 # Already installed is success
   fi
 }
-
 
 # ============================================================================
 # LOAD CORE PLUGINS (Examples - User should manage actual plugins)
@@ -135,10 +134,5 @@ fi
 # ============================================================================
 # EXPORT HELPER FUNCTIONS (Optional)
 # ============================================================================
-
-# Export functions if they are intended to be called directly by the user
-# or other scripts outside the rcForge loading sequence.
-export -f LoadPlugin
-export -f InstallPlugin
 
 # EOF

@@ -84,7 +84,6 @@ ${HOME}/.config/rcforge/
 | `~/.config/rcforge/system/core/bash-version-check.sh` | Bash version validation              |
 | `~/.config/rcforge/system/core/check-seq.sh`  | Script sequence conflict detection           |
 | `~/.config/rcforge/system/core/check-checksums.sh` | RC file checksum verification          |
-| `~/.config/rcforge/system/core/functions.sh`  | Core system functions                        |
 
 ### System Utility Scripts
 

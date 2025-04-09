@@ -11,12 +11,12 @@
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
-set -o nounset  # Treat unset variables as errors
+set -o nounset # Treat unset variables as errors
 # set -o errexit # Let functions handle errors
 
 # Global constants initialized from environment variables set in rcforge.sh
 # Use sourced constants
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
+[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-ENV_ERROR}"
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
 
 # Define critical files needed for core operation
@@ -24,7 +24,6 @@ readonly gc_required_files=(
     "rcforge.sh"
     "system/lib/shell-colors.sh"
     "system/lib/utility-functions.sh"
-    "system/core/functions.sh"
     "system/core/rc.sh" # Check for the new standalone rc script
 )
 
@@ -86,7 +85,7 @@ CheckPermissions() {
     local rcforge_dir="$1"
     local is_verbose="${2:-false}"
     local permissions_issue=false
-    local item_path="" # Path to check
+    local item_path=""  # Path to check
     local item_perms="" # Permissions string
     local expected_perms=""
 
@@ -120,13 +119,13 @@ CheckPermissions() {
 
         item_perms=$(stat -c "%a" "$item_path" 2>/dev/null || stat -f "%Lp" "$item_path" 2>/dev/null || echo "ERR")
         if [[ "$item_perms" == "ERR" ]]; then
-             ErrorMessage "Could not stat file: $item_path"
-             permissions_issue=true
+            ErrorMessage "Could not stat file: $item_path"
+            permissions_issue=true
         elif [[ "$item_perms" != "$expected_perms" ]]; then
             WarningMessage "Incorrect permissions for $item_path (Expected: $expected_perms, Found: $item_perms)"
             permissions_issue=true
         elif [[ "$is_verbose" == "true" ]]; then
-             InfoMessage "[OK] File permissions correct ($expected_perms): $item_path"
+            InfoMessage "[OK] File permissions correct ($expected_perms): $item_path"
         fi
     done
 
@@ -148,10 +147,9 @@ CheckPermissions() {
                 InfoMessage "[OK] Directory permissions correct ($expected_perms): $item_path"
             fi
         else
-             VerboseMessage "$is_verbose" "Directory not found (optional?): $item_path"
+            VerboseMessage "$is_verbose" "Directory not found (optional?): $item_path"
         fi
     done
-
 
     if [[ "$permissions_issue" == "true" ]]; then
         WarningMessage "Permission check found issues."
@@ -222,7 +220,7 @@ CheckBashVersionLocal() {
     # Use sort -V for robust comparison
     if printf '%s\n%s\n' "$gc_min_bash_version" "$BASH_VERSION" | sort -V -C &>/dev/null; then
         if [[ "$is_verbose" == "true" ]]; then
-             InfoMessage "[OK] Bash version $BASH_VERSION >= $gc_min_bash_version"
+            InfoMessage "[OK] Bash version $BASH_VERSION >= $gc_min_bash_version"
         fi
         SuccessMessage "Bash version meets minimum requirement ($gc_min_bash_version+)."
         return 0
@@ -242,13 +240,20 @@ main() {
     # Process command arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --verbose|-v) is_verbose=true ;;
-            --help|-h) ShowHelp; exit 0 ;;
-            --summary) ShowSummary; exit 0 ;;
-            *)
-                ErrorMessage "Unknown option: $1"
-                ShowHelp
-                exit 1 ;;
+        --verbose | -v) is_verbose=true ;;
+        --help | -h)
+            ShowHelp
+            exit 0
+            ;;
+        --summary)
+            ShowSummary
+            exit 0
+            ;;
+        *)
+            ErrorMessage "Unknown option: $1"
+            ShowHelp
+            exit 1
+            ;;
         esac
         shift
     done
@@ -259,12 +264,11 @@ main() {
     local rcforge_dir
     rcforge_dir=$(DetermineRcForgeDir) # Uses sourced function
     if [[ ! -d "$rcforge_dir" ]]; then
-         ErrorMessage "rcForge installation directory not found: $rcforge_dir"
-         exit 1
+        ErrorMessage "rcForge installation directory not found: $rcforge_dir"
+        exit 1
     fi
     InfoMessage "Checking installation at: $rcforge_dir"
     echo ""
-
 
     # Perform integrity checks, update overall_status on failure
     CheckFileIntegrity "$rcforge_dir" "$is_verbose" || overall_status=1
@@ -285,7 +289,6 @@ main() {
 
     exit $overall_status
 }
-
 
 # Execute main function if run directly or via rc command wrapper
 if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then # Use sourced function

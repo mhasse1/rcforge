@@ -17,8 +17,8 @@ set -o pipefail # Ensure pipeline fails on any component failing
 # ============================================================================
 
 readonly RCFORGE_CORE_VERSION_CONST="0.4.1" # Version being installed
-readonly INSTALLER_VERSION="0.4.1" # Version of this installer script
-readonly INSTALLER_REQUIRED_BASH="4.3" # UPDATED: Installer itself needs 4.3+
+readonly INSTALLER_VERSION="0.4.1"          # Version of this installer script
+readonly INSTALLER_REQUIRED_BASH="4.3"      # UPDATED: Installer itself needs 4.3+
 
 readonly RCFORGE_DIR="$HOME/.config/rcforge"
 readonly BACKUP_DIR="$RCFORGE_DIR/backups"
@@ -38,12 +38,23 @@ g_is_fresh_install=false
 
 # Colors (self-contained for installer)
 if [[ -t 1 ]]; then # Check if stdout is a tty
-  readonly RED='\033[0;31m'; readonly GREEN='\033[0;32m'; readonly YELLOW='\033[0;33m';
-  readonly BLUE='\033[0;34m'; readonly MAGENTA='\033[0;35m'; readonly CYAN='\033[0;36m';
-  readonly BOLD='\033[1m'; readonly RESET='\033[0m';
+    readonly RED='\033[0;31m'
+    readonly GREEN='\033[0;32m'
+    readonly YELLOW='\033[0;33m'
+    readonly BLUE='\033[0;34m'
+    readonly MAGENTA='\033[0;35m'
+    readonly CYAN='\033[0;36m'
+    readonly BOLD='\033[1m'
+    readonly RESET='\033[0m'
 else # Disable colors if not a tty
-  readonly RED=""; readonly GREEN=""; readonly YELLOW=""; readonly BLUE="";
-  readonly MAGENTA=""; readonly CYAN=""; readonly BOLD=""; readonly RESET="";
+    readonly RED=""
+    readonly GREEN=""
+    readonly YELLOW=""
+    readonly BLUE=""
+    readonly MAGENTA=""
+    readonly CYAN=""
+    readonly BOLD=""
+    readonly RESET=""
 fi
 
 # ============================================================================
@@ -72,7 +83,7 @@ InstallHaltedCleanup() {
                 WarningMessage "Failed to remove directory: $RCFORGE_DIR. Please remove it manually."
             fi
         else
-             InfoMessage "Install directory $RCFORGE_DIR not found, no cleanup needed."
+            InfoMessage "Install directory $RCFORGE_DIR not found, no cleanup needed."
         fi
     else
         WarningMessage "Upgrade failed. Attempting to restore from backup..."
@@ -108,10 +119,10 @@ InstallHaltedCleanup() {
 # ============================================================================
 ErrorMessage() {
     local original_message="${*}"
-     if [[ -n "$RED" ]]; then
-         echo -e "${RED}ERROR:${RESET} ${original_message}" >&2
+    if [[ -n "$RED" ]]; then
+        echo -e "${RED}ERROR:${RESET} ${original_message}" >&2
     else
-         echo -e "ERROR: ${original_message}" >&2
+        echo -e "ERROR: ${original_message}" >&2
     fi
     InstallHaltedCleanup
     exit 1
@@ -123,11 +134,11 @@ ErrorMessage() {
 # Usage: WarningMessage "Warning description"
 # ============================================================================
 WarningMessage() {
-   if [[ -n "$YELLOW" ]]; then
-      echo -e "${YELLOW}WARNING:${RESET} ${*}" >&2
-   else
-      echo -e "WARNING: ${*}" >&2
-   fi
+    if [[ -n "$YELLOW" ]]; then
+        echo -e "${YELLOW}WARNING:${RESET} ${*}" >&2
+    else
+        echo -e "WARNING: ${*}" >&2
+    fi
 }
 
 # ============================================================================
@@ -136,11 +147,11 @@ WarningMessage() {
 # Usage: InfoMessage "Information"
 # ============================================================================
 InfoMessage() {
-   if [[ -n "$BLUE" ]]; then
-      echo -e "${BLUE}INFO:${RESET} ${*}"
-   else
-      echo -e "INFO: ${*}"
-   fi
+    if [[ -n "$BLUE" ]]; then
+        echo -e "${BLUE}INFO:${RESET} ${*}"
+    else
+        echo -e "INFO: ${*}"
+    fi
 }
 
 # ============================================================================
@@ -149,11 +160,11 @@ InfoMessage() {
 # Usage: SuccessMessage "Success details"
 # ============================================================================
 SuccessMessage() {
-   if [[ -n "$GREEN" ]]; then
-      echo -e "${GREEN}SUCCESS:${RESET} ${*}"
-   else
-      echo -e "SUCCESS: ${*}"
-   fi
+    if [[ -n "$GREEN" ]]; then
+        echo -e "${GREEN}SUCCESS:${RESET} ${*}"
+    else
+        echo -e "SUCCESS: ${*}"
+    fi
 }
 
 # ============================================================================
@@ -162,11 +173,11 @@ SuccessMessage() {
 # Usage: SectionHeader "Header Text"
 # ============================================================================
 SectionHeader() {
-  if [[ -n "$BOLD" ]]; then
-      echo -e "\n${BOLD}${CYAN}$1${RESET}\n${CYAN}$(printf '=%.0s' {1..50})${RESET}\n"
-  else
-      echo -e "\n## $1 ##\n" # Fallback for non-tty
-  fi
+    if [[ -n "$BOLD" ]]; then
+        echo -e "\n${BOLD}${CYAN}$1${RESET}\n${CYAN}$(printf '=%.0s' {1..50})${RESET}\n"
+    else
+        echo -e "\n## $1 ##\n" # Fallback for non-tty
+    fi
 }
 
 # ============================================================================
@@ -194,7 +205,7 @@ VerboseMessage() {
 # Returns: 0 (true) if installation detected, 1 (false) otherwise.
 # ============================================================================
 IsInstalled() {
-  [[ -d "$RCFORGE_DIR" && -f "$RCFORGE_DIR/rcforge.sh" ]]
+    [[ -d "$RCFORGE_DIR" && -f "$RCFORGE_DIR/rcforge.sh" ]]
 }
 
 # ============================================================================
@@ -204,9 +215,8 @@ IsInstalled() {
 # Returns: 0 (true) if command exists, 1 (false) otherwise.
 # ============================================================================
 CommandExists() {
-  command -v "$1" >/dev/null 2>&1
+    command -v "$1" >/dev/null 2>&1
 }
-
 
 # ============================================================================
 # Function: CheckBashVersion (Installer Specific)
@@ -218,13 +228,13 @@ CommandExists() {
 CheckBashVersion() {
     local is_skip_check="$1"
     local min_version_installer="$INSTALLER_REQUIRED_BASH" # Installer needs 4.3+
-    local min_version_rcforge="4.3" # rcForge itself effectively needs 4.3+
+    local min_version_rcforge="4.3"                        # rcForge itself effectively needs 4.3+
 
     if [[ -z "${BASH_VERSION:-}" ]]; then
         if [[ "$is_skip_check" != "true" ]]; then
-             ErrorMessage "Not running in Bash. rcForge installer requires Bash ${min_version_installer}+ to run." # Exits
+            ErrorMessage "Not running in Bash. rcForge installer requires Bash ${min_version_installer}+ to run." # Exits
         else
-             WarningMessage "Not running in Bash, but skipping check as requested."
+            WarningMessage "Not running in Bash, but skipping check as requested."
         fi
         return 0 # Allow continuation if skipped
     fi
@@ -238,7 +248,7 @@ CheckBashVersion() {
             if [[ "$(uname)" == "Darwin" ]]; then echo -e "\n${YELLOW}For macOS users, install a newer version with Homebrew: brew install bash${RESET}"; fi
             ErrorMessage "Installer Bash version requirement not met. Aborting." # Exits
         else
-             WarningMessage "Skipping installer Bash version check (required: ${min_version_installer}+) as requested."
+            WarningMessage "Skipping installer Bash version check (required: ${min_version_installer}+) as requested."
         fi
     fi
 
@@ -274,10 +284,10 @@ CreateBackup() {
     fi
     InfoMessage "Creating backup of existing installation..."
     if ! mkdir -p "$BACKUP_DIR"; then
-         WarningMessage "Could not create backup directory: $BACKUP_DIR. Skipping backup."
-         return 0
+        WarningMessage "Could not create backup directory: $BACKUP_DIR. Skipping backup."
+        return 0
     fi
-     if ! chmod 700 "$BACKUP_DIR"; then
+    if ! chmod 700 "$BACKUP_DIR"; then
         WarningMessage "Could not set permissions (700) on backup directory: $BACKUP_DIR"
     fi
     [[ "$is_verbose" == "true" ]] && tar_opts="-czvf"
@@ -346,7 +356,7 @@ DownloadManifest() {
         ErrorMessage "Manifest is empty: $MANIFEST_TEMP_FILE" # Exits
     fi
     SuccessMessage "Manifest downloaded."
-    return 0;
+    return 0
 }
 
 # ============================================================================
@@ -356,55 +366,72 @@ DownloadManifest() {
 # Returns: 0 on success, 1 if no files processed. Exits directly on critical failures.
 # ============================================================================
 ProcessManifest() {
-    local is_verbose="$1"; local current_section="NONE"; local line_num=0;
-    local dir_count=0; local file_count=0; local line=""; local dir_path="";
-    local full_dir_path=""; local source_suffix=""; local dest_suffix="";
-    local file_url=""; local dest_path="";
+    local is_verbose="$1"
+    local current_section="NONE"
+    local line_num=0
+    local dir_count=0
+    local file_count=0
+    local line=""
+    local dir_path=""
+    local full_dir_path=""
+    local source_suffix=""
+    local dest_suffix=""
+    local file_url=""
+    local dest_path=""
 
     SectionHeader "Processing Manifest"
     if [[ ! -f "$MANIFEST_TEMP_FILE" ]]; then ErrorMessage "Manifest file not found at $MANIFEST_TEMP_FILE."; fi # Exits
-    if ! mkdir -p "$RCFORGE_DIR"; then ErrorMessage "Failed to ensure base directory exists: $RCFORGE_DIR"; fi # Exits
+    if ! mkdir -p "$RCFORGE_DIR"; then ErrorMessage "Failed to ensure base directory exists: $RCFORGE_DIR"; fi   # Exits
     if ! chmod 700 "$RCFORGE_DIR"; then WarningMessage "Perms fail (700): $RCFORGE_DIR"; fi
 
     while IFS= read -r line || [[ -n "$line" ]]; do
         line_num=$((line_num + 1))
         line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
         if [[ -z "$line" || "$line" =~ ^# ]]; then continue; fi
-        if [[ "$line" == "DIRECTORIES:" ]]; then current_section="DIRS"; InfoMessage "Processing directories..."; continue; fi
-        if [[ "$line" == "FILES:" ]]; then current_section="FILES"; InfoMessage "Processing files..."; continue; fi
+        if [[ "$line" == "DIRECTORIES:" ]]; then
+            current_section="DIRS"
+            InfoMessage "Processing directories..."
+            continue
+        fi
+        if [[ "$line" == "FILES:" ]]; then
+            current_section="FILES"
+            InfoMessage "Processing files..."
+            continue
+        fi
 
         case "$current_section" in
-            "DIRS")
-                dir_path="${line#./}"; full_dir_path="${RCFORGE_DIR}/${dir_path}";
-                VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
-                if ! mkdir -p "$full_dir_path"; then ErrorMessage "Failed to create directory: $full_dir_path"; fi # Exits
-                if ! chmod 700 "$full_dir_path"; then WarningMessage "Perms fail (700): $full_dir_path"; fi
-                dir_count=$((dir_count + 1))
-                ;;
-            "FILES")
-                read -r source_suffix dest_suffix <<< "$line"
-                if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
-                    WarningMessage "Manifest line $line_num: Invalid format. Skipping: '$line'"
-                    continue
-                fi
-                file_url="${GITHUB_RAW}/${source_suffix}"; dest_path="${RCFORGE_DIR}/${dest_suffix}";
-                DownloadFile "$is_verbose" "$file_url" "$dest_path" # Handles errors/exits
-                file_count=$((file_count + 1))
-                ;;
-            *) VerboseMessage "$is_verbose" "Ignoring line $line_num before section marker: $line"; ;;
+        "DIRS")
+            dir_path="${line#./}"
+            full_dir_path="${RCFORGE_DIR}/${dir_path}"
+            VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
+            if ! mkdir -p "$full_dir_path"; then ErrorMessage "Failed to create directory: $full_dir_path"; fi # Exits
+            if ! chmod 700 "$full_dir_path"; then WarningMessage "Perms fail (700): $full_dir_path"; fi
+            dir_count=$((dir_count + 1))
+            ;;
+        "FILES")
+            read -r source_suffix dest_suffix <<<"$line"
+            if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
+                WarningMessage "Manifest line $line_num: Invalid format. Skipping: '$line'"
+                continue
+            fi
+            file_url="${GITHUB_RAW}/${source_suffix}"
+            dest_path="${RCFORGE_DIR}/${dest_suffix}"
+            DownloadFile "$is_verbose" "$file_url" "$dest_path" # Handles errors/exits
+            file_count=$((file_count + 1))
+            ;;
+        *) VerboseMessage "$is_verbose" "Ignoring line $line_num before section marker: $line" ;;
         esac
-    done < "$MANIFEST_TEMP_FILE"
+    done <"$MANIFEST_TEMP_FILE"
 
     SuccessMessage "Processed $dir_count directories from manifest."
     if [[ $file_count -eq 0 ]]; then
-         WarningMessage "No files were processed from the manifest FILES section."
-         return 1 # Indicate potential issue
+        WarningMessage "No files were processed from the manifest FILES section."
+        return 1 # Indicate potential issue
     else
-         SuccessMessage "Processed $file_count files from manifest."
-         return 0
+        SuccessMessage "Processed $file_count files from manifest."
+        return 0
     fi
 }
-
 
 # --- UpdateShellRc, VerifyInstallation, ShowInstructions, Cleanup functions ---
 # --- remain unchanged from previous version of install-script.sh              ---
@@ -416,13 +443,19 @@ ProcessManifest() {
 # Returns: 0
 # ============================================================================
 UpdateShellRc() {
-    local is_skip_integration="$1"; local is_verbose="$2"; local source_line_commented_out="";
-    local rc_file=""; local updated_any=false;
+    local is_skip_integration="$1"
+    local is_verbose="$2"
+    local source_line_commented_out=""
+    local rc_file=""
+    local updated_any=false
     local check_line="[ -f \"${RCFORGE_DIR}/rcforge.sh\" ] && source \"${RCFORGE_DIR}/rcforge.sh\""
 
-    if [[ "$is_skip_integration" == "true" ]]; then VerboseMessage "$is_verbose" "Skipping shell config update."; return 0; fi
+    if [[ "$is_skip_integration" == "true" ]]; then
+        VerboseMessage "$is_verbose" "Skipping shell config update."
+        return 0
+    fi
     SectionHeader "Updating Shell Configuration Files"
-    source_line_commented_out="# rcForge Loader (Commented out by installer - uncomment to enable)"$'\n';
+    source_line_commented_out="# rcForge Loader (Commented out by installer - uncomment to enable)"$'\n'
     source_line_commented_out+="# ${check_line}"
 
     for rc_file in "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -430,7 +463,7 @@ UpdateShellRc() {
             if ! grep -Fxq "$check_line" "$rc_file"; then
                 if ! grep -Fxq "# ${check_line}" "$rc_file"; then
                     InfoMessage "Adding commented-out rcForge source line to $rc_file..."
-                    if printf "\n%s\n" "$source_line_commented_out" >> "$rc_file"; then
+                    if printf "\n%s\n" "$source_line_commented_out" >>"$rc_file"; then
                         SuccessMessage "Added commented-out line to $rc_file."
                         updated_any=true
                     else WarningMessage "Failed to update $rc_file."; fi
@@ -439,7 +472,8 @@ UpdateShellRc() {
         else VerboseMessage "$is_verbose" "$rc_file not found; skipping."; fi
     done
 
-    if [[ "$updated_any" == "true" ]]; then InfoMessage "Shell config files updated with commented-out source line.";
+    if [[ "$updated_any" == "true" ]]; then
+        InfoMessage "Shell config files updated with commented-out source line."
     else InfoMessage "No shell config update needed (or skipped)."; fi
     return 0
 }
@@ -451,31 +485,42 @@ UpdateShellRc() {
 # Returns: 0 if basic checks pass, 1 if issues are detected.
 # ============================================================================
 VerifyInstallation() {
-    local is_verbose="$1"; local check_status=0; local file=""; local main_perms="";
+    local is_verbose="$1"
+    local check_status=0
+    local file=""
+    local main_perms=""
     local critical_files=(
         "$RCFORGE_DIR/rcforge.sh"
         "$RCFORGE_DIR/system/lib/shell-colors.sh"
-        "$RCFORGE_DIR/system/core/functions.sh"
         # Add others if needed, based on manifest guarantees
     )
     SectionHeader "Verifying Installation"
     InfoMessage "Checking critical files and permissions..."
     for file in "${critical_files[@]}"; do
-        if [[ ! -f "$file" ]]; then WarningMessage "Verify fail: Missing $file"; check_status=1;
-        else VerboseMessage "$is_verbose" "Verified exists: $file";
-             if [[ "$file" == *.sh ]]; then
-                 local file_perms; file_perms=$(stat -c %a "$file" 2>/dev/null || stat -f "%Lp" "$file" 2>/dev/null || echo "ERR")
-                 if [[ "$file_perms" == "ERR" ]]; then WarningMessage "Verify warn: Could not check perms for $file";
-                 elif [[ "$file_perms" != "700" ]]; then WarningMessage "Verify warn: Perms $file (Need: 700, Got: $file_perms)"; # check_status=1 ?
-                 else VerboseMessage "$is_verbose" "Verified perms (700): $file"; fi
-             fi
+        if [[ ! -f "$file" ]]; then
+            WarningMessage "Verify fail: Missing $file"
+            check_status=1
+        else
+            VerboseMessage "$is_verbose" "Verified exists: $file"
+            if [[ "$file" == *.sh ]]; then
+                local file_perms
+                file_perms=$(stat -c %a "$file" 2>/dev/null || stat -f "%Lp" "$file" 2>/dev/null || echo "ERR")
+                if [[ "$file_perms" == "ERR" ]]; then
+                    WarningMessage "Verify warn: Could not check perms for $file"
+                elif [[ "$file_perms" != "700" ]]; then
+                    WarningMessage "Verify warn: Perms $file (Need: 700, Got: $file_perms)" # check_status=1 ?
+                else VerboseMessage "$is_verbose" "Verified perms (700): $file"; fi
+            fi
         fi
     done
     main_perms=$(stat -c %a "$RCFORGE_DIR" 2>/dev/null || stat -f "%Lp" "$RCFORGE_DIR" 2>/dev/null || echo "ERR")
-    if [[ "$main_perms" == "ERR" ]]; then WarningMessage "Verify warn: Could not check perms for $RCFORGE_DIR";
-    elif [[ "$main_perms" != "700" ]]; then WarningMessage "Verify warn: Perms $RCFORGE_DIR (Need: 700, Got: $main_perms)"; # check_status=1 ?
+    if [[ "$main_perms" == "ERR" ]]; then
+        WarningMessage "Verify warn: Could not check perms for $RCFORGE_DIR"
+    elif [[ "$main_perms" != "700" ]]; then
+        WarningMessage "Verify warn: Perms $RCFORGE_DIR (Need: 700, Got: $main_perms)" # check_status=1 ?
     else VerboseMessage "$is_verbose" "Verified perms: $RCFORGE_DIR."; fi
-    echo ""; if [[ $check_status -eq 0 ]]; then SuccessMessage "Basic verification passed!"; else WarningMessage "Installation verification detected potential issues."; fi
+    echo ""
+    if [[ $check_status -eq 0 ]]; then SuccessMessage "Basic verification passed!"; else WarningMessage "Installation verification detected potential issues."; fi
     return $check_status
 }
 
@@ -508,10 +553,9 @@ ShowInstructions() {
 # Usage: trap Cleanup EXIT INT TERM
 # ============================================================================
 Cleanup() {
-  VerboseMessage "true" "Cleaning up temporary files..."
-  rm -f "$MANIFEST_TEMP_FILE" &>/dev/null || true
+    VerboseMessage "true" "Cleaning up temporary files..."
+    rm -f "$MANIFEST_TEMP_FILE" &>/dev/null || true
 }
-
 
 # ============================================================================
 # Function: ShowVersion (Installer Version)
@@ -519,11 +563,11 @@ Cleanup() {
 # Exits: 0
 # ============================================================================
 ShowVersion() {
-  echo "rcForge Installer v$INSTALLER_VERSION"
-  echo "(Installs rcForge Core v$RCFORGE_CORE_VERSION_CONST)"
-  echo "Copyright (c) $(date +%Y) rcForge Team"
-  echo "MIT License"
-  exit 0
+    echo "rcForge Installer v$INSTALLER_VERSION"
+    echo "(Installs rcForge Core v$RCFORGE_CORE_VERSION_CONST)"
+    echo "Copyright (c) $(date +%Y) rcForge Team"
+    echo "MIT License"
+    exit 0
 }
 
 # ============================================================================
@@ -532,7 +576,7 @@ ShowVersion() {
 # Exits: 0
 # ============================================================================
 ShowHelp() {
-  cat << EOF
+    cat <<EOF
 rcForge Installer v$INSTALLER_VERSION (Requires Bash $INSTALLER_REQUIRED_BASH+)
 
 Installs/upgrades rcForge Core v$RCFORGE_CORE_VERSION_CONST using a manifest file.
@@ -550,9 +594,8 @@ Options:
 
 Example: bash $0 --verbose
 EOF
-  exit 0
+    exit 0
 }
-
 
 # ============================================================================
 # MAIN INSTALLATION FLOW
@@ -570,15 +613,15 @@ main() {
     # --- Argument Parsing ---
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --reinstall) install_mode="reinstall" ;;
-            --force|-f) is_force=true ;;
-            --verbose|-v) is_verbose=true ;;
-            --no-backup) skip_backup=true ;;
-            --no-shell-update) skip_shell_integration=true ;;
-            --skip-version-check) skip_version_check=true ;;
-            --help|-h) ShowHelp ;; # Exits
-            --version) ShowVersion ;; # Exits
-            *) ErrorMessage "Unknown option: $1" ;; # Exits
+        --reinstall) install_mode="reinstall" ;;
+        --force | -f) is_force=true ;;
+        --verbose | -v) is_verbose=true ;;
+        --no-backup) skip_backup=true ;;
+        --no-shell-update) skip_shell_integration=true ;;
+        --skip-version-check) skip_version_check=true ;;
+        --help | -h) ShowHelp ;;                # Exits
+        --version) ShowVersion ;;               # Exits
+        *) ErrorMessage "Unknown option: $1" ;; # Exits
         esac
         shift
     done
@@ -596,18 +639,18 @@ main() {
     effective_install_mode="$install_mode"
     if [[ "$effective_install_mode" == "auto" ]]; then
         if IsInstalled; then
-             effective_install_mode="upgrade"
-             InfoMessage "Existing installation detected; preparing for upgrade..."
-             g_is_fresh_install=false
+            effective_install_mode="upgrade"
+            InfoMessage "Existing installation detected; preparing for upgrade..."
+            g_is_fresh_install=false
         else
-             effective_install_mode="install"
-             InfoMessage "Performing fresh installation..."
-             g_is_fresh_install=true
+            effective_install_mode="install"
+            InfoMessage "Performing fresh installation..."
+            g_is_fresh_install=true
         fi
     elif [[ "$effective_install_mode" == "reinstall" ]]; then
-         InfoMessage "Performing reinstallation..."
-         g_is_fresh_install=true
-         if ! IsInstalled; then WarningMessage "No existing installation found to reinstall over."; fi
+        InfoMessage "Performing reinstallation..."
+        g_is_fresh_install=true
+        if ! IsInstalled; then WarningMessage "No existing installation found to reinstall over."; fi
     fi
 
     # Confirmation Prompt REMOVED (--force currently has no effect)
@@ -625,14 +668,14 @@ main() {
     fi
     InfoMessage "Processing manifest for ${effective_install_mode}..."
     if ! ProcessManifest "$is_verbose"; then ErrorMessage "Failed to process manifest or download files."; fi # Exits
-    UpdateShellRc "$skip_shell_integration" "$is_verbose" # Doesn't exit on failure
+    UpdateShellRc "$skip_shell_integration" "$is_verbose"                                                     # Doesn't exit on failure
     SuccessMessage "File installation/upgrade from manifest complete."
     # --- End Main Install/Upgrade Steps ---
 
     # Verify installation
     if ! VerifyInstallation "$is_verbose"; then
-         WarningMessage "Post-installation verification failed. Please check logs."
-         # Decide if this is fatal - currently just warns
+        WarningMessage "Post-installation verification failed. Please check logs."
+        # Decide if this is fatal - currently just warns
     fi
 
     # Display final instructions
