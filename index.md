@@ -47,7 +47,7 @@ rc export --shell=bash
 rcForge uses a simple but powerful system based on sequentially numbered scripts stored in `~/.config/rcforge/rc-scripts/`. These files follow a naming convention (`###_host_env_desc.sh`) that allows rcForge to automatically load the correct configurations for your current hostname (or global defaults) and shell (Bash or Zsh).
 
 This modular approach breaks down complex configurations into manageable pieces. To see this in action, here's an example execution path for a Bash configuration on a machine named 'laptop':
-![image-20250409000320999](https://github.com/mhasse1/rcforge/blob/e50393fd9dd3b61250eca0c206035e157bbebdaf/res/Simple%20rcForge%20Scipt%20Load.drawio.pngg)
+![image-20250409000320999](https://github.com/mhasse1/rcforge/blob/e50393fd9dd3b61250eca0c206035e157bbebdaf/res/Simple%20rcForge%20Scipt%20Load.drawio.png)
 
 ### Key features include:
 
