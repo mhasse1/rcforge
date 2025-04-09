@@ -7,7 +7,6 @@ docs
 rc-scripts
 system
 system/core
-system/include
 system/lib
 system/utils
 
