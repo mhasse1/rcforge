@@ -9,11 +9,20 @@ Tired of chaotic shell configuration files that have grown over years? Ever log 
 If you've ever felt the frustration of inconsistent shell environments across machines, or if your `.bashrc` or `.zshrc` has grown into a monolithic beast that's hard to manage, rcForge offers a structured, maintainable solution. Here’s what rcForge brings to the table:
 
 * **Consistency Across Machines:** Say goodbye to recreating your aliases and functions every time you log into a new server or get a new laptop. Define them once, use them everywhere rcForge is installed.
+
 * **Sensible Organization:** Instead of one giant file, rcForge encourages breaking your configuration into logical, sequence-numbered modules (`###_host_env_desc.sh`). Finding and modifying specific settings becomes trivial.
+
 * **Reliable Loading:** The sequence-based system ensures your configurations load predictably every time, eliminating weird bugs caused by incorrect loading order.
+
 * **Cross-Shell Harmony:** Manage configurations for both Bash and Zsh from a single framework, sharing common elements while keeping shell-specific tweaks separate. No more maintaining parallel, slightly different rc files!
+
 * **Useful Built-in Tools:** The `rc` command isn't just for running your own scripts; it provides utilities like `diag` to visualize loading order, `chkseq` to find conflicts, and `export` to package your setup for systems where you can't install rcForge directly.
-* **User Control:** It runs entirely in your user space, requires no root privileges, and you can easily override any system utility with your own version.
+
+* **User Control:** It runs entirely in your user space, requires no root privileges, even for install, and you can easily override any system utility with your own version.
+
+* **Don't Panic:** The system provides an emergency exit immediately as the process starts. You can use this if your configuration ever loops or kicks you out of your shell before you can fix it.
+
+  ```[INFO] Initializing rcForge v0.4.1. (Press '.' within 1s to abort).```
 
 Ultimately, rcForge is designed to bring order to the potential chaos of shell customization. It transforms your configuration from a personal, sometimes fragile, setup into a robust, organized, and portable system – saving you time and frustration in the long run.
 
