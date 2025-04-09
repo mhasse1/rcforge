@@ -480,13 +480,20 @@ flowchart TD
 - Performance optimization
 - Migration tools
 
-0.7.0 - Release Candidate
+0.6.5 - RC rework
+- Will vary based on results as I test rc
+- One big feature will be categorization of utilities 
+  - Use the scrit comment blocks like I did for the summary function
+	- `rc list network` should list all of my network utilities, etc.
+
+0.7.0 - Reserved for refactoring and major design issues
+- Tentative: Integration of scripts from ~/bin and ~/src
+
+0.8.0 - Release Candidate
 - Comprehensive documentation
 	- Document all exported variables and functions
 - Installer improvements
 - Default configuration templates
-
-0.8.0 - Reserved for refactoring and major design issues
 
 0.9.0 - Pre-Release
 - Final bug fixes
