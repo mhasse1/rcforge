@@ -65,7 +65,7 @@ Ready to dive deeper or contribute?
 
 * **Documentation:** [rcForge Wiki](https://github.com/mhasse1/rcforge/wiki) - Documentation is kept on the GitHub wiki.. 
 * **GitHub Repository:** [rcForge on GitHub](https://github.com/mhasse1/rcforge) - Source code, report issues, or suggest features.
-* **Read the Story:*** [From Chaos to Control](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc): Read the story behind rcForge 
+* **Read the Story:** [From Chaos to Control](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc): Read the story behind rcForge 
 
 ---
 *rcForge - Taming the Terminal Chaos*
