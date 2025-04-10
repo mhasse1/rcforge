@@ -67,6 +67,12 @@ One more note, if at times the instructions seem pedantic, it is because I found
 
    - Add comments to explain non-obvious logic
 
+   - **BASH** is the core of our system. When it makes sense extract code to a separate file to ensure it runs in BASH rather than increasing code and complexity by introducing workarounds to directly support ZSH. 
+
+     - See rcforge/system/core/run-integrety-checks.sh for an example. This code was embedded in rcforge.sh and was broken out to ensure it runs in BASH. 
+
+   - **ZSH** is a first class citizen in this system. When it is necessary to support ZSH, contradicting the prior principle is the right decision.
+
    - Do not string multiple commands onto the same line
 
      - See standards for `if...then` and `loops`. There are appropriate use cases for these constructs.

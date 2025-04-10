@@ -210,28 +210,28 @@ FindRcScripts() {
 	return 0
 }
 
+
 # ============================================================================
 # Function: IsExecutedDirectly
-# Description: Check if the script is being executed directly (heuristic).
+# Description: Check if the script is being executed directly.
 # Usage: if IsExecutedDirectly; then ... fi
 # Returns: 0 if likely executed directly, 1 if likely sourced.
 # ============================================================================
 IsExecutedDirectly() {
-	if IsZsh; then
-		# Zsh: Simpler heuristic - compare $0 to its basename. Less reliable if $0 changes during sourcing.
-		[[ "$0" == *"$(basename "$0")"* ]]
-	elif IsBash; then
-		# Bash: Use the original BASH_SOURCE check if reliable, or the same simple heuristic
-		# Using the simple heuristic for consistency here:
-		[[ "$0" == *"$(basename "$0")"* ]]
-		# --- OR revert Bash to the BASH_SOURCE check if preferred ---
-		# local executing_script="${BASH_SOURCE[${#BASH_SOURCE[@]}-1]}"
-		# [[ "$0" == "$executing_script" ]]
-	else
-		# Fallback for other shells
-		[[ "$0" == *"$(basename "$0")"* ]]
-	fi
+    if IsZsh; then
+        # Zsh: Heuristic - Check if $0 is the script name itself (less reliable).
+        # A better Zsh check might involve zsh_eval_context.
+        [[ "$0" == *"$(basename "$0")"* ]] && return 0 || return 1
+    elif IsBash; then
+        # Bash: Compare $0 to the *last* element in BASH_SOURCE array.
+        # BASH_SOURCE[0] is the current file, BASH_SOURCE[-1] is the initial script.
+        [[ "$0" == "${BASH_SOURCE[-1]}" ]] && return 0 || return 1
+    else
+        # Fallback heuristic for other shells
+        [[ "$0" == *"$(basename "$0")"* ]] && return 0 || return 1
+    fi
 }
+
 
 # ============================================================================
 # Function: DetectShell

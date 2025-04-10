@@ -168,14 +168,14 @@ Scripts are sorted numerically by sequence number (`###`).
 
 Use these ranges as a guideline for organizing your scripts:
 
-| **Range** | **Purpose**                                           |
-| --------- | ----------------------------------------------------- |
-| `000-199` | Critical setup (PATH, essential environment vars)     |
-| `200-399` | General configuration (editor, history, shell opts)   |
-| `400-599` | Aliases and functions                                 |
-| `600-799` | Application/Tool specific settings (pyenv, nvm, etc.) |
-| `800-949` | Informational displays, cleanup (fortune, motd)       |
-| `950-999` | Critical final steps (rarely needed)                  |
+| **Range** | **Purpose**                                                |
+| --------- | ---------------------------------------------------------- |
+| `000-199` | Critical setup (PATH, essential environment vars)          |
+| `200-399` | General configuration (editor, history, shell opts)        |
+| `400-599` | Aliases and functions                                      |
+| `600-799` | Application/Tool specific settings (pyenv, VSE, nvm, etc.) |
+| `800-949` | Informational displays, cleanup (fortune, motd)            |
+| `950-999` | Critical final steps (rarely needed)                       |
 
 By breaking your configuration into these named and sequenced files, you create a more organized and maintainable shell environment.
 

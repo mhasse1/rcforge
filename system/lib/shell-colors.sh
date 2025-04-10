@@ -10,14 +10,12 @@
 
 # --- Include Guard ---
 # Check if already sourced
-if [[ -n "${_RCFORGE_SHELL_COLORS_SH_SOURCED:-}" ]];
-then
+if [[ -n "${_RCFORGE_SHELL_COLORS_SH_SOURCED:-}" ]]; then
     return 0 # Already sourced, exit gracefully
 fi
 # Mark as sourced
 _RCFORGE_SHELL_COLORS_SH_SOURCED=true
 # --- End Include Guard ---
-
 
 # Note: Do not use 'set -e' or 'set -u' in sourced library scripts as it can affect the parent shell.
 # ============================================================================
@@ -55,13 +53,13 @@ readonly BG_CYAN='\033[46m'
 readonly BG_WHITE='\033[47m'
 
 # Text Formatting
-readonly RESET='\033[0m'      # Resets all attributes
+readonly RESET='\033[0m' # Resets all attributes
 readonly BOLD='\033[1m'
 readonly DIM='\033[2m'
-readonly ITALIC='\033[3m'     # Not widely supported
+readonly ITALIC='\033[3m' # Not widely supported
 readonly UNDERLINE='\033[4m'
-readonly BLINK='\033[5m'      # Often disabled or unsupported
-readonly REVERSE='\033[7m'    # Swaps foreground and background
+readonly BLINK='\033[5m'   # Often disabled or unsupported
+readonly REVERSE='\033[7m' # Swaps foreground and background
 
 # ============================================================================
 # GLOBAL STATE VARIABLES (Exported - necessary for session-wide state)
@@ -73,7 +71,6 @@ export DEBUG_MODE="${DEBUG_MODE:-false}"
 export COLOR_TERMINAL_SUPPORT="false"
 # Flag to show fold warning only once
 export RCFORGE_FOLD_WARNING_SHOWN="false"
-
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -89,22 +86,18 @@ export RCFORGE_FOLD_WARNING_SHOWN="false"
 GetTerminalWidth() {
     local width=0
     # Prefer $COLUMNS if set and greater than 0
-    if [[ -n "${COLUMNS:-}" && "$COLUMNS" -gt 0 ]];
-    then
+    if [[ -n "${COLUMNS:-}" && "$COLUMNS" -gt 0 ]]; then
         width="$COLUMNS"
     # Fallback to tput cols
-    elif command -v tput &>/dev/null && tput cols &>/dev/null;
-    then
+    elif command -v tput &>/dev/null && tput cols &>/dev/null; then
         width=$(tput cols)
         # Ensure tput returned a valid number > 0
-        if ! [[ "$width" =~ ^[0-9]+$ && "$width" -gt 0 ]];
-        then
+        if ! [[ "$width" =~ ^[0-9]+$ && "$width" -gt 0 ]]; then
             width=0 # Invalid tput output
         fi
     fi
     # If width is still 0 (detection failed), use default
-    if [[ "$width" -le 0 ]];
-    then
+    if [[ "$width" -le 0 ]]; then
         width=80 # Default width
     fi
     echo "$width"
@@ -140,22 +133,20 @@ _PrintWrappedMessage() {
 
     term_width=$(GetTerminalWidth)
     # Calculate width for message part for fold command
-    message_wrap_width=$(( term_width - indent_width - 1 )) # Subtract indent + space for cursor
+    message_wrap_width=$((term_width - indent_width - 1))    # Subtract indent + space for cursor
     [[ message_wrap_width -lt 20 ]] && message_wrap_width=20 # Minimum wrap width
 
     # Check for fold command
-    if command -v fold >/dev/null 2>&1;
-    then
+    if command -v fold >/dev/null 2>&1; then
         fold_exists=true
         wrapped_message=$(printf '%s\n' "$message" | fold -s -w "$message_wrap_width")
     else
         wrapped_message="$message" # Use original message if fold unavailable
         # Show warning only once per session
-        if [[ "${RCFORGE_FOLD_WARNING_SHOWN}" == "false" ]];
-        then
-             # Use direct echo for this warning to avoid recursion if WarningMessage uses this helper
-             echo "WARNING: 'fold' command not found. Output wrapping disabled." >&2
-             export RCFORGE_FOLD_WARNING_SHOWN="true"
+        if [[ "${RCFORGE_FOLD_WARNING_SHOWN}" == "false" ]]; then
+            # Use direct echo for this warning to avoid recursion if WarningMessage uses this helper
+            echo "WARNING: 'fold' command not found. Output wrapping disabled." >&2
+            export RCFORGE_FOLD_WARNING_SHOWN="true"
         fi
     fi
 
@@ -164,20 +155,17 @@ _PrintWrappedMessage() {
 
     # Print wrapped message with prefix and indentation
     local first_line=true
-    while IFS= read -r line;
-    do
-        if [[ "$first_line" == true ]];
-        then
-            if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]];
-            then
-                 printf "%b %s\n" "${color_prefix}" "${line}" >&"$output_stream"
+    while IFS= read -r line; do
+        if [[ "$first_line" == true ]]; then
+            if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
+                printf "%b %s\n" "${color_prefix}" "${line}" >&"$output_stream"
             else
-                 printf "%s %s\n" "${prefix}" "${line}" >&"$output_stream"
+                printf "%s %s\n" "${prefix}" "${line}" >&"$output_stream"
             fi
             first_line=false
         else
             # Print subsequent lines with indentation
-             printf "%s%s\n" "${indent_spaces}" "${line}" >&"$output_stream"
+            printf "%s%s\n" "${indent_spaces}" "${line}" >&"$output_stream"
         fi
     done < <(printf '%s\n' "$wrapped_message") # Feed wrapped message to the loop
 }
@@ -195,14 +183,11 @@ _PrintWrappedMessage() {
 # ============================================================================
 DetermineColorSupport() {
     local color_support_detected=false # Use boolean
-    if [[ -t 1 ]];
-    then # Check if stdout is a TTY
-        if [[ -n "${TERM:-}" && "$TERM" != "dumb" ]];
-        then
-             if command -v tput &>/dev/null && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]];
-             then
-                 color_support_detected=true
-             fi
+    if [[ -t 1 ]]; then                # Check if stdout is a TTY
+        if [[ -n "${TERM:-}" && "$TERM" != "dumb" ]]; then
+            if command -v tput &>/dev/null && [[ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]]; then
+                color_support_detected=true
+            fi
         fi
     fi
     export COLOR_TERMINAL_SUPPORT="$color_support_detected"
@@ -217,8 +202,7 @@ DetermineColorSupport() {
 # Returns: None. Modifies COLOR_OUTPUT_ENABLED.
 # ============================================================================
 EnableColorOutput() {
-    if [[ "${COLOR_TERMINAL_SUPPORT:-false}" == "true" ]];
-    then
+    if [[ "${COLOR_TERMINAL_SUPPORT:-false}" == "true" ]]; then
         export COLOR_OUTPUT_ENABLED=true
     fi
 }
@@ -251,19 +235,17 @@ ErrorMessage() {
     local message="${*}" # Capture all args as the message
     local exit_code=""
     # Check if the last argument is purely numeric, assume it's exit code
-    if [[ "${*:$#}" =~ ^[0-9]+$ ]];
-    then
+    if [[ "${*:$#}" =~ ^[0-9]+$ ]]; then
         exit_code="${*:$#}"
         # Remove exit code from message string (tricky with $* - easier to rebuild)
         local num_args=$#
-        if [[ "$num_args" -gt 1 ]];
-        then
-            message="${*:1:$((num_args-1))}"
+        if [[ "$num_args" -gt 1 ]]; then
+            message="${*:1:$((num_args - 1))}"
         else
             message="" # No message if only exit code provided
         fi
         # Ensure message isn't empty if only exit code given
-         [[ -z "$message" ]] && message="Exiting with code $exit_code"
+        [[ -z "$message" ]] && message="Exiting with code $exit_code"
     fi
 
     local prefix="[ERROR]"
@@ -356,7 +338,7 @@ VerboseMessage() {
     if [[ "$is_verbose" != "true" ]]; then
         return 0
     fi
-    shift # Remove the boolean flag from the arguments
+    shift                # Remove the boolean flag from the arguments
     local message="${*}" # Use the rest as the message
     local prefix="[VERBOSE]"
     # Use Magenta for verbose messages
@@ -365,7 +347,7 @@ VerboseMessage() {
 
     # Check if message is non-empty after shifting
     if [[ -n "$message" ]]; then
-      _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
+        _PrintWrappedMessage "$prefix" "$color_prefix" "$indent_width" "$message"
     fi
     return 0
 }
@@ -386,23 +368,22 @@ VerboseMessage() {
 # ============================================================================
 SectionHeader() {
     local text="${1:-Section}"
-    local color="${2:-$BRIGHT_BLUE}" # Use variables defined above
+    local color="${2:-$BRIGHT_BLUE}"        # Use variables defined above
     local width="${3:-$(GetTerminalWidth)}" # Use dynamic width by default
     local text_len=${#text}
     # Calculate padding, ensuring it's not negative
-    local padding=$(( (width - text_len - 2) / 2 ))
+    local padding=$(((width - text_len - 2) / 2))
     [[ $padding -lt 0 ]] && padding=0
     # Calculate remaining padding for right side if width is odd or text is long
-    local r_padding=$(( width - text_len - 2 - padding ))
+    local r_padding=$((width - text_len - 2 - padding))
     [[ $r_padding -lt 0 ]] && r_padding=0
 
     # Create the separator line
     local line
     printf -v line '%*s' "$width" '' # Create string of spaces
-    line="${line// /=}" # Replace spaces with '='
+    line="${line// /=}"              # Replace spaces with '='
 
-    if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]];
-    then
+    if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
         printf "\n%b%s%b\n" "${color}" "$line" "${RESET}"
         printf "%b%*s %s %*s%b\n" "${color}" "$padding" "" "${text}" "$r_padding" "" "${RESET}"
         printf "%b%s%b\n" "${color}" "$line" "${RESET}"
@@ -424,9 +405,9 @@ SectionHeader() {
 # Returns: 1 if message is empty, 0 otherwise. Prints to stdout.
 # ============================================================================
 TextBlock() {
-    local message="${1:-}" # Message is the first argument
-    local fg_color="${2:-$WHITE}"  # Use 2nd arg or default
-    local bg_color="${3:-$BG_BLUE}"  # Use 3rd arg or default
+    local message="${1:-}"          # Message is the first argument
+    local fg_color="${2:-$WHITE}"   # Use 2nd arg or default
+    local bg_color="${3:-$BG_BLUE}" # Use 3rd arg or default
     local wrapped_message
     local term_width=$(GetTerminalWidth)
     local wrap_width=$((term_width > 4 ? term_width - 4 : term_width - 1)) # Width for fold, leaving ~2 spaces padding
@@ -434,8 +415,7 @@ TextBlock() {
     local fold_exists=false
     command -v fold >/dev/null 2>&1 && fold_exists=true
 
-    if [[ -z "$message" ]];
-    then
+    if [[ -z "$message" ]]; then
         WarningMessage "No message provided to TextBlock function."
         return 1
     fi
@@ -450,19 +430,17 @@ TextBlock() {
 
     # Print wrapped message line by line with background color
     local first_line=true
-    while IFS= read -r line;
-    do
-         # Print line with 1 space padding inside background
-         if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]];
-         then
-             printf "%b%b %s %b\n" "$fg_color" "$bg_color" "$line" "$RESET"
-         else
-             printf "[ %s ]\n" "$line" # Simple non-colored block
-         fi
-         # Subsequent lines would normally be indented, but for a block, maybe not?
-         # Keeping it simple: each wrapped line gets the same block treatment.
-         # If indentation is needed: add logic similar to _PrintWrappedMessage
-         # first_line=false (if needed)
+    while IFS= read -r line; do
+        # Print line with 1 space padding inside background
+        if [[ "${COLOR_OUTPUT_ENABLED:-false}" == "true" ]]; then
+            printf "%b%b %s %b\n" "$fg_color" "$bg_color" "$line" "$RESET"
+        else
+            printf "[ %s ]\n" "$line" # Simple non-colored block
+        fi
+        # Subsequent lines would normally be indented, but for a block, maybe not?
+        # Keeping it simple: each wrapped line gets the same block treatment.
+        # If indentation is needed: add logic similar to _PrintWrappedMessage
+        # first_line=false (if needed)
     done < <(printf '%s\n' "$wrapped_message")
 
     return 0
@@ -481,7 +459,7 @@ Wrap() {
     local text="$1"
     local indent_width="${2:-0}"
     local term_width=$(GetTerminalWidth)
-    local wrap_width=$((term_width - indent_width -1))
+    local wrap_width=$((term_width - indent_width - 1))
     [[ $wrap_width -lt 20 ]] && wrap_width=20
     local indent_spaces=""
     [[ "$indent_width" -gt 0 ]] && printf -v indent_spaces '%*s' "$indent_width" ''
@@ -501,7 +479,6 @@ Wrap() {
         # Warning handled by _PrintWrappedMessage
     fi
 }
-
 
 # ============================================================================
 # Function: StripColors
@@ -526,8 +503,7 @@ StripColors() {
 DetermineColorSupport || true
 
 # Ensure colors are disabled if not supported or explicitly disabled
-if [[ "${COLOR_TERMINAL_SUPPORT}" != "true" || "${COLOR_OUTPUT_ENABLED}" != "true" ]];
-then
+if [[ "${COLOR_TERMINAL_SUPPORT}" != "true" || "${COLOR_OUTPUT_ENABLED}" != "true" ]]; then
     DisableColorOutput
 fi
 

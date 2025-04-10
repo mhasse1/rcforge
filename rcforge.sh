@@ -2,9 +2,11 @@
 # rcforge.sh - Universal Shell Configuration Loader
 # Author: Mark Hasse
 # Date: 2025-04-07 # Updated Date for refactor
-# Version: 0.4.1
+# Version: 0.4.2
 # Category: core
 # Description: Main loader script for rcForge shell configuration system. Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
+
+# export RCFORGE_SKIP_CHECKS=1
 
 # ============================================================================
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
@@ -13,9 +15,80 @@
 set -o nounset # Keep nounset for safety during init
 
 export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.4.1"
+export RCFORGE_VERSION="0.4.2"
 
 export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/.config/rcforge}"
+
+# --- begin prepend bash from installer ---
+# Note: we want this as early in the execution as we can make it.
+
+RCFORGE_BASH_LOCATION_FILE="${RCFORGE_ROOT}/docs/.bash_location"
+if [[ -f "$RCFORGE_BASH_LOCATION_FILE" && -r "$RCFORGE_BASH_LOCATION_FILE" ]]; then
+	RCFORGE_COMPLIANT_BASH_PATH=$(<"$RCFORGE_BASH_LOCATION_FILE")
+	# Optional: Basic validation if path is non-empty and looks executable
+	if [[ -n "$RCFORGE_COMPLIANT_BASH_PATH" && -x "$RCFORGE_COMPLIANT_BASH_PATH" ]]; then
+		RCFORGE_COMPLIANT_BASH_DIR=$(dirname "$RCFORGE_COMPLIANT_BASH_PATH")
+		# Prepend the directory if it's not already effectively in PATH
+		case ":${PATH}:" in
+			*":${RCFORGE_COMPLIANT_BASH_DIR}:"*) : ;; # Already there
+			*) export PATH="${RCFORGE_COMPLIANT_BASH_DIR}${PATH:+:${PATH}}" ;;
+		esac
+		unset RCFORGE_COMPLIANT_BASH_DIR
+	fi
+	unset RCFORGE_COMPLIANT_BASH_PATH
+fi
+unset RCFORGE_BASH_LOCATION_FILE
+
+# --- end prepend bash from installer ---
+
+# --- BEGIN Initial PATH Setup from path.txt ---
+# Path to the static path definition file
+
+temp_path=""
+separator=""
+RCFORGE_PATH_FILE="${RCFORGE_ROOT}/docs/path.txt" # Using docs/
+
+if [[ -f "$RCFORGE_PATH_FILE" && -r "$RCFORGE_PATH_FILE" ]]; then
+	initial_path_entries=""
+	separator="" # Will become ':' after first entry
+	temp_path="" # Build new path prefix here
+
+	while IFS= read -r path_line || [[ -n "$path_line" ]]; do
+		# Trim leading/trailing whitespace
+		path_line="${path_line#"${path_line%%[![:space:]]*}"}"
+		path_line="${path_line%"${path_line##*[![:space:]]}"}"
+
+		# Ignore comments and empty lines
+		if [[ -z "$path_line" || "$path_line" == \#* ]]; then
+			continue
+		fi
+
+		# Handle ~ expansion manually and avoid eval
+		if [[ "$path_line" == "~"* ]]; then
+			path_line="<span class="math-inline">HOME/</span>{path_line#\~}"
+		fi
+
+		# Check existence and prevent duplicates in this batch
+		if [[ -d "$path_line" && ":${temp_path}:" != *":${path_line}:"* ]]; then
+			temp_path+="${separator}${path_line}"
+			separator=":"
+		fi
+	done <"$RCFORGE_PATH_FILE"
+
+	# Prepend the collected paths to the existing PATH if any were found
+	if [[ -n "$temp_path" ]]; then
+		# Prepend after the compliant bash path (if added)
+		export PATH="${temp_path}${PATH:+:${PATH}}"
+		# DebugMessage "Prepended paths from '$RCFORGE_PATH_FILE': $temp_path"
+	fi
+	# Clean up local vars used only in this block
+	unset temp_path path_line separator
+fi
+unset RCFORGE_PATH_FILE # Clean up temp var
+
+# --- END Initial PATH Setup from path.txt ---
+
+# Finish libary variable declarations
 export RCFORGE_LIB="${RCFORGE_ROOT}/system/lib"
 export RCFORGE_CORE="${RCFORGE_ROOT}/system/core"
 export RCFORGE_UTILS="${RCFORGE_ROOT}/system/utils"
@@ -37,93 +110,10 @@ else
 	fi
 	return 1 # Stop sourcing
 fi
+
+#
 # --- End Sourcing ---
-
-if IsZsh; then
-	export RCFORGE_SKIP_CHECKS=1
-fi
-
-# ============================================================================
-# Shell Detection and Integrity Checks
-# ============================================================================
-PerformIntegrityChecks() {
-
-	# ... (Function definition as corrected in the previous step) ...
-	local continue_load=true
-	local error_count=0
-	local check_script_path=""
-	local check_name=""
-	local check_status=0 # Capture return status from sourced script
-
-	SectionHeader "rcForge Integrity Checks" # Use sourced function
-
-	local -A checks=(
-		["Sequence Conflict Check"]="${RCFORGE_UTILS}/chkseq.sh"
-		["RC File Checksum Check"]="${RCFORGE_CORE}/check-checksums.sh"
-		# ["Core Integrity Check"]="${RCFORGE_CORE}/integrity.sh" # Add this back if needed
-	)
-
-	for check_name in "${!checks[@]}"; do
-		check_script_path="${checks[$check_name]}"
-		InfoMessage "Running: ${check_name}..."
-		if [[ -f "$check_script_path" && -r "$check_script_path" ]]; then # Check read permission for source
-			# Store current errexit state
-			local errexit_was_set=false
-			[[ $- == *e* ]] && errexit_was_set=true
-			# Temporarily disable errexit for the source command
-			set +e
-
-			# Source the script
-			source "$check_script_path" --sourced # Pass flag
-			check_status=$?
-
-			# Restore errexit state if it was originally set
-			[[ "$errexit_was_set" == "true" ]] && set -e
-
-			# Now check the status
-			if [[ $check_status -ne 0 ]]; then
-				WarningMessage "${check_name} detected issues (status: ${check_status})."
-				error_count=$((error_count + 1))
-				continue_load=false
-			else
-				SuccessMessage "${check_name} passed."
-			fi
-
-		else
-			WarningMessage "Check script not found or not readable: $check_script_path"
-			error_count=$((error_count + 1))
-			continue_load=false
-		fi
-	done
-
-	if [[ "$continue_load" == "false" ]]; then
-		echo ""
-		WarningMessage "${BOLD}Potential rcForge integrity issues detected (${error_count} check(s) reported problems).${RESET}"
-		InfoMessage "Your shell configuration might not load correctly."
-		InfoMessage "${BOLD}Recommended Action:${RESET} Run utility scripts manually or consider reinstalling."
-		InfoMessage "Example: ${CYAN}rc chkseq --fix${RESET} or ${CYAN}rc check-checksums --fix${RESET}"
-		InfoMessage "Reinstall: ${CYAN}curl -fsSL https://raw.githubusercontent.com/rcforge/install/main/install.sh | bash${RESET}" # Adjust URL if needed
-		echo ""
-
-		if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
-			ErrorMessage "Running in non-interactive mode. Aborting rcForge initialization due to integrity issues."
-			return 1
-		fi
-
-		local response=""
-		printf "%b" "${YELLOW}Do you want to continue loading rcForge despite issues? (y/N):${RESET} "
-		read -r response
-		if [[ ! "$response" =~ ^[Yy]$ ]]; then
-			ErrorMessage "Shell configuration loading aborted by user."
-			return 1
-		else
-			SuccessMessage "Continuing with rcForge initialization..."
-		fi
-	else
-		SuccessMessage "All integrity checks passed."
-	fi
-	return 0
-}
+#
 
 # ============================================================================
 # Function: SourceConfigFiles
@@ -175,13 +165,16 @@ SourceConfigFiles() {
 # RC COMMAND WRAPPER FUNCTION (Exported)
 # ============================================================================
 rc() {
-	# ... (Function definition as corrected in the previous step) ...
 	local rc_impl_path="${RCFORGE_CORE:-$HOME/.config/rcforge/system/core}/rc.sh"
 	if [[ -f "$rc_impl_path" && -x "$rc_impl_path" ]]; then
-		bash "$rc_impl_path" "$@"
+		bash "$rc_impl_path" "$@" # Use plain bash command
 		return $?
 	else
-		if command -v ErrorMessage &>/dev/null; then ErrorMessage "rc command script not found or not executable: $rc_impl_path"; else echo "ERROR: rc command script not found or not executable: $rc_impl_path" >&2; fi
+		if command -v ErrorMessage &>/dev/null; then
+			ErrorMessage "rc command script not found or not executable: $rc_impl_path"
+		else
+			echo "ERROR: rc command script not found or not executable: $rc_impl_path" >&2
+		fi
 		return 127
 	fi
 }
@@ -237,11 +230,50 @@ main() {
 		WarningMessage "Unsupported shell detected: '$current_shell'. rcForge primarily supports bash and zsh."
 	fi
 
+	#
+
 	if [[ -z "${RCFORGE_SKIP_CHECKS:-}" ]]; then
-		if ! PerformIntegrityChecks; then return 1; fi # Use local PerformIntegrityChecks
+		SectionHeader "rcForge Integrity Checks" # Print header from rcforge.sh
+		local check_runner_script="${RCFORGE_CORE}/run-integrity-checks.sh"
+		local check_runner_status=0
+
+		if [[ -f "$check_runner_script" && -x "$check_runner_script" ]]; then
+			# Execute the check logic script using bash
+			bash "$check_runner_script" # Run the new script
+			check_runner_status=$?      # Capture its exit status
+
+			if [[ $check_runner_status -ne 0 ]]; then
+				# Warnings/Errors should have been printed by the script itself.
+				# Prompt user whether to continue if interactive
+				if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
+					ErrorMessage "Running in non-interactive mode. Aborting rcForge initialization due to integrity issues."
+					return 1
+				fi
+				local response=""
+				printf "%b" "${YELLOW}Integrity checks reported issues. Continue loading rcForge anyway? (y/N):${RESET} "
+				read -r response
+				if [[ ! "$response" =~ ^[Yy]$ ]]; then
+					ErrorMessage "Shell configuration loading aborted by user due to integrity issues."
+					return 1
+				else
+					SuccessMessage "Continuing with rcForge initialization despite integrity warnings..."
+				fi
+			else
+				# Only print overall success if checks passed
+				SuccessMessage "All integrity checks passed."
+			fi
+		else
+			WarningMessage "Integrity check runner script not found or not executable: $check_runner_script"
+			WarningMessage "Skipping integrity checks."
+			# Decide whether to abort here? For now, let's warn and continue.
+			# return 1 # Uncomment to make this fatal
+		fi
+		echo "" # Add a newline after checks section
 	else
 		InfoMessage "Skipping integrity checks due to RCFORGE_SKIP_CHECKS."
 	fi
+
+	#
 
 	SectionHeader "Loading rcForge Configuration"
 	InfoMessage "Locating and sourcing configuration files."

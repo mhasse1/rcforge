@@ -1,4 +1,4 @@
-# rcForge v0.4.0 - Journey to the Deathstar
+# rcForge v0.4.2 - Journey to the Deathstar
 
 **A user-centric, modular shell configuration management system for Bash and Zsh.**
 rcForge is a flexible, modular configuration system for Bash and Zsh shells that provides a single framework for managing your shell environment across multiple machines.
@@ -18,7 +18,7 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 ## System Requirements
 
 - **Bash 4.3+ (required for rcForge's internal core functionality)**
-- Zsh 5.0+ (fully supported)
+- Zsh 5.0+ (optional-fully supported)
 - Git (for version control)
 - Standard UNIX utilities (find, sort, etc.)
 

@@ -2,7 +2,7 @@
 # install.sh - rcForge Installation Script (Dynamic Manifest Version)
 # Author: rcForge Team
 # Date: 2025-04-08 # Updated Required Bash Version
-# Version: 0.4.1 # Installer Version (Keep separate from rcForge Core Version)
+# Version: 0.4.2 # Installer Version (Keep separate from rcForge Core Version)
 # Category: installer
 # Description: Installs or upgrades rcForge shell configuration system using a manifest file.
 # Runs non-interactively. Requires Bash 4.3+ to run the installer itself.
@@ -16,8 +16,8 @@ set -o pipefail # Ensure pipeline fails on any component failing
 # CONFIGURATION & GLOBAL CONSTANTS
 # ============================================================================
 
-readonly RCFORGE_CORE_VERSION_CONST="0.4.1" # Version being installed
-readonly INSTALLER_VERSION="0.4.1"          # Version of this installer script
+readonly RCFORGE_CORE_VERSION_CONST="0.4.2" # Version being installed
+readonly INSTALLER_VERSION="0.4.2"          # Version of this installer script
 readonly INSTALLER_REQUIRED_BASH="4.3"      # UPDATED: Installer itself needs 4.3+
 
 readonly RCFORGE_DIR="$HOME/.config/rcforge"
@@ -219,44 +219,101 @@ CommandExists() {
 }
 
 # ============================================================================
-# Function: CheckBashVersion (Installer Specific)
-# Description: Check if *this installer script* is running under required Bash version.
-#              Also informs user about the rcForge core/utility requirement.
+# Function: CheckBashVersion (Installer Specific - Revised)
+# Description: Checks if installer's Bash AND user's default Bash meet requirements.
+#              Records path of compliant user default Bash if found.
 # Usage: CheckBashVersion is_skip_check
-# Exits: 1 (via ErrorMessage) if check fails and not skipped.
+# Exits: 1 (via ErrorMessage) if any check fails and not skipped.
+# Returns: 0 if all checks passed and path recorded (or skipped).
 # ============================================================================
 CheckBashVersion() {
     local is_skip_check="$1"
-    local min_version_installer="$INSTALLER_REQUIRED_BASH" # Installer needs 4.3+
-    local min_version_rcforge="4.3"                        # rcForge itself effectively needs 4.3+
+    # Use same requirement for both installer and runtime for simplicity now
+    local min_version_required="4.3"
 
+    # === Check A: Bash running THIS installer script ===
+    InfoMessage "Checking Bash version for the installer itself..."
     if [[ -z "${BASH_VERSION:-}" ]]; then
         if [[ "$is_skip_check" != "true" ]]; then
-            ErrorMessage "Not running in Bash. rcForge installer requires Bash ${min_version_installer}+ to run." # Exits
+            ErrorMessage "Not running in Bash. rcForge installer requires Bash ${min_version_required}+ to run." # Exits
         else
-            WarningMessage "Not running in Bash, but skipping check as requested."
+            WarningMessage "Not running in Bash, but skipping installer check as requested."
         fi
-        return 0 # Allow continuation if skipped
+        # If skipping, we can't reliably check the user's default bash below either if $BASH_VERSION was the only source
+        # However, the logic below uses `command -v bash` so it might still work. Proceed cautiously.
+    else
+        # Check installer's Bash version
+        if ! printf '%s\n%s\n' "$min_version_required" "$BASH_VERSION" | sort -V -C &>/dev/null; then
+            if [[ "$is_skip_check" != "true" ]]; then
+                WarningMessage "This installer script requires Bash ${min_version_required}+."
+                WarningMessage "Your current Bash version (running installer) is: $BASH_VERSION"
+                if [[ "$(uname)" == "Darwin" ]]; then echo -e "\n${YELLOW}For macOS users, install a newer version with Homebrew: brew install bash${RESET}"; fi
+                ErrorMessage "Installer Bash version requirement not met. Aborting." # Exits
+            else
+                WarningMessage "Skipping installer Bash version check (required: ${min_version_required}+) as requested."
+            fi
+        else
+            InfoMessage "Installer Bash version $BASH_VERSION meets requirement (>= $min_version_required)."
+        fi
+    fi
+    # --- End Check A ---
+
+    echo "" # Separator
+
+    # === Check B: User's default Bash (the one found first in PATH) ===
+    InfoMessage "Checking user's default Bash in PATH (required for rcForge runtime)..."
+    local first_bash_in_path
+    local runtime_bash_version
+
+    if ! command -v bash >/dev/null; then
+        # If skipping checks was allowed, maybe just warn? But runtime will fail... ErrMsg is safer.
+        ErrorMessage "Cannot find 'bash' in PATH. Please ensure Bash ${min_version_required}+ is installed and in PATH." # Exits
+    fi
+    first_bash_in_path=$(command -v bash)
+
+    # Get version using --version and extract number
+    runtime_bash_version=$("$first_bash_in_path" --version 2>/dev/null | grep -oE 'version [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $2}')
+
+    if [[ -z "$runtime_bash_version" ]]; then
+        WarningMessage "Could not determine version for Bash found at: ${first_bash_in_path}"
+        WarningMessage "Attempting to proceed, but rcForge might fail if this Bash is incompatible."
+        # Don't record the path if version unknown, let rcforge try default PATH logic
+        return 0 # Allow install to proceed, but without guarantee/recorded path
     fi
 
-    # Check installer requirement first (using sort -V for robustness)
-    if ! printf '%s\n' "$min_version_installer" "$BASH_VERSION" | sort -V -C &>/dev/null; then
-        if [[ "$is_skip_check" != "true" ]]; then
-            WarningMessage "This installer script requires Bash ${min_version_installer}+."
-            WarningMessage "Your current Bash version is: $BASH_VERSION"
-            # Display upgrade instructions (simplified from the core script)
-            if [[ "$(uname)" == "Darwin" ]]; then echo -e "\n${YELLOW}For macOS users, install a newer version with Homebrew: brew install bash${RESET}"; fi
-            ErrorMessage "Installer Bash version requirement not met. Aborting." # Exits
+    InfoMessage "Found default Bash in PATH: ${first_bash_in_path} (Version: ${runtime_bash_version})"
+
+    # Compare version
+    if printf '%s\n%s\n' "$min_version_required" "$runtime_bash_version" | sort -V -C &>/dev/null; then
+        SuccessMessage "Default Bash version ${runtime_bash_version} meets rcForge requirement (>= ${min_version_required})."
+
+        # --- Record the path ---
+        local bash_location_file="${RCFORGE_DIR}/docs/.bash_location"
+        local docs_dir="${RCFORGE_DIR}/docs"
+
+        InfoMessage "Recording compliant Bash location to ${bash_location_file}..."
+        if ! mkdir -p "$docs_dir"; then ErrorMessage "Failed to create directory: $docs_dir"; fi # Exits
+        if ! chmod 700 "$docs_dir"; then WarningMessage "Perms fail (700): $docs_dir"; fi
+
+        if echo "$first_bash_in_path" >"$bash_location_file"; then
+            if ! chmod 644 "$bash_location_file"; then WarningMessage "Perms fail (644): $bash_location_file"; fi
+            SuccessMessage "Bash location recorded."
+            unset first_bash_in_path runtime_bash_version min_version_required bash_location_file docs_dir # Clean up locals
+            return 0                                                                                       # Success
         else
-            WarningMessage "Skipping installer Bash version check (required: ${min_version_installer}+) as requested."
+            # Don't exit here, just warn and proceed without recorded path
+            WarningMessage "Failed to write Bash location to: $bash_location_file. Proceeding without recorded path."
+            unset first_bash_in_path runtime_bash_version min_version_required bash_location_file docs_dir # Clean up locals
+            return 0                                                                                       # Allow install to proceed, but maybe less robust runtime
         fi
+        # --- End Record Path ---
+    else
+        # Fail installation if default bash is too old
+        ErrorMessage "Default Bash version ${runtime_bash_version} at '${first_bash_in_path}' is too old. rcForge requires v${min_version_required}+. Please ensure a newer Bash is found first in your PATH." # Exits
     fi
 
-    # Inform user about the rcForge effective requirement (even if skipping check)
-    InfoMessage "Note: rcForge utilities require Bash ${min_version_rcforge}+ for full functionality."
-    # Don't perform the rcForge check again here, just inform. The installed check script handles it.
-
-    return 0 # If we reach here, the installer check passed or was skipped
+    # Should only be reached if logic above fails unexpectedly
+    return 1
 }
 
 # --- CreateBackup, DownloadFile, DownloadManifest, ProcessManifest functions ---
@@ -400,26 +457,26 @@ ProcessManifest() {
         fi
 
         case "$current_section" in
-        "DIRS")
-            dir_path="${line#./}"
-            full_dir_path="${RCFORGE_DIR}/${dir_path}"
-            VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
-            if ! mkdir -p "$full_dir_path"; then ErrorMessage "Failed to create directory: $full_dir_path"; fi # Exits
-            if ! chmod 700 "$full_dir_path"; then WarningMessage "Perms fail (700): $full_dir_path"; fi
-            dir_count=$((dir_count + 1))
-            ;;
-        "FILES")
-            read -r source_suffix dest_suffix <<<"$line"
-            if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
-                WarningMessage "Manifest line $line_num: Invalid format. Skipping: '$line'"
-                continue
-            fi
-            file_url="${GITHUB_RAW}/${source_suffix}"
-            dest_path="${RCFORGE_DIR}/${dest_suffix}"
-            DownloadFile "$is_verbose" "$file_url" "$dest_path" # Handles errors/exits
-            file_count=$((file_count + 1))
-            ;;
-        *) VerboseMessage "$is_verbose" "Ignoring line $line_num before section marker: $line" ;;
+            "DIRS")
+                dir_path="${line#./}"
+                full_dir_path="${RCFORGE_DIR}/${dir_path}"
+                VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
+                if ! mkdir -p "$full_dir_path"; then ErrorMessage "Failed to create directory: $full_dir_path"; fi # Exits
+                if ! chmod 700 "$full_dir_path"; then WarningMessage "Perms fail (700): $full_dir_path"; fi
+                dir_count=$((dir_count + 1))
+                ;;
+            "FILES")
+                read -r source_suffix dest_suffix <<<"$line"
+                if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
+                    WarningMessage "Manifest line $line_num: Invalid format. Skipping: '$line'"
+                    continue
+                fi
+                file_url="${GITHUB_RAW}/${source_suffix}"
+                dest_path="${RCFORGE_DIR}/${dest_suffix}"
+                DownloadFile "$is_verbose" "$file_url" "$dest_path" # Handles errors/exits
+                file_count=$((file_count + 1))
+                ;;
+            *) VerboseMessage "$is_verbose" "Ignoring line $line_num before section marker: $line" ;;
         esac
     done <"$MANIFEST_TEMP_FILE"
 
@@ -613,15 +670,15 @@ main() {
     # --- Argument Parsing ---
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --reinstall) install_mode="reinstall" ;;
-        --force | -f) is_force=true ;;
-        --verbose | -v) is_verbose=true ;;
-        --no-backup) skip_backup=true ;;
-        --no-shell-update) skip_shell_integration=true ;;
-        --skip-version-check) skip_version_check=true ;;
-        --help | -h) ShowHelp ;;                # Exits
-        --version) ShowVersion ;;               # Exits
-        *) ErrorMessage "Unknown option: $1" ;; # Exits
+            --reinstall) install_mode="reinstall" ;;
+            --force | -f) is_force=true ;;
+            --verbose | -v) is_verbose=true ;;
+            --no-backup) skip_backup=true ;;
+            --no-shell-update) skip_shell_integration=true ;;
+            --skip-version-check) skip_version_check=true ;;
+            --help | -h) ShowHelp ;;                # Exits
+            --version) ShowVersion ;;               # Exits
+            *) ErrorMessage "Unknown option: $1" ;; # Exits
         esac
         shift
     done

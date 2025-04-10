@@ -56,7 +56,7 @@ alias mkdir='mkdir -pv' # Create parent directories (-p), verbose (-v)
 # System information (human-readable)
 alias df='df -h'
 alias du='du -h'
-alias path="echo -e ${PATH//:/\\n}"
+alias path="echo $PATH | sed 's/:/\n/g'"
 # alias free='free -m' # Linux specific, might not be available on macOS
 
 # Process management

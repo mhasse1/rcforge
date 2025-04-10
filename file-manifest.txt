@@ -1,5 +1,5 @@
-# v0.4.0 File Manifest
-# File version: 0.4.1-1
+# v0.4.2 File Manifest
+# File version: 0.4.2-1
 
 DIRECTORIES:
 # Directory structure (relative to ~/.config/rcforge)
@@ -17,7 +17,6 @@ rc-scripts/050_global_common_path.sh            rc-scripts/050_global_common_pat
 rc-scripts/200_global_common_config.sh          rc-scripts/200_global_common_config.sh
 rc-scripts/210_global_bash_config.sh            rc-scripts/210_global_bash_config.sh
 rc-scripts/210_global_zsh_config.sh             rc-scripts/210_global_zsh_config.sh
-rc-scripts/310_global_zsh_plugins.sh            rc-scripts/310_global_zsh_plugins.sh
 rc-scripts/350_global_bash_prompt.sh            rc-scripts/350_global_bash_prompt.sh
 rc-scripts/350_global_zsh_prompt.sh             rc-scripts/350_global_zsh_prompt.sh
 rc-scripts/400_global_common_aliases.sh         rc-scripts/400_global_common_aliases.sh
@@ -25,13 +24,12 @@ rc-scripts/README.md                            rc-scripts/README.md
 rcforge.sh                                      rcforge.sh
 README.md                                       docs/README.md
 system/core/bash-version-check.sh               system/core/bash-version-check.sh
-system/core/check-checksums.sh                  system/core/check-checksums.sh
-system/core/integrity.sh                        system/core/integrity.sh
 system/core/rc.sh                               system/core/rc.sh
+system/core/run-integrity-checks.sh             system/core/run-integrity-checks.sh
 system/lib/shell-colors.sh                      system/lib/shell-colors.sh
 system/lib/utility-functions.sh                 system/lib/utility-functions.sh
+system/utils/check-checksums.sh                 system/utils/check-checksums.sh
+system/utils/chkseq.sh                          system/utils/chkseq.sh
 system/utils/concat-files.sh                    system/utils/concat-files.sh
 system/utils/diag.sh                            system/utils/diag.sh
 system/utils/export.sh                          system/utils/export.sh
-system/utils/httpheaders.sh                     system/utils/httpheaders.sh
-system/utils/chkseq.sh                          system/utils/chkseq.sh

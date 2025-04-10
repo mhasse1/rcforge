@@ -154,7 +154,7 @@ VerifyRcFileChecksum() {
         TextBlock "CHECKSUM MISMATCH DETECTED" "$RED" "${BG_WHITE:-}" # Use standard color vars
 
         WarningMessage "File changed: $rc_name"
-        InfoMessage "Current shell: $(DetectCurrentShell)" # Call PascalCase
+        InfoMessage "Current shell: $(DetectShell)" # Call PascalCase
         InfoMessage "Expected checksum: $stored_sum"
         InfoMessage "Actual checksum:   $current_sum" # Aligned for readability
 
