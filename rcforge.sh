@@ -248,7 +248,12 @@ main() {
     # --- Core Loading Steps ---
     # Check root execution (uses sourced CheckRoot)
     if ! CheckRoot --skip-interactive; then
-         return 1
+		if IsZsh; then
+			export PS1="%{$(tput setaf 226)%}%n%{$(tput setaf 220)%}@%{$(tput setaf 214)%}%m %{$(tput setaf 14)%}%1~ %{$(tput sgr0)%}# "
+		else
+			export PS1="\[$(tput setaf 226)\]\u\[$(tput setaf 220)\]@\[$(tput setaf 214)\]\h \[$(tput setaf 14)\]\w \[$(tput sgr0)\]# "
+     	fi
+        return 1
     fi
 
     local current_shell
