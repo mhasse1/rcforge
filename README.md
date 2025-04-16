@@ -9,9 +9,9 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 
 ``` ascii
       _.-._          _.-._                                     *        *
-     / \_/ \        / \_/ \               * \|/  *                *
-    >-(_)-<        >-(_)-< - -x       * - EXPLOSION - *              *
-     \_/ \_/        \_/ \_/               * /|\  *            *            *
+     / \_/ \        / \_/ \    pew        * \|/  *                *             (Modular
+    >-(rc)-<       >-(rc)-< - - x     * - EXPLOSION - *              *           Scripts)
+     \_/ \_/        \_/ \_/      pew      * /|\  *            *            *
       `-'            `-'                                            *
 ```
 
@@ -41,5 +41,35 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
 Install or upgrade using the following command:
 
 ```bash
-curl -fsSL [https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh](https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh) | bash
+curl -fsSL https://raw.githubusercontent.com/mhasse1/rcforge/main/install.sh | bash
 ```
+
+## Post installation
+
+After the installation, the line to source rcforge will be commented out in your .zshrc and .bashrc. Uncomment to start using the system.  We recommend you use `source ~/.config/rcforge/rcforge.sh` to verify the system is working correctly for you first.
+
+**There is a one-second pause when rcForge starts up. Press '.' during this pause to terminate rcForge.**
+
+### `.bashrc` recommended configuration
+
+We recommend the following configuration for your `.bashrc` when once you have migrated everything out of your `.bashrc` file:
+
+```
+# Put non-interactive code here
+
+case $- in
+    *i*) ;;
+      *) return;; # exit if non-interactive
+esac
+
+[ -f "${HOME}/.config/rcforge/rcforge.sh" ] && source "${HOME}/.config/rcforge/rcforge.sh"
+```
+
+### `.zshrc` recommended configuration
+
+Zsh is a little more straightforward:
+
+```
+[ -f "${HOME}/.config/rcforge/rcforge.sh" ] && source "${HOME}/.config/rcforge/rcforge.sh"
+```
+Your non-interactive environment configuration should be added to `.zshenv`

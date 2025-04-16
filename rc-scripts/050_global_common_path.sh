@@ -156,7 +156,7 @@ AddToPath "$RCFORGE_UTILS"      # Add system utils after (prepend)
 # Debug output - Show the final PATH if debugging is enabled
 if [[ -n "${SHELL_DEBUG:-}" ]]; then
 	echo -e "\n${BOLD}${CYAN}Final PATH Configuration:${RESET}"
-	ShowPath # Call PascalCase
+	ShowPath # Call
 	echo "========================================"
 fi
 

@@ -58,7 +58,7 @@ else # Disable colors if not a tty
 fi
 
 # ============================================================================
-# UTILITY FUNCTIONS (PascalCase)
+# UTILITY FUNCTIONS
 # ============================================================================
 
 # --- InstallHaltedCleanup, ErrorMessage, WarningMessage, InfoMessage, SuccessMessage ---

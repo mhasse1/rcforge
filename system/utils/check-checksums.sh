@@ -79,12 +79,12 @@ ParseArguments() {
                 fix_checksums=1
                 ;;
             --help)
-                DisplayUsage # Call PascalCase function
+                DisplayUsage # Call function
                 exit 0
                 ;;
             *)
                 ErrorMessage "Unknown parameter: $1"
-                DisplayUsage # Call PascalCase function
+                DisplayUsage # Call function
                 exit 1
                 ;;
         esac
@@ -139,7 +139,7 @@ VerifyRcFileChecksum() {
     # Initialize checksum file if it doesn't exist
     if [[ ! -f "$checksum_file" ]]; then
         InfoMessage "Initializing checksum for $rc_name..."
-        current_sum=$(CalculateChecksum "$rc_file") # Call PascalCase
+        current_sum=$(CalculateChecksum "$rc_file") # Call
         echo "$current_sum" >"$checksum_file"
         SuccessMessage "Checksum stored for $rc_name."
         return 0
@@ -147,14 +147,14 @@ VerifyRcFileChecksum() {
 
     # Get stored and current checksums
     stored_sum=$(cat "$checksum_file")
-    current_sum=$(CalculateChecksum "$rc_file") # Call PascalCase
+    current_sum=$(CalculateChecksum "$rc_file") # Call
 
     # Compare checksums
     if [[ "$stored_sum" != "$current_sum" ]]; then
         TextBlock "CHECKSUM MISMATCH DETECTED" "$RED" "${BG_WHITE:-}" # Use standard color vars
 
         WarningMessage "File changed: $rc_name"
-        InfoMessage "Current shell: $(DetectShell)" # Call PascalCase
+        InfoMessage "Current shell: $(DetectShell)" # Call
         InfoMessage "Expected checksum: $stored_sum"
         InfoMessage "Actual checksum:   $current_sum" # Aligned for readability
 

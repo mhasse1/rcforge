@@ -50,7 +50,7 @@ function +vi-git-untracked() {
 zstyle ':vcs_info:git*+set-message:*' hooks git-untracked
 
 # ============================================================================
-# PROMPT UTILITY FUNCTIONS (PascalCase)
+# PROMPT UTILITY FUNCTIONS
 # ============================================================================
 
 # ============================================================================
