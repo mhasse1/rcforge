@@ -12,7 +12,7 @@ rcForge is a flexible, modular configuration system for Bash and Zsh shells that
      / \_/ \        / \_/ \    pew        * \|/  *                *             (Modular
     >-(rc)-<       >-(rc)-< - - x     * - EXPLOSION - *              *           Scripts)
      \_/ \_/        \_/ \_/      pew      * /|\  *            *            *
-      `-'            `-'                                            *
+       `-'            `-'                                            *
 ```
 
 ## System Requirements
