@@ -72,4 +72,4 @@ Zsh is a little more straightforward:
 ```
 [ -f "${HOME}/.config/rcforge/rcforge.sh" ] && source "${HOME}/.config/rcforge/rcforge.sh"
 ```
-Your non-interactive environment configuration should be added to `.zshenv`
+Your non-interactive environment configuration should be added to `.zshenv` (you can source one of your rc-scripts if it makes sense to do so)
