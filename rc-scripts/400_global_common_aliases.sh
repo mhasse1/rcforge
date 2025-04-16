@@ -24,15 +24,15 @@ alias home='cd "$HOME"'
 # Directory listing aliases (with fallbacks)
 if IsBSD; then
   # BSD ls (macOS) with color support
-  export CLICOLOR=1       # Enable colors for BSD ls
+  export CLICOLOR=1                        # Enable colors for BSD ls
   export LSCOLORS="exfxcxdxbxegedabagacad" # Optional: Customize LSCOLORS
-  alias ls='ls -G -F'     # Enable color and file type indicators
-  alias ll='ls -lhGF'   # Human-readable sizes
-  alias la='ls -lahGF'  # Include hidden files
+  alias ls='ls -G -F'                      # Enable color and file type indicators
+  alias ll='ls -lhGF'                      # Human-readable sizes
+  alias la='ls -lahGF'                     # Include hidden files
 else
   # GNU ls (Linux) with color support
-  alias ls='ls --color=auto --group-directories-first -F' # Add file type indicators (-F)
-  alias ll='ls -lh --color=auto --group-directories-first -F' # Human-readable sizes
+  alias ls='ls --color=auto --group-directories-first -F'      # Add file type indicators (-F)
+  alias ll='ls -lh --color=auto --group-directories-first -F'  # Human-readable sizes
   alias la='ls -lah --color=auto --group-directories-first -F' # Include hidden files
 fi
 alias l.="ls -A | grep -E '^\.'"
@@ -71,12 +71,15 @@ alias nowtime='date +"%H:%M:%S"'
 # Reload shell configuration (attempts common files and rcforge)
 alias reload='exec $SHELL -l' # Preferred way to reload entire environment
 
+# ts-node execution
+alias ts='ts-node '
+
 # ============================================================================
 # NETWORK ALIASES
 # ============================================================================
 
 # IP address information
-alias publicip='curl -s ifconfig.me/ip || curl -s api.ipify.org || echo "Could not fetch external IP"' # External IP with fallback
+alias publicip='curl -s ifconfig.me/ip || curl -s api.ipify.org || echo "Could not fetch external IP"'                                 # External IP with fallback
 alias localip='ipconfig getifaddr en0 2>/dev/null || ip -4 addr show scope global | grep inet | sed "s|.*inet ||;s|/.*||" | head -n 1' # macOS / Linux fallback
 
 # Network utilities

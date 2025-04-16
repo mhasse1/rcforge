@@ -162,7 +162,7 @@ add-zsh-hook precmd SetTerminalTitle
 # Note: Ensure newline is correctly handled, often needs careful quoting or %{%} markers
 # Using prompt expansion within single quotes is generally safer in Zsh
 PROMPT='
-%(?.%F{green}✓%f.%F{red}✗%f) [%F{cyan}%n%f@%F{yellow}%m%f] %F{green}%~%f${vcs_info_msg_0_}
+%(?.%F{green}✓%f.%F{red}✗%f) '%F{240}%*%f' [%F{cyan}%n%f@%F{yellow}%m%f] %F{green}%~%f${vcs_info_msg_0_}
 '
 # This uses Zsh conditional %(?.success.failure), %~ for pwd, %# for root/user prompt char
 
@@ -177,10 +177,10 @@ PROMPT='
 # %F{yellow}└─[${vcs_info_msg_0_}%F{yellow}]─[$(ReturnStatus)%F{yellow}]→ %f'
 
 # Secondary prompt (for commands spanning multiple lines)
-PROMPT2='%F{yellow}> %f'
+PROMPT2='  '
 
 # Right-side prompt (e.g., showing time) - uses %* for time
-RPROMPT='%F{240}%*%f'
+# RPROMPT='%F{240}%*%f'
 
 # Ensure vcs_info is updated for RPROMPT if it uses VCS info
 # zstyle ':vcs_info:git*' rprompt ' %F{cyan}%b%f'

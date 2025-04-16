@@ -7,7 +7,6 @@
 # RC Summary: Finds and executes user or system utility scripts
 # Description: Finds and executes user or system utility scripts, handles help and conflicts.
 #              Runs as a standalone script invoked by the 'rc' wrapper function.
-bash --version
 # Source required libraries explicitly
 # Default paths used in case RCFORGE_LIB is not set (e.g., direct execution)
 source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"

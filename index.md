@@ -28,7 +28,7 @@ Ultimately, rcForge is designed to bring order to the potential chaos of shell c
 
 ## Getting Started
 
-**Prerequisite:** rcForge's core utilities require Bash v4.3+. macOS users typically need to install a newer version using [Homebrew](https://brew.sh/): `brew install bash`. Ensure this version is available in your PATH before proceeding. 
+**Prerequisite:** rcForge's core utilities require Bash v4.3+. macOS users typically need to install a newer version using [Homebrew](https://brew.sh/): `brew install bash`. Ensure this version is available in your PATH before proceeding.
 
 ```
 which bash
@@ -54,7 +54,7 @@ Installing or upgrading rcForge is straightforward:
 
 ```bash
 # Installs or upgrades rcForge to ~/.config/rcforge
-curl -fsSL [https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh](https://raw.githubusercontent.com/mhasse1/rcforge/main/install-script.sh) | bash
+curl -fsSL https://raw.githubusercontent.com/mhasse1/rcforge/main/install.sh | bash
 ```
 
 **Important:** The installer adds a *commented-out* source line to your `~/.bashrc` and `~/.zshrc`. After testing rcForge manually in your current shell (`source ~/.config/rcforge/rcforge.sh`), you must **uncomment** that line in your RC file(s) for rcForge to load automatically in new shells.
@@ -92,9 +92,9 @@ This modular approach breaks down complex configurations into manageable pieces.
 
 Ready to dive deeper or contribute?
 
-* **Documentation:** [rcForge Wiki](https://github.com/mhasse1/rcforge/wiki) - Documentation is kept on the GitHub wiki.. 
+* **Documentation:** [rcForge Wiki](https://github.com/mhasse1/rcforge/wiki) - Documentation is kept on the GitHub wiki..
 * **GitHub Repository:** [rcForge on GitHub](https://github.com/mhasse1/rcforge) - Source code, report issues, or suggest features.
-* **Read the Story:** [From Chaos to Control](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc): Read the story behind rcForge 
+* **Read the Story:** [From Chaos to Control](https://www.linkedin.com/pulse/from-chaos-control-how-i-transformed-my-shell-config-open-mark-hasse-6wqcc): Read the story behind rcForge
 
 ---
 *rcForge - Taming the Terminal Chaos*

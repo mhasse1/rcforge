@@ -130,7 +130,7 @@ zstyle ':completion:*:*:cd:*:directory-stack' menu yes select
 
 # Ensure Zsh keymap is set (usually 'emacs' or 'viins')
 # bindkey -e # Force Emacs mode
-# bindkey -v # Force Vi mode (already set above)
+bindkey -v # Force Vi mode
 
 # Standard Emacs-like bindings (useful even in Vi command mode)
 bindkey '^A' beginning-of-line

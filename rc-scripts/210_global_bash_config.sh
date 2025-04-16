@@ -11,9 +11,6 @@
 # SHELL OPTIONS (set -o, shopt)
 # ============================================================================
 
-# --- Editing Mode ---
-set -o vi # Enable vi command line editing mode
-
 # --- History ---
 # Variables are set in common config (HISTSIZE, HISTFILESIZE, HISTCONTROL, HISTTIMEFORMAT, HISTIGNORE)
 shopt -s histappend # Append to history file, don't overwrite
@@ -38,6 +35,9 @@ shopt -s nocaseglob                   # Make filename globbing case-insensitive
 
 # --- Other ---
 shopt -s hostcomplete # Enable hostname completion (Tab after @)
+
+# --- Set vi mode ---
+set -o vi
 
 # ============================================================================
 # HISTORY CONFIGURATION (Variables set in common config)
@@ -85,10 +85,5 @@ if command -v dircolors >/dev/null 2>&1; then
   fi
   # Aliases in 400_global_common_aliases.sh enable --color=auto for ls/grep
 fi
-
-# ============================================================================
-# DEFAULT ALIASES (Sourced from common file)
-# ============================================================================
-# Alias definitions are kept in a separate file (400_global_common_aliases.sh)
 
 # EOF
