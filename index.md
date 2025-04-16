@@ -1,5 +1,13 @@
 ![rcForge-Stickman-Logo](res/stickman-rcforge-logo-trans.png)
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JCDRK0DF14"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
+  gtag('config', 'G-JCDRK0DF14');
+</script>
 # rcForge: Shell Configuration Management
 
 Tired of chaotic shell configuration files that have grown over years? Ever log into a new machine and feel lost without your personalized aliases, functions, and prompt? rcForge is a modular, maintainable open-source system designed to bring order and consistency to your Bash and Zsh environments across all your machines. Born from a 15+ year personal journey and refined with AI collaboration, rcForge helps you transform shell config chaos into a robust, organized, and portable setup. (Note: rcForge's core utilities require Bash version 4.3 or higher.)
