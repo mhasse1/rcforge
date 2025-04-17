@@ -624,16 +624,250 @@ _process_arguments() {
 }
 
 # ============================================================================
+# CLI HELPER FUNCTIONS (Add to utility-functions.sh)
+# ============================================================================
+
+# ============================================================================
+# Function: StandardParseArgs
+# Description: Standardized argument parser for rcForge utilities
+# Usage: StandardParseArgs options_array_name "$@"
+#        Access results with ${options[option_name]}
+# Arguments:
+#   $1 (required) - Name of associative array to store results
+#   $2+ (required) - Command line arguments to parse
+# Returns: 0 on success, 1 on error. Populates array with parsed values.
+# Example:
+#   declare -A options
+#   StandardParseArgs options \
+#     --option1="Default value" \
+#     --flag1=false \
+#     --option2="" \
+#     -- "$@"
+# ============================================================================
+StandardParseArgs() {
+    local -n _options_ref="$1"; shift
+
+    # Ensure Bash 4.3+ for namerefs
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+        ErrorMessage "Internal Error: StandardParseArgs requires Bash 4.3+ for namerefs."
+        return 1
+    fi
+
+    # Set default values first
+    local default_option=""
+    local option_name=""
+    local option_value=""
+
+    # Process default values (arguments before --)
+    while [[ $# -gt 0 && "$1" != "--" ]]; do
+        default_option="$1"
+        shift
+
+        # Skip if not in --option=value format
+        if [[ ! "$default_option" =~ ^--([^=]+)=(.*) ]]; then
+            WarningMessage "Ignoring invalid default option format: $default_option"
+            continue
+        fi
+
+        option_name="${BASH_REMATCH[1]}"
+        option_value="${BASH_REMATCH[2]}"
+
+        # Set default in the options array
+        _options_ref["$option_name"]="$option_value"
+    done
+
+    # Skip the -- separator
+    if [[ "$1" == "--" ]]; then shift; fi
+
+    # Now parse actual command-line arguments
+    while [[ $# -gt 0 ]]; do
+        local arg="$1"
+
+        # Handle --option=value format
+        if [[ "$arg" =~ ^--([^=]+)=(.*) ]]; then
+            option_name="${BASH_REMATCH[1]}"
+            option_value="${BASH_REMATCH[2]}"
+            _options_ref["$option_name"]="$option_value"
+
+        # Handle --option value format
+        elif [[ "$arg" =~ ^--(.*) ]]; then
+            option_name="${BASH_REMATCH[1]}"
+
+            # Handle flags (--option with no value)
+            if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
+                _options_ref["$option_name"]="true"
+            # Handle options with values
+            elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+                shift
+                _options_ref["$option_name"]="$1"
+            else
+                ErrorMessage "Option --$option_name requires a value"
+                return 1
+            fi
+
+        # Handle -o (short options)
+        elif [[ "$arg" =~ ^-([a-zA-Z])$ ]]; then
+            local short_opt="${BASH_REMATCH[1]}"
+
+            # Find corresponding long option by checking option_map if it exists
+            if [[ -v "option_map[$short_opt]" ]]; then
+                option_name="${option_map[$short_opt]}"
+
+                # Handle flags
+                if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
+                    _options_ref["$option_name"]="true"
+                # Handle options with values
+                elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+                    shift
+                    _options_ref["$option_name"]="$1"
+                else
+                    ErrorMessage "Option -$short_opt requires a value"
+                    return 1
+                fi
+            else
+                ErrorMessage "Unknown short option: -$short_opt"
+                return 1
+            fi
+
+        # Handle special option --
+        elif [[ "$arg" == "--" ]]; then
+            # Stop processing options
+            shift
+            break
+
+        # Handle unknown options
+        elif [[ "$arg" =~ ^- ]]; then
+            ErrorMessage "Unknown option: $arg"
+            return 1
+
+        # Handle positional arguments
+        else
+            # If defined, append to positional args array
+            if [[ -v "_options_ref[positional]" ]]; then
+                _options_ref["positional"]+=" $arg"
+            else
+                _options_ref["positional"]="$arg"
+            fi
+        fi
+
+        shift
+    done
+
+    # Add remaining arguments to positional if we stopped at --
+    while [[ $# -gt 0 ]]; do
+        if [[ -v "_options_ref[positional]" ]]; then
+            _options_ref["positional"]+=" $1"
+        else
+            _options_ref["positional"]="$1"
+        fi
+        shift
+    done
+
+    return 0
+}
+
+# ============================================================================
+# Function: InitUtility
+# Description: Initialize a standard rcForge utility environment
+# Usage: InitUtility "utility_name" "$@"
+# Arguments:
+#   $1 (required) - Utility name (used in headers & help)
+#   $2+ (required) - Command line arguments
+# Returns: Associative array 'options' populated with values. Exit code of parser.
+# ============================================================================
+InitUtility() {
+    # Must be run in global scope
+    local utility_name="$1"; shift
+    export UTILITY_NAME="$utility_name"
+
+    # Set up options array
+    declare -gA options
+
+    # Default handling for help, version, summary
+    for arg in "$@"; do
+        case "$arg" in
+            --help|-h)
+                ShowStandardHelp
+                exit 0
+                ;;
+            --version)
+                _rcforge_show_version "$0"
+                exit 0
+                ;;
+            --summary)
+                ExtractSummary "$0"
+                exit $?
+                ;;
+        esac
+    done
+
+    return 0
+}
+
+# ============================================================================
+# Function: ShowStandardHelp
+# Description: Display standardized help for a utility
+# Usage: ShowStandardHelp
+# Arguments: None (uses global UTILITY_NAME and runtime environment)
+# Returns: Exits with code 0
+# ============================================================================
+ShowStandardHelp() {
+    # This function requires UTILITY_NAME to be set
+    if [[ -z "${UTILITY_NAME:-}" ]]; then
+        ErrorMessage "UTILITY_NAME must be set before calling ShowStandardHelp"
+        exit 1
+    fi
+
+    local script_name
+    script_name=$(basename "$0")
+    local version="${gc_version:-0.4.1}"
+
+    echo "${UTILITY_NAME} - rcForge Utility (v${version})"
+    echo ""
+
+    # Extract description from script file
+    local description
+    description=$(grep -m 1 "^# Description:" "$0" || echo "# Description: No description available.")
+    description="${description#\# Description: }"
+    echo "Description:"
+    echo "  ${description}"
+    echo ""
+
+    echo "Usage:"
+    echo "  rc ${UTILITY_NAME} [options] <arguments>"
+    echo "  ${script_name} [options] <arguments>"
+    echo ""
+
+    # If a custom help function exists, call it for options
+    if declare -F CustomOptionsHelp >/dev/null; then
+        CustomOptionsHelp
+    else
+        echo "Options:"
+        echo "  --help, -h         Show this help message"
+        echo "  --version          Show version information"
+        echo "  --summary          Show a one-line description (for rc help)"
+    fi
+
+    # If a custom examples function exists, call it
+    if declare -F CustomExamplesHelp >/dev/null; then
+        echo ""
+        CustomExamplesHelp
+    else
+        echo ""
+        echo "Examples:"
+        echo "  rc ${UTILITY_NAME} --help"
+    fi
+
+    exit 0
+}
+
+
+# ============================================================================
 # EXPORT PUBLIC FUNCTIONS FOR BASH
 # ============================================================================
 # Only export functions intended as the public API of this library for Bash.
 # Zsh exports sourced functions automatically.
 if IsBash; then
-    export -f DetectCurrentHostname
-    export -f DetectRcForgeDir
-    export -f CheckRoot
-    export -f FindRcScripts
-    export -f IsExecutedDirectly
     export -f DetectShell
     export -f IsZsh
     export -f IsBash
@@ -642,12 +876,6 @@ if IsBash; then
     export -f IsLinux
     export -f IsBSD
     export -f CommandExists
-    export -f AddToPath
-    export -f AppendToPath
-    export -f ShowPath
-    export -f ShowVersionInfo  # Renamed from _rcforge_show_version
-    export -f ShowStandardHelp # Renamed from _rcforge_show_help
-    export -f ExtractSummary
     # DO NOT EXPORT INTERNAL HELPERS like _process_common_args, _process_arguments
 fi
 

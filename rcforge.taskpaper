@@ -1,0 +1,37 @@
+---
+title: rcForge ToDos
+---
+Inbox:
+	- telemetry (google ads) @maybe
+		- telemetry.md
+			See telementry planning doc
+			- `rc --telemetry` # once telemetry added
+			- opt-in or opti-out
+			- display current status
+			- create new uuid
+			- display telemetry overview
+			- telemetry status should be included in `rc --help`
+	- httpdheaders - update to work inside of rc (pulled from 0.4.2) @maybe
+	- path manipulation scripts should be available in `rc` @na
+	- `rc --home`: cd to ~/.config/rcforge folder. @na
+
+Feature Requests:
+
+Ideas:
+	- domain-check
+	- is-up
+	- get-http-status
+	- dnslookup
+	- httpheaders
+	- tmp-httpd
+
+Bugs:
+
+
+Archive:
+
+Search Definitions:
+	Top Priority @search(@priority = 5 and not @done)
+	High Priority @search(@priority > 3 and not @done)
+	Maybe @search(@maybe)
+	Next @search(@na and not @done and not project = "Archive")

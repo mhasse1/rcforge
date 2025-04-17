@@ -129,23 +129,31 @@ zstyle ':completion:*:*:cd:*:directory-stack' menu yes select
 # ============================================================================
 
 # Ensure Zsh keymap is set (usually 'emacs' or 'viins')
+# https://zsh.sourceforge.io/Doc/Release/index.html
+# https://thevaluable.dev/zsh-install-configure-mouseless/
+# https://thevaluable.dev/zsh-line-editor-configuration-mouseless/
 # bindkey -e # Force Emacs mode
 bindkey -v # Force Vi mode
 
+# Instead of visual, have v lauch our editor
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
+
 # Standard Emacs-like bindings (useful even in Vi command mode)
-bindkey '^A' beginning-of-line
-bindkey '^E' end-of-line
-bindkey '^K' kill-line
-bindkey '^U' backward-kill-line # More standard kill whole line
+# bindkey '^A' beginning-of-line
+# bindkey '^E' end-of-line
+# bindkey '^K' kill-line
+# bindkey '^U' backward-kill-line # More standard kill whole line
 # bindkey '^W' backward-kill-word # Often default
-bindkey '^Y' yank
-bindkey '^R' history-incremental-search-backward
-bindkey '^S' history-incremental-search-forward # May need `setopt NO_FLOW_CONTROL`
-bindkey '^P' up-line-or-search                  # Or up-line-or-history
-bindkey '^N' down-line-or-search                # Or down-line-or-history
-bindkey '^F' forward-char
-bindkey '^B' backward-char
-bindkey '^D' delete-char-or-list # Be careful with list
+# bindkey '^Y' yank
+# bindkey '^R' history-incremental-search-backward
+# bindkey '^S' history-incremental-search-forward # May need `setopt NO_FLOW_CONTROL`
+# bindkey '^P' up-line-or-search                  # Or up-line-or-history
+# bindkey '^N' down-line-or-search                # Or down-line-or-history
+# bindkey '^F' forward-char
+# bindkey '^B' backward-char
+# bindkey '^D' delete-char-or-list # Be careful with list
 
 # Fix common terminal issues with backspace/delete
 bindkey '^?' backward-delete-char # Backspace
