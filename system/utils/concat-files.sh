@@ -39,7 +39,7 @@ ShowHelp() {
     echo "  -p, --pattern PATTERN   Find files matching PATTERN (e.g., '*.sh'). Defaults to all files."
     echo "  -nr, --no-recursive   Only search the current directory (do not recurse into subdirectories)."
     echo "  -h, --help            Show this help message."
-    echo "  --summary             Show one-line summary." # Added standard option
+    echo "  --summary             Show one-line summary."    # Added standard option
     echo "  --version             Show version information." # Added standard option
     echo ""
     echo "Example:"
@@ -56,10 +56,10 @@ ShowHelp() {
 # ============================================================================
 ParseArguments() {
     local -n options_ref="$1" # Use nameref (Bash 4.3+)
-    shift # Remove array name from args
+    shift                     # Remove array name from args
 
     # Ensure Bash 4.3+ for namerefs (-n)
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
         ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
         return 1
     fi
@@ -72,42 +72,42 @@ ParseArguments() {
     while [[ $# -gt 0 ]]; do
         local key="$1"
         case "$key" in
-            -h|--help)
+            -h | --help)
                 ShowHelp # Exits
                 ;;
             --summary)
                 ExtractSummary "$0" # Call helper directly
-                exit $?                # Exit with helper status
+                exit $?             # Exit with helper status
                 ;;
             --version)
-                 _rcforge_show_version "$0" # Call helper
-                 exit 0                     # Exit after showing version
-                 ;;
-            -p|--pattern)
+                _rcforge_show_version "$0" # Call helper
+                exit 0                     # Exit after showing version
+                ;;
+            -p | --pattern)
                 # Ensure value exists and is not another option
                 if [[ -z "${2:-}" || "$2" == -* ]]; then
-                     ErrorMessage "Option '$key' requires a PATTERN argument."
-                     return 1
+                    ErrorMessage "Option '$key' requires a PATTERN argument."
+                    return 1
                 fi
                 options_ref["find_pattern"]="$2"
                 shift 2 # past argument and value
                 ;;
-            -nr|--no-recursive)
+            -nr | --no-recursive)
                 options_ref["recursive"]=false
                 shift # past argument
                 ;;
-             # End of options marker
+                # End of options marker
             --)
                 shift # Move past --
                 break # Stop processing options, remaining args are positional (none expected for this script)
                 ;;
-             # Unknown option
+                # Unknown option
             -*)
                 ErrorMessage "Unknown option: $key"
                 ShowHelp # Exits
                 return 1
                 ;;
-             # Positional argument (none expected)
+                # Positional argument (none expected)
             *)
                 ErrorMessage "Unexpected positional argument: $key"
                 ShowHelp # Exits
@@ -159,6 +159,25 @@ main() {
     # Flag to track if any files were found
     local file_found=false
 
+    # Create a line of -'s to deliniate the intro text
+    local intro_len=75
+    local intro_line
+    intro_line=$(printf '%*s' "$intro_len" '' | tr ' ' '-')
+
+    # Provide the structure of the files to follow.
+    cat <<EOF
+${intro_line}
+# Introduction
+This file contains a concatenation of files. The individual files are
+delimited by lines formatted as:
+
+    ========== <./path/to/file> ==========
+
+The delimiter provides the name of the file and its path from the
+project root.
+${intro_line}
+EOF
+
     # Execute find and loop through results safely
     # Use Bash process substitution and while loop for safety with filenames
     while IFS= read -r -d '' file; do
@@ -166,7 +185,7 @@ main() {
         # Print marker with filename (ensure path is relative to PWD)
         # Use parameter expansion to remove leading ./ if present
         local display_path="${file#./}"
-        echo "# ========== <./${display_path}>"
+        echo "# ========== <./${display_path}> =========="
         # Print file content safely
         cat -- "$file" # Use -- to handle filenames starting with -
         # Add a newline after file content for separation
@@ -176,7 +195,7 @@ main() {
 
     # Report if no files were found matching criteria
     if [[ "$file_found" == "false" ]]; then
-         InfoMessage "No files found matching pattern '$find_pattern' ${options[recursive]:+in current directory only}."
+        InfoMessage "No files found matching pattern '$find_pattern' ${options[recursive]:+in current directory only}."
     fi
     return 0 # Success
 }

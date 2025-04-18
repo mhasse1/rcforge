@@ -1,4 +1,4 @@
-# development project root <<<< CHECK THIS!!
+# development project root
 PROJECT_ROOT="${HOME}/src/rcforge"
 
 # environment variables for rcForge code to be executed from within the project
@@ -14,7 +14,6 @@ RCFORGE_UTILS="${RCFORGE_ROOT}/system/utils"
 RCFORGE_LOCAL="${RCFORGE_ROOT}/local"
 RCFORGE_TOOLS="${RCFORGE_ROOT}/tools"
 
-
 # main function
 main() {
 	export RCFORGE_APP_NAME
@@ -28,8 +27,7 @@ main() {
 	export RCFORGE_TOOLS
 }
 
-
-shell=`ps -o comm= -p $$`
+shell=$(ps -o comm= -p $$)
 if [[ $shell == "-zsh" ]]; then
 	[[ $ZSH_EVAL_CONTEXT != *:file:* ]] && main
 elif [[ $shell == "bash" ]]; then

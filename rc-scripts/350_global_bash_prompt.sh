@@ -73,6 +73,13 @@ _prompt_returnstatus() {
 	fi
 }
 
+# SSH connection indicator
+function __ssh_indicator() {
+	if [[ -n "$SSH_CLIENT" || -n "$SSH_TTY" || -n "$SSH_CONNECTION" ]]; then
+		echo "$BLACK_YELLOW SSH $RESET "
+	fi
+}
+
 # ============================================================================
 # PROMPT BUILDING FUNCTION (Called by PROMPT_COMMAND)
 # ============================================================================
@@ -87,13 +94,16 @@ _rcforge_build_prompt() {
 	# Assemble PS1 string, adding \[ \] around *all* non-printing parts
 	# Use color vars sourced from shell-colors.sh (e.g., CYAN, YELLOW, GREEN, RESET)
 	# Provide default empty values ":-" in case shell-colors wasn't sourced correctly
-	PS1=""                                                                                # Start fresh
-	PS1+="\n"                                                                             # Newline before prompt
-	PS1+="\[${status_indicator}\]"                                                        # Status (already has colors/reset)
-	PS1+=" \[${RESET:-}\][\[${CYAN:-}\]\u\[${RESET:-}\]@\[${YELLOW:-}\]\h\[${RESET:-}\]]" # user@host
-	PS1+=" \[${GREEN:-}\]\w\[${RESET:-}\]"                                                # Working directory
-	PS1+="\[${git_info}\]"                                                                # Git info (already has colors/reset)
-	PS1+="\n"                                                                             # Newline after first line
+	PS1=""                         # Start fresh
+	PS1+="\n"                      # Newline before prompt
+	PS1+="\[${status_indicator}\]" # Status (already has colors/reset)
+	PS1+=" \[${RESET:-}\]"
+	PS1+="\[${__ssh_indicator}\]"
+	PS1+=" \[${RESET:-}\]"
+	PS1+=" [\[${CYAN:-}\]\u\[${RESET:-}\]@\[${YELLOW:-}\]\h\[${RESET:-}\]]" # user@host
+	PS1+=" \[${GREEN:-}\]\w\[${RESET:-}\]"                                  # Working directory
+	PS1+="\[${git_info}\]"                                                  # Git info (already has colors/reset)
+	PS1+="\n"                                                               # Newline after first line
 
 	# Set PS2 (Continuation prompt)
 	PS2="    "
