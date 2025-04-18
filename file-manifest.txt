@@ -1,25 +1,20 @@
-# v0.4.2 File Manifest
-# File version: 0.4.2-1
+# v0.4.3 File Manifest
+# File version: 0.4.3-1
 
 DIRECTORIES:
 # Directory structure (relative to ~/.config/rcforge)
+backups
 docs
 rc-scripts
 system
 system/core
 system/lib
 system/utils
+utils
 
 FILES:
 # Source Path (relative to project root)        Destination Path (relative to ~/.config/rcforge)
 LICENSE                                         docs/LICENSE
-rc-scripts/050_global_common_path.sh            rc-scripts/050_global_common_path.sh
-rc-scripts/200_global_common_config.sh          rc-scripts/200_global_common_config.sh
-rc-scripts/210_global_bash_config.sh            rc-scripts/210_global_bash_config.sh
-rc-scripts/210_global_zsh_config.sh             rc-scripts/210_global_zsh_config.sh
-rc-scripts/350_global_bash_prompt.sh            rc-scripts/350_global_bash_prompt.sh
-rc-scripts/350_global_zsh_prompt.sh             rc-scripts/350_global_zsh_prompt.sh
-rc-scripts/400_global_common_aliases.sh         rc-scripts/400_global_common_aliases.sh
 rc-scripts/README.md                            rc-scripts/README.md
 rcforge.sh                                      rcforge.sh
 README.md                                       docs/README.md
@@ -33,3 +28,4 @@ system/utils/chkseq.sh                          system/utils/chkseq.sh
 system/utils/concat-files.sh                    system/utils/concat-files.sh
 system/utils/diag.sh                            system/utils/diag.sh
 system/utils/export.sh                          system/utils/export.sh
+docs/utility-dev-guide.md                       docs/utility-dev-guide.md

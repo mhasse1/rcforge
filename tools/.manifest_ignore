@@ -54,3 +54,7 @@ res/simple-rc-load.drawio
 res/simple-rc-load.png
 res/stickman-rcforge-logo-trans.png
 res/stickman-rcforge-logo-trans.pxd
+local/documentation.txt
+local/telemetry-thoughts.md
+rc-scripts/800_global_common_call_apikeysrc.sh
+rcforge.taskpaper
