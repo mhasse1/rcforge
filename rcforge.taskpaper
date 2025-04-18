@@ -2,6 +2,10 @@
 title: rcForge ToDos
 ---
 Inbox:
+	- Cleanup txt files from docs on github @na
+	- Update 041-documentation to 050 @na
+	- Update project-instructions to 050 @na
+	- Update file structure doc to match 050 @na
 	- telemetry (google ads) @maybe
 		- telemetry.md
 			See telementry planning doc

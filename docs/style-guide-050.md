@@ -1,4 +1,4 @@
-# rcForge Project Style Guide (v0.3.0)
+# rcForge Project Style Guide (v0.5.0)
 
 ## Table of Contents
 
@@ -21,6 +21,8 @@
   - [Global vs. Hostname-Specific Scripts](#global-vs-hostname-specific-scripts)
 - [RC Command Utility Development](#rc-command-utility-development)
   - [Utility Script Structure](#utility-script-structure)
+  - [Utility Template Usage](#utility-template-usage)
+  - [Standard Function Implementations](#standard-function-implementations)
   - [Help Documentation](#help-documentation)
   - [User Override Considerations](#user-override-considerations)
   - [Integration with Search](#integration-with-search)
@@ -44,12 +46,15 @@
   - [RC Script Testing](#rc-script-testing)
   - [RC Command Utility Testing](#rc-command-utility-testing)
 - [Continuous Improvement](#continuous-improvement)
+- [XDG Compliance (v0.5.0+)](#xdg-compliance-v050)
+  - [Directory Structure](#directory-structure)
+  - [Path References](#path-references)
 
 ## Introduction
 
-This style guide defines the coding standards, best practices, and conventions for the rcForge v0.3.0 project. Our goal is to maintain consistency, readability, and maintainability across all project contributions while adhering to the redesigned architecture.
+This style guide defines the coding standards, best practices, and conventions for the rcForge v0.5.0 project. Our goal is to maintain consistency, readability, and maintainability across all project contributions while adhering to the redesigned architecture. This version updates the standards to align with the XDG-compliant directory structure and new features in v0.5.0.
 
-Note that in many cases this document is still aspirational and as code is revised, attepts are being made to bring things up to the latest standards.
+Note that in many cases this document is still aspirational and as code is revised, attempts are being made to bring things up to the latest standards.
 
 One more note, if at times the instructions seem pedantic, it is because I found edge cases when working witih AI coding assistants and these explicit instructions were required to address those cases.
 
@@ -57,7 +62,7 @@ One more note, if at times the instructions seem pedantic, it is because I found
 
 1. **No spaces or special characters in file names.**
 
-   * We want to be able to automate and scirpt quickly without playing around with IFS.
+   * We want to be able to automate and script quickly without playing around with IFS.
 
 2. **Clarity Over Cleverness**
 
@@ -67,9 +72,9 @@ One more note, if at times the instructions seem pedantic, it is because I found
 
    - Add comments to explain non-obvious logic
 
-   - **BASH** is the core of our system. When it makes sense extract code to a separate file to ensure it runs in BASH rather than increasing code and complexity by introducing workarounds to directly support ZSH. 
+   - **BASH** is the core of our system. When it makes sense extract code to a separate file to ensure it runs in BASH rather than increasing code and complexity by introducing workarounds to directly support ZSH.
 
-     - See rcforge/system/core/run-integrety-checks.sh for an example. This code was embedded in rcforge.sh and was broken out to ensure it runs in BASH. 
+     - See rcforge/system/core/run-integrity-checks.sh for an example. This code was embedded in rcforge.sh and was broken out to ensure it runs in BASH.
 
    - **ZSH** is a first class citizen in this system. When it is necessary to support ZSH, contradicting the prior principle is the right decision.
 
@@ -85,10 +90,10 @@ One more note, if at times the instructions seem pedantic, it is because I found
            else
            	exit 1
            fi
-           
+
            ## Acceptable for simple cases:
            [[ -z "$header" ]] && continue || exit 1
-           
+
            ## Not acceptable:
            if [[ -z "$header" || ! "$header" == *": "* ]]; then; continue; fi
 
@@ -138,40 +143,48 @@ The correct name of the project is `rcForge`.  For camel_case applications it sh
 # script-name.sh - Brief description
 # Author: Name
 # Date: YYYY-MM-DD
+# Version: 0.5.0
 # Category: system (or utilities, core, etc.)
+# RC Summary: One-line description for RC help display
 # Description: More detailed explanation of the script's purpose
 
 # Source shared utilities
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh.sh"
+source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
-set -o errexit  # Exit immediately if a command exits with a non-zero status
-
-# Exported variables (for use in exported functions)
-export COLOR_ENABLED=true
-export DEBUG_MODE=false
+set -o pipefail # Ensure pipeline fails on any component failing
+# set -o errexit  # Commented: Let functions handle their own errors
 
 # Global constants (not exported)
-readonly gc_version="0.3.0"
-readonly gc_app_name="rcForge"
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+readonly UTILITY_NAME="utility-name" # Replace with actual name
 
 # Function definitions...
 
-# Main execution logic...
+# Main function definition...
+
+# Script execution guard
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $? # Exit with status from main
+fi
 
 # EOF
 ```
 
 ### Standard Environment Variables
 
-The following environment variables are standard in rcForge v0.3.0:
+The following environment variables are standard in rcForge v0.5.0:
 
-- `$RCFORGE_ROOT`: Points to the user's rcForge installation (typically `~/.config/rcforge`)
+- `$RCFORGE_CONFIG_ROOT`: Points to the user's rcForge configuration directory (`~/.config/rcforge`)
+- `$RCFORGE_LOCAL_ROOT`: Points to the rcForge system installation (`~/.local/rcforge`)
 - `$RCFORGE_LIB`: Location of system libraries
 - `$RCFORGE_UTILS`: Location of system utilities
 - `$RCFORGE_SCRIPTS`: Location of user RC scripts
 - `$RCFORGE_USER_UTILS`: Location of user utilities
+- `$RCFORGE_CONFIG`: Location of configuration files
 
 ### Main Function Standards
 
@@ -200,14 +213,10 @@ Main functions serve as the primary entry point for script execution, providing 
 Implement an execution pattern that allows the script to be both sourced and run directly:
 
 ```bash
-# Execute main function if run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  main "$@"
-  exit $?
-elif [[ "${BASH_SOURCE[0]}" != "${0}" && "$0" == *"rc"* ]]; then
-  # Also execute if called via the rc command
-  main "$@"
-  exit $?
+# Execute main function if run directly or via the rc command
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $?
 fi
 ```
 
@@ -227,67 +236,55 @@ fi
 # Example script demonstrating main function standards
 # Function comments shortened for readability
 
-# Function: ShowSummary
-# Description: Display one-line summary for rc help
-# Usage: ShowSummary
-ShowSummary() {
-  echo "Short summary of script functin"
-}
-
-# Function: show_help
+# Function: ShowHelp
 # Description: Display help information
-show_help() {
-  echo "Usage: $0 [options]"
-  echo "Options:"
-  echo "  --help, -h    Show this help message"
+# Usage: ShowHelp
+ShowHelp() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  --help, -h    Show this help message"
+    exit 0
 }
 
-# Function: process_arguments
+# Function: ParseArguments
 # Description: Parse and validate command-line arguments
-process_arguments() {
-  # Argument processing logic
+# Usage: ParseArguments options_array_name "$@"
+ParseArguments() {
+    local -n options_ref="$1"
+    shift
+
+    # Argument processing logic
+    # ...
+
+    return 0
 }
 
 # Main function
 main() {
-  # Argument processing
-  process_arguments "$@"
+    # Parse arguments
+    declare -A options
+    ParseArguments options "$@" || exit $?
 
-  # Core script logic
-  # Coordinate function calls
-  # Handle primary workflow
+    # Access parsed options
+    local option1="${options[option1]}"
+    local is_verbose="${options[verbose_mode]}"
 
-  # Return appropriate exit code
-  return 0
+    # Display section header
+    SectionHeader "Script Operation"
+
+    # Core script logic
+    # ...
+
+    SuccessMessage "Operation completed successfully."
+    return 0
 }
 
 # Execution pattern
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  main "$@"
-  exit $?
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
+    main "$@"
+    exit $? # Exit with status from main
 fi
 ```
-
-##### Rationale
-
-- Improves script modularity
-- Enhances testability by separating logic into functions
-- Provides a consistent structure across scripts
-- Allows for easier debugging and maintenance
-- Supports both direct execution and sourcing
-- Aligns with rcForge's design philosophy of clarity and maintainability
-
-##### Exceptions
-
-- Very short, single-purpose scripts may not require a full `main()` function
-- Use developer discretion, prioritizing readability and maintainability
-
-#### Related Best Practices
-
-- Use `set -o nounset` and `set -o errexit` for stricter error handling
-- Implement comprehensive error checking
-- Add meaningful comments explaining complex logic
-- Consider using shellcheck for additional code quality verification
 
 ### Output and Formatting
 
@@ -297,6 +294,7 @@ fi
   - `WarningMessage()` for warnings
   - `SuccessMessage()` for successful operations
   - `InfoMessage()` for informational output
+  - `VerboseMessage()` for verbose-mode output
 
 Example:
 ```bash
@@ -310,7 +308,7 @@ SuccessMessage "Configuration completed successfully!"
 
 #### Colors and Formatting
 
-- Always source and use `shell-colors.sh` for color definitions
+- Use sourced color constants from `utility-functions.sh` (which sources `shell-colors.sh`)
 - Use `SectionHeader()` for section breaks
 - Use `TextBlock()` for highlighted blocks of text
 
@@ -370,7 +368,7 @@ fi
 
    ```bash
    # end of previous logic (note single empty line after this one)
-   
+
    # ============================================================================
    # Function: FunctionName
    # Description: Clear, concise description of what the function does
@@ -394,7 +392,7 @@ fi
    FunctionName() {
        # Validate inputs
        [[ $# -eq 0 ]] && ErrorMessage "No arguments provided" && return 1
-   
+
        # Function logic
        local result
        if some_condition; then
@@ -403,7 +401,7 @@ fi
            ErrorMessage "Condition not met"
            return 1
        fi
-   
+
        # Return or output
        echo "$result"
    }
@@ -422,7 +420,7 @@ fi
 
 ### Source-able Files vs. Standalone Scripts
 
-In rcForge v0.3.0, we adopt a pragmatic approach to functions vs. scripts:
+In rcForge v0.5.0, we adopt a pragmatic approach to functions vs. scripts:
 
 #### When to Use Source-able Files
 
@@ -439,6 +437,12 @@ Example source-able file structure:
 # Category: lib
 # Author: Name
 # Date: YYYY-MM-DD
+
+# Include guard - don't load twice
+if [[ -n "${_RCFORGE_UTILITY_LIB_SH_SOURCED:-}" ]]; then
+    return 0
+fi
+_RCFORGE_UTILITY_LIB_SH_SOURCED=true
 
 # Exported variables (available to scripts that source this file)
 export RED='\033[0;31m'
@@ -469,13 +473,19 @@ Example standalone script structure:
 # Category: utility
 # Author: Name
 # Date: YYYY-MM-DD
+# RC Summary: One-line description for rc help display
 
 # Source required libraries
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset
-set -o errexit
+set -o pipefail
+
+# Global constants
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+readonly UTILITY_NAME="utility-name"
 
 # Main logic
 main() {
@@ -484,9 +494,10 @@ main() {
     # Return result
 }
 
-# Execute main function if script is run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# Execute main function if run directly or via rc command
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
     main "$@"
+    exit $?
 fi
 
 # EOF
@@ -550,68 +561,233 @@ The `rc` command provides a unified interface for accessing utilities.
 ```bash
 #!/usr/bin/env bash
 # utility-name.sh - Short utility description
-# RC Summary: One-line description for RC help
+# RC Summary: One-line description for RC help display
 # Author: Name
 # Date: YYYY-MM-DD
+# Version: 0.5.0
+# Category: system/utility
+# Description: More detailed explanation
 
 # Source necessary libraries
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset
-set -o errexit
+set -o pipefail
 
-# Display help information
+# Global constants
+[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
+[ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+readonly UTILITY_NAME="utility-name"
+
+# ============================================================================
+# Function: ShowHelp
+# Description: Display detailed help information for this utility.
+# Usage: ShowHelp
+# Arguments: None
+# Returns: None. Exits with status 0.
+# ============================================================================
 ShowHelp() {
-    cat << EOF
-utility-name - Detailed description
+    local script_name
+    script_name=$(basename "$0")
 
-Description:
-  Explain what the utility does in detail.
-
-Usage:
-  rc utility-name [options] <arguments>
-
-Options:
-  -v, --verbose    Enable verbose output
-  -h, --help       Show this help message
-
-Examples:
-  rc utility-name example.com
-  rc utility-name --verbose /path/to/file
-EOF
+    echo "${UTILITY_NAME} - ${gc_app_name} Utility (v${gc_version})"
+    echo ""
+    echo "Description:"
+    echo "  Detailed utility description goes here."
+    echo ""
+    echo "Usage:"
+    echo "  rc ${UTILITY_NAME} [options] <arguments>"
+    echo "  ${script_name} [options] <arguments>"
+    echo ""
+    echo "Options:"
+    echo "  --option1=VALUE    Description of option1"
+    echo "  --option2          Description of option2"
+    echo "  --verbose, -v      Enable verbose output"
+    echo "  --help, -h         Show this help message"
+    echo "  --summary          Show a one-line description (for rc help)"
+    echo "  --version          Show version information"
+    echo ""
+    echo "Examples:"
+    echo "  rc ${UTILITY_NAME} --option1=value example.com"
+    echo "  rc ${UTILITY_NAME} --verbose /path/to/file"
+    exit 0
 }
 
-# Display summary (used by rc help command)
-ShowSummary() {
-    echo "One-line description for RC help display"
-}
+# ============================================================================
+# Function: ParseArguments
+# Description: Parse command-line arguments for this utility.
+# Usage: declare -A options; ParseArguments options "$@"
+# Arguments:
+#   $1 (required) - Reference to associative array for storing parsed options
+#   $2+ (required) - Command line arguments to parse
+# Returns: Populates associative array by reference. Returns 0 on success, 1 on error.
+# ============================================================================
+ParseArguments() {
+    local -n options_ref="$1"
+    shift
 
-# Main function
-main() {
+    # Ensure Bash 4.3+ for namerefs (-n)
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+        ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
+        return 1
+    fi
+
+    # Set default values
+    options_ref["option1"]=""
+    options_ref["verbose_mode"]=false
+
     # Process arguments
-    case "${1:-}" in
-        help|--help|-h)
-            ShowHelp
-            return 0
-            ;;
-        summary|--summary)
-            ShowSummary
-            return 0
-            ;;
-        # Add other argument handling here
-    esac
+    while [[ $# -gt 0 ]]; do
+        local key="$1"
+        case "$key" in
+            -h|--help)
+                ShowHelp # Exits
+                ;;
+            --summary)
+                ExtractSummary "$0"; exit $? # Call helper and exit
+                ;;
+            --version)
+                _rcforge_show_version "$0"; exit 0 # Call helper and exit
+                ;;
+            --option1=*)
+                options_ref["option1"]="${key#*=}"
+                shift ;;
+            --option1)
+                shift
+                if [[ -z "${1:-}" || "$1" == -* ]]; then
+                    ErrorMessage "--option1 requires a value."
+                    return 1
+                fi
+                options_ref["option1"]="$1"
+                shift ;;
+            -v|--verbose)
+                options_ref["verbose_mode"]=true
+                shift ;;
+            --)
+                shift # Move past --
+                break # Stop processing options
+                ;;
+            -*)
+                ErrorMessage "Unknown option: $key"
+                return 1 ;;
+            *)
+                ErrorMessage "Unexpected argument: $key"
+                return 1 ;;
+        esac
+    done
 
-    # Main functionality
+    return 0
 }
 
-# Execute main if run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# ============================================================================
+# Function: main
+# Description: Main execution logic.
+# Usage: main "$@"
+# Arguments:
+#   $@ - Command line arguments
+# Returns: 0 on success, 1 on failure.
+# ============================================================================
+main() {
+    # Use associative array for options (requires Bash 4+)
+    declare -A options
+    # Parse arguments, exit if parser returns non-zero (error)
+    ParseArguments options "$@" || exit $?
+
+    # Access options from the array
+    local option1="${options[option1]}"
+    local is_verbose="${options[verbose_mode]}"
+
+    # Display section header
+    SectionHeader "rcForge ${UTILITY_NAME^} Utility"
+
+    # Example verbose message
+    VerboseMessage "$is_verbose" "Running with options: option1=${option1}, verbose=${is_verbose}"
+
+    # Main implementation goes here
+    # ...
+
+    SuccessMessage "Operation completed successfully."
+    return 0
+}
+
+# Script execution
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
     main "$@"
+    exit $? # Exit with status from main
 fi
 
 # EOF
 ```
+
+### Utility Template Usage
+
+New for v0.5.0, rcForge provides a template utility script that should be used as the starting point for all new utilities. You can find this template at `~/.local/rcforge/docs/template-utility.sh`. When creating a new utility:
+
+1. Copy the template to your destination directory:
+   ```bash
+   cp ~/.local/rcforge/docs/template-utility.sh ~/.local/rcforge/utils/my-utility.sh
+   ```
+
+2. Edit the template to implement your functionality, updating:
+   - Script header (name, description, etc.)
+   - `UTILITY_NAME` constant
+   - `ShowHelp()` function content
+   - `ParseArguments()` function logic
+   - `main()` function implementation
+
+3. Make it executable:
+   ```bash
+   chmod 700 ~/.local/rcforge/utils/my-utility.sh
+   ```
+
+### Standard Function Implementations
+
+All utilities should implement these standard functions:
+
+1. **ShowHelp()**: Display detailed help information.
+   ```bash
+   ShowHelp() {
+       local script_name
+       script_name=$(basename "$0")
+
+       echo "${UTILITY_NAME} - rcForge Utility (v${gc_version})"
+       # Help content...
+       exit 0
+   }
+   ```
+
+2. **ParseArguments()**: Parse command-line arguments.
+   ```bash
+   ParseArguments() {
+       local -n options_ref="$1"; shift
+
+       # Set defaults
+       options_ref["option1"]=""
+       options_ref["verbose_mode"]=false
+
+       # Process arguments
+       while [[ $# -gt 0 ]]; do
+           # Argument handling...
+       done
+
+       return 0
+   }
+   ```
+
+3. **main()**: Main execution logic.
+   ```bash
+   main() {
+       declare -A options
+       ParseArguments options "$@" || exit $?
+
+       # Implementation...
+
+       return 0
+   }
+   ```
+
+These functions provide consistent behavior across all utilities. Additionally, commands should implement specialized functions as needed for their specific functionality.
 
 ### Help Documentation
 
@@ -641,7 +817,7 @@ Example override-friendly design:
 # httpheaders.sh - HTTP header inspection utility
 
 # Source necessary libraries
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
 
 # Configuration variables with defaults
 : "${HTTPHEADERS_CONFIG_PATH:=$HOME/.config/rcforge/config/httpheaders.conf}"
@@ -657,8 +833,9 @@ main() {
 }
 
 # Execute main if run directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
     main "$@"
+    exit $?
 fi
 
 # EOF
@@ -683,8 +860,8 @@ utility_name() {
     unset -f utility_name
 
     # Load full implementation
-    if [[ -f "${RCFORGE_ROOT:-$HOME/.config/rcforge}/system/utils/utility_name.sh" ]]; then
-        source "${RCFORGE_ROOT:-$HOME/.config/rcforge}/system/utils/utility_name.sh"
+    if [[ -f "${RCFORGE_LOCAL_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh" ]]; then
+        source "${RCFORGE_LOCAL_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh"
         # Call now-loaded implementation with original arguments
         utility_name "$@"
     else
@@ -761,7 +938,7 @@ Example:
 ```bash
 # In rcforge.sh
 export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.3.0"
+export RCFORGE_VERSION="0.5.0"
 
 # For local use in a script
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-ENV_ERROR}"
@@ -885,7 +1062,7 @@ rc utility-name --verbose /path/to/file
 ```
 ```
 
-### rc Command Help Documentation
+### RC Command Help Documentation
 
 Each rc command utility should include:
 
@@ -895,11 +1072,11 @@ Each rc command utility should include:
    - Function comments for significant functions
 
 2. **Help Command Support**:
-   - `show_help()` function that displays comprehensive usage information
-   - `show_summary()` function that returns the one-line description
+   - `ShowHelp()` function that displays comprehensive usage information
+   - `ExtractSummary()` function provided by utility-functions.sh
 
 3. **External Documentation** (when necessary):
-   - Markdown file in the docs directory for complex utilities
+   - Wiki documentation for complex utilities
    - Cross-references to related utilities or concepts
 
 ## Version Control
@@ -935,12 +1112,15 @@ Add shell color utility functions
 
 ## Error Handling
 
-1. Use `set -e` to exit on error
+1. Use `set -o pipefail` to catch errors in pipelines
 2. Provide meaningful error messages
 3. Use exit codes consistently
    - 0: Success
-   - 1-125: Command-specific errors
-   - 126-255: Shell-specific errors
+   - 1: General error
+   - 2: Misuse of shell built-ins
+   - 126: Command invoked cannot execute
+   - 127: Command not found
+   - 128+n: Fatal error signal "n"
 
 Example error handling:
 ```bash
@@ -1027,7 +1207,7 @@ Similarly, format loops with `do` and `done` on separate lines, aligned vertical
   done
   ```
 
-Adhering to this formatting ensures that the structure of the code is immediately clear, making it easier to follow the logic and maintain the scripts.Adhering to this formatting ensures that the structure of the code is immediately clear, making it easier to follow the logic and maintain the scripts.
+Adhering to this formatting ensures that the structure of the code is immediately clear, making it easier to follow the logic and maintain the scripts.
 
 ## Performance Considerations
 
@@ -1055,10 +1235,69 @@ Adhering to this formatting ensures that the structure of the code is immediatel
 - Test user override functionality
 - Include error case testing
 
+## XDG Compliance (v0.5.0+)
+
+New in v0.5.0, rcForge follows the XDG Base Directory Specification for improved organization and compatibility.
+
+### Directory Structure
+
+rcForge v0.5.0 separates user configuration from system files:
+
+```
+~/.config/rcforge/          # User configuration
+├── config/                 # Configuration files
+│   └── path.conf           # PATH configuration
+└── rc-scripts/             # Shell configuration scripts
+
+~/.local/rcforge/           # System files
+├── backups/                # Backup files
+├── config/                 # System configuration
+│   ├── api_key_settings    # API key storage
+│   ├── bash-location       # Compliant Bash path
+│   └── checksums/          # File checksums
+├── rcforge.sh              # Main loader script
+└── system/                 # System components
+    ├── core/               # Core functionality
+    ├── lib/                # Shared libraries
+    └── utils/              # System utilities
+```
+
+### Path References
+
+All scripts should use the following environment variables to reference directories:
+
+- `$RCFORGE_CONFIG_ROOT` for ~/.config/rcforge
+- `$RCFORGE_LOCAL_ROOT` for ~/.local/rcforge
+- `$RCFORGE_SCRIPTS` for rc-scripts directory
+- `$RCFORGE_CONFIG` for configuration directory
+- `$RCFORGE_LIB` for libraries directory
+- `$RCFORGE_UTILS` for system utilities
+- `$RCFORGE_USER_UTILS` for user utilities
+
+Example:
+```bash
+# Correct path references
+source "${RCFORGE_LIB}/utility-functions.sh"
+config_file="${RCFORGE_CONFIG}/my-config.conf"
+script_dir="${RCFORGE_SCRIPTS}"
+
+# Incorrect (hard-coded paths)
+source "$HOME/.local/rcforge/system/lib/utility-functions.sh" # Bad: hard-coded
+```
+
+### Example Path Fallbacks
+
+When sourcing libraries, use this pattern to support both old and new installations:
+
+```bash
+# Best practice for sourcing libraries with fallback
+source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+```
+
 ## Continuous Improvement
 
 This style guide is a living document. Contributions and suggestions for improvement are welcome. When in doubt, prioritize readability, maintainability, and consistency.
 
-The standards outlined here align with the v0.3.0 architecture and should be applied to all new development. Existing code should be updated to these standards when substantial modifications are made.
+The standards outlined here align with the v0.5.0 architecture and should be applied to all new development. Existing code should be updated to these standards when substantial modifications are made.
 
 # EOF

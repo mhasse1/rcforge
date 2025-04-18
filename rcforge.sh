@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # rcforge.sh - Universal Shell Configuration Loader
 # Author: Mark Hasse / rcForge Team (AI Refactored)
-# Version: 0.4.3
+# Version: 0.5.0
 # Category: core
 # Description: Main loader script for rcForge shell configuration system.
 #              Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
+#              Now supports XDG structure and API key management.
 
 # ============================================================================
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
@@ -13,13 +14,117 @@
 # Set strict modes early for initialization safety
 set -o nounset
 
-# Export core environment variables
+# Export core environment variables - Updated for XDG structure
 export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.4.3"
-export RCFORGE_ROOT="${RCFORGE_ROOT:-$HOME/.config/rcforge}"
+export RCFORGE_VERSION="0.5.0"
+
+# XDG directory structure - separated configuration from system files
+export RCFORGE_CONFIG_ROOT="${HOME}/.config/rcforge"
+export RCFORGE_LOCAL_ROOT="${HOME}/.local/rcforge"
+
+# Define and export remaining core paths - Updated for XDG structure
+export RCFORGE_LIB="${RCFORGE_LOCAL_ROOT}/system/lib"
+export RCFORGE_CORE="${RCFORGE_LOCAL_ROOT}/system/core"
+export RCFORGE_UTILS="${RCFORGE_LOCAL_ROOT}/system/utils"
+export RCFORGE_USER_UTILS="${RCFORGE_LOCAL_ROOT}/utils"
+export RCFORGE_SCRIPTS="${RCFORGE_CONFIG_ROOT}/rc-scripts"
+export RCFORGE_CONFIG="${RCFORGE_CONFIG_ROOT}/config"
+
+# --- Path Management (v0.5.0+) ---
+# Process path.conf to set PATH environment variable
+ProcessPathConfiguration() {
+    local path_file="${RCFORGE_CONFIG}/path.conf"
+    local new_path=""
+    local separator=""
+
+    # Check if path file exists
+    if [[ ! -f "$path_file" ]]; then
+        # Create default path file if it doesn't exist
+        mkdir -p "$(dirname "$path_file")"
+        cat > "$path_file" << EOF
+# rcForge PATH Configuration
+# This file configures paths to be added to your PATH environment variable.
+# Lines starting with # are ignored.
+# Empty lines are ignored.
+# Paths are processed in order.
+# \${HOME} is expanded automatically.
+
+# User bin directory
+\${HOME}/bin
+
+# Package manager paths
+/opt/homebrew/bin
+/usr/local/bin
+
+# System paths
+/usr/bin
+/bin
+/usr/sbin
+/sbin
+EOF
+        chmod 600 "$path_file"
+    fi
+
+    # Process path file line by line
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        if [[ "$line" =~ ^# || -z "$line" ]]; then
+            continue
+        fi
+
+        # Expand variables like ${HOME}
+        line=$(eval echo "$line")
+
+        # Add path if directory exists and not already in new_path
+        if [[ -d "$line" && ":$new_path:" != *":$line:"* ]]; then
+            new_path+="${separator}${line}"
+            separator=":"
+        fi
+    done < "$path_file"
+
+    # Set PATH environment variable
+    if [[ -n "$new_path" ]]; then
+        export PATH="$new_path"
+    fi
+}
+
+# --- API Key Management (v0.5.0+) ---
+# Process API key settings to export environment variables
+ProcessApiKeys() {
+    local api_key_file="${RCFORGE_LOCAL_ROOT}/config/api_key_settings"
+
+    # Check if API key file exists
+    if [[ ! -f "$api_key_file" ]]; then
+        # Create default API key file if it doesn't exist
+        mkdir -p "$(dirname "$api_key_file")"
+        cat > "$api_key_file" << EOF
+# rcForge API Key Settings
+# This file contains API keys that will be exported as environment variables.
+# Lines starting with # are ignored.
+# Format: NAME='value'
+#
+# Examples:
+# GEMINI_API_KEY='your-api-key-here'
+# CLAUDE_API_KEY='your-api-key-here'
+# AWS_API_KEY='your-api-key-here'
+EOF
+        chmod 600 "$api_key_file"
+    fi
+
+    # Process API key file line by line
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        if [[ "$line" =~ ^# || -z "$line" ]]; then
+            continue
+        fi
+
+        # Export API key environment variable
+        export "$line"
+    done < "$api_key_file"
+}
 
 # --- Prepend compliant Bash path if recorded by installer ---
-RCFORGE_BASH_LOCATION_FILE="${RCFORGE_ROOT}/docs/.bash_location"
+RCFORGE_BASH_LOCATION_FILE="${RCFORGE_LOCAL_ROOT}/config/bash-location"
 if [[ -f "$RCFORGE_BASH_LOCATION_FILE" && -r "$RCFORGE_BASH_LOCATION_FILE" ]]; then
     RCFORGE_COMPLIANT_BASH_PATH=$(<"$RCFORGE_BASH_LOCATION_FILE")
     # Basic validation
@@ -35,52 +140,12 @@ if [[ -f "$RCFORGE_BASH_LOCATION_FILE" && -r "$RCFORGE_BASH_LOCATION_FILE" ]]; t
     unset RCFORGE_COMPLIANT_BASH_PATH # Clean up temp var
 fi
 unset RCFORGE_BASH_LOCATION_FILE # Clean up temp var
-# --- End compliant Bash path prepend ---
 
-# --- Prepend static paths from path.txt ---
-RCFORGE_PATH_FILE="${RCFORGE_ROOT}/docs/path.txt" # Using docs/
-if [[ -f "$RCFORGE_PATH_FILE" && -r "$RCFORGE_PATH_FILE" ]]; then
-    temp_path=""
-    separator=""
-    path_line="" # Ensure defined before loop in strict mode
-
-    while IFS= read -r path_line || [[ -n "$path_line" ]]; do
-        # Trim whitespace
-        path_line="${path_line#"${path_line%%[![:space:]]*}"}"
-        path_line="${path_line%"${path_line##*[![:space:]]}"}"
-        # Skip comments/empty
-        if [[ -z "$path_line" || "$path_line" == \#* ]]; then
-             continue
-        fi
-        # Manual ~ expansion
-        if [[ "$path_line" == "~"* ]]; then
-            path_line="${HOME}/${path_line#\~}"
-        fi
-        # Add if exists and not duplicate in this batch
-        if [[ -d "$path_line" && ":${temp_path}:" != *":${path_line}:"* ]]; then
-            temp_path+="${separator}${path_line}"
-            separator=":"
-        fi
-    done < "$RCFORGE_PATH_FILE"
-
-    # Prepend collected paths
-    if [[ -n "$temp_path" ]]; then
-        export PATH="${temp_path}${PATH:+:${PATH}}"
-    fi
-    unset temp_path path_line separator # Clean up block-local vars
-fi
-unset RCFORGE_PATH_FILE # Clean up temp var
-# --- End static paths prepend ---
-
-# Define and export remaining core paths
-export RCFORGE_LIB="${RCFORGE_ROOT}/system/lib"
-export RCFORGE_CORE="${RCFORGE_ROOT}/system/core"
-export RCFORGE_UTILS="${RCFORGE_ROOT}/system/utils"
-export RCFORGE_SCRIPTS="${RCFORGE_ROOT}/rc-scripts"
-export RCFORGE_USER_UTILS="${RCFORGE_ROOT}/utils"
+# Process PATH configuration (0.5.0+ feature)
+ProcessPathConfiguration
 
 # --- Source Core Utility Library ---
-# This needs to happen *after* PATH is set up potentially by path.txt
+# This needs to happen *after* PATH is set up
 if [[ -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
     # shellcheck disable=SC1090
     source "${RCFORGE_LIB}/utility-functions.sh"
@@ -209,6 +274,9 @@ fi
 # Returns: 0 on successful loading, 1 on abort or critical failure.
 # ============================================================================
 main() {
+    # --- Process API Keys (v0.5.0+ feature) ---
+    ProcessApiKeys
+
     # --- Abort Check (optional) ---
     local user_input=""
     local timeout_seconds=1
@@ -308,7 +376,7 @@ main() {
     local find_output=""
     local find_status=0
 
-    # Call FindRcScripts (sourced from utility-functions)
+    # Call FindRcScripts (sourced from utility-functions) - Updated for XDG structure
     find_output=$(FindRcScripts "$current_shell")
     find_status=$?
 
@@ -350,6 +418,8 @@ _RCFORGE_INIT_STATUS=$?
 # Clean up loader-specific function definitions from the shell environment
 unset -f main
 unset -f SourceConfigFiles
+unset -f ProcessPathConfiguration
+unset -f ProcessApiKeys
 # Note: 'rc' function remains exported
 
 # Return the final status of the main loader function

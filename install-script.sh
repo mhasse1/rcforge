@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # install-script.sh - rcForge Installation Script (Dynamic Manifest Version)
 # Author: rcForge Team (AI Refactored)
-# Date: 2025-04-16 # Updated Date
-# Version: 0.4.3 # Installer Version (Keep separate from rcForge Core Version)
+# Date: 2025-04-18 # Updated Date
+# Version: 0.5.0 # Installer Version (Keep separate from rcForge Core Version)
 # Category: installer
 # Description: Installs or upgrades rcForge shell configuration system using a manifest file
 #              downloaded from a specific release tag (passed via --release-tag).
 #              Runs non-interactively. Requires Bash 4.3+ to run the installer itself.
+#              Now supports migration to XDG-compliant directory structure.
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
@@ -17,12 +18,19 @@ set -o pipefail # Ensure pipeline fails on any component failing
 # CONFIGURATION & GLOBAL CONSTANTS (Readonly)
 # ============================================================================
 
-readonly gc_rcforge_core_version="0.4.2"  # Version being installed
-readonly gc_installer_version="0.4.3"     # Version of this installer script
+readonly gc_rcforge_core_version="0.5.0"  # Version being installed
+readonly gc_installer_version="0.5.0"     # Version of this installer script
 readonly gc_installer_required_bash="4.3" # Installer itself needs 4.3+
 
-readonly gc_rcforge_dir="$HOME/.config/rcforge"
-readonly gc_backup_dir="${gc_rcforge_dir}/backups"
+# Old directory structure (pre-0.5.0)
+readonly gc_old_rcforge_dir="$HOME/.config/rcforge"
+
+# New XDG directory structure (0.5.0+)
+readonly gc_config_dir="$HOME/.config/rcforge"
+readonly gc_local_dir="$HOME/.local/rcforge"
+
+# Backup configuration
+readonly gc_backup_dir="${gc_local_dir}/backups"
 readonly gc_timestamp=$(date +%Y%m%d%H%M%S)
 readonly gc_backup_file="${gc_backup_dir}/rcforge_backup_${gc_timestamp}.tar.gz"
 readonly gc_repo_base_url="https://raw.githubusercontent.com/mhasse1/rcforge" # Base URL part
@@ -69,27 +77,35 @@ InstallHaltedCleanup() {
 
     if [[ "${is_fresh_install_attempt}" == "true" ]]; then
         WarningMessage "Installation failed. Cleaning up install directory..."
-        if [[ -d "$gc_rcforge_dir" ]]; then
-            if rm -rf "$gc_rcforge_dir"; then
-                SuccessMessage "Removed partially installed directory: $gc_rcforge_dir"
+        if [[ -d "$gc_config_dir" ]]; then
+            if rm -rf "$gc_config_dir"; then
+                SuccessMessage "Removed partially installed directory: $gc_config_dir"
             else
-                WarningMessage "Failed to remove directory: $gc_rcforge_dir. Please remove it manually."
+                WarningMessage "Failed to remove directory: $gc_config_dir. Please remove it manually."
             fi
-        else
-            InfoMessage "Install directory $gc_rcforge_dir not found, no cleanup needed."
+        fi
+        if [[ -d "$gc_local_dir" ]]; then
+            if rm -rf "$gc_local_dir"; then
+                SuccessMessage "Removed partially installed directory: $gc_local_dir"
+            else
+                WarningMessage "Failed to remove directory: $gc_local_dir. Please remove it manually."
+            fi
         fi
     else
         # This was an upgrade attempt
         WarningMessage "Upgrade failed. Attempting to restore from backup..."
         if [[ -f "$gc_backup_file" ]]; then
             InfoMessage "Found backup file: $gc_backup_file"
-            InfoMessage "Removing failed upgrade directory before restore..."
-            if ! rm -rf "$gc_rcforge_dir"; then
-                WarningMessage "Failed to completely remove current directory: $gc_rcforge_dir."
+
+            # For 0.5.0+ structure, clean up both directories
+            InfoMessage "Removing failed upgrade directories before restore..."
+            rm -rf "$gc_config_dir" "$gc_local_dir" || {
+                WarningMessage "Failed to completely remove current directories before restore."
                 WarningMessage "Attempting restore anyway, but manual cleanup might be needed."
-            fi
+            }
+
             InfoMessage "Restoring backup..."
-            if tar -xzf "$gc_backup_file" -C "$(dirname "$gc_rcforge_dir")"; then
+            if tar -xzf "$gc_backup_file" -C "$(dirname "$gc_old_rcforge_dir")"; then
                 SuccessMessage "Successfully restored previous state from backup."
                 InfoMessage "The failed upgrade attempt has been rolled back."
             else
@@ -99,7 +115,7 @@ InstallHaltedCleanup() {
         else
             WarningMessage "Backup file not found: $gc_backup_file"
             WarningMessage "Cannot restore automatically. Leaving current state intact."
-            InfoMessage "Please review the state of: $gc_rcforge_dir"
+            InfoMessage "Please review the state of your installation."
         fi
     fi
 }
@@ -190,7 +206,100 @@ VerboseMessage() {
 # Returns: 0 (true) if installation detected, 1 (false) otherwise.
 # ============================================================================
 IsInstalled() {
-    [[ -d "$gc_rcforge_dir" && -f "${gc_rcforge_dir}/rcforge.sh" ]]
+    # Check for pre-0.5.0 installation
+    if [[ -d "$gc_old_rcforge_dir" && -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
+        return 0
+    fi
+
+    # Check for 0.5.0+ installation
+    if [[ -d "$gc_local_dir" && -f "${gc_local_dir}/rcforge.sh" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+# ============================================================================
+# Function: GetInstalledVersion
+# Description: Detect the version of an existing rcForge installation.
+# Usage: version=$(GetInstalledVersion)
+# Returns: Echo the version string or "unknown" if not found.
+# ============================================================================
+GetInstalledVersion() {
+    local rcforge_sh=""
+    local version="unknown"
+
+    # Check for pre-0.5.0 location
+    if [[ -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
+        rcforge_sh="${gc_old_rcforge_dir}/rcforge.sh"
+    # Check for 0.5.0+ location
+    elif [[ -f "${gc_local_dir}/rcforge.sh" ]]; then
+        rcforge_sh="${gc_local_dir}/rcforge.sh"
+    else
+        echo "unknown"
+        return 1
+    fi
+
+    # Extract version from rcforge.sh file
+    if grep -q "RCFORGE_VERSION=" "$rcforge_sh"; then
+        version=$(grep "RCFORGE_VERSION=" "$rcforge_sh" | head -n 1 | sed -e 's/.*="\(.*\)".*/\1/')
+    fi
+
+    echo "$version"
+    return 0
+}
+
+# ============================================================================
+# Function: NeedsUpgradeToXDG
+# Description: Check if installation needs upgrade to XDG structure.
+# Usage: if NeedsUpgradeToXDG; then ... fi
+# Returns: 0 (true) if upgrade needed, 1 (false) otherwise.
+# ============================================================================
+NeedsUpgradeToXDG() {
+    # If old structure exists but new doesn't, upgrade is needed
+    if [[ -d "$gc_old_rcforge_dir" && -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
+        # Check if version is less than 0.5.0
+        local current_version
+        current_version=$(GetInstalledVersion)
+
+        # Use sort -V to compare versions
+        if [[ "$(printf '%s\n' "0.5.0" "$current_version" | sort -V | head -n1)" == "$current_version" ]]; then
+            return 0 # Upgrade needed
+        fi
+    fi
+
+    return 1 # No upgrade needed
+}
+
+# ============================================================================
+# Function: ConfirmUpgradeToXDG
+# Description: Show information about the upgrade and request confirmation.
+# Usage: if ConfirmUpgradeToXDG; then ... fi
+# Returns: 0 if user confirms, 1 if user cancels.
+# ============================================================================
+ConfirmUpgradeToXDG() {
+    cat <<EOF
+
+${BOLD}📣 rcForge 0.5.0 Update Available 📣${RESET}
+
+This update reorganizes your rcForge files to:
+- Follow standard directory conventions (XDG compliant)
+- Make syncing between machines easier
+- Better separate your customizations from system files
+- Add API key management
+
+The migration will preserve all your customizations and settings.
+EOF
+
+    printf "%bWould you like to proceed with the update? (y/n):%b " "${YELLOW}" "${RESET}"
+    read -r response
+
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+        InfoMessage "Update cancelled by user."
+        return 1
+    fi
+
+    return 0
 }
 
 # ============================================================================
@@ -256,9 +365,9 @@ CheckBashVersion() {
 
     if printf '%s\n%s\n' "$min_version_required" "$runtime_bash_version" | sort -V -C &>/dev/null; then
         SuccessMessage "Default Bash version ${runtime_bash_version} meets requirement (>= ${min_version_required})."
-        # Record Path
-        bash_location_file="${gc_rcforge_dir}/docs/.bash_location"
-        docs_dir="${gc_rcforge_dir}/docs"
+        # Record Path - updated for 0.5.0 to use new structure
+        bash_location_file="${gc_local_dir}/config/bash-location"
+        docs_dir="$(dirname "$bash_location_file")"
         InfoMessage "Recording compliant Bash location to ${bash_location_file}..."
         if ! mkdir -p "$docs_dir"; then
             ErrorMessage "$is_fresh_install_attempt" "Failed to create directory: $docs_dir"
@@ -284,7 +393,7 @@ CheckBashVersion() {
 
 # ============================================================================
 # Function: CreateBackup
-# Description: Create a gzipped tarball backup of the existing rcForge directory.
+# Description: Create a gzipped tarball backup of the existing rcForge installation.
 # Usage: CreateBackup is_fresh_install is_skip_backup is_verbose
 # Arguments: $1, $2, $3 (required) - Booleans.
 # Returns: 0 on success/skipped. Exits via ErrorMessage on critical failure.
@@ -292,20 +401,21 @@ CheckBashVersion() {
 CreateBackup() {
     local is_fresh_install_attempt="$1"
     local is_skip_backup="$2"
-    local is_verbose="$3"
+    local is_verbose="$3" # Renamed from RCFORGE_FIX_CHECKSUMS env var
     local tar_opts="-czf"
 
     if [[ "$is_skip_backup" == "true" ]]; then
         VerboseMessage "$is_verbose" "Skipping backup."
         return 0
     fi
+
     if ! IsInstalled; then
         VerboseMessage "$is_verbose" "No existing install, skipping backup."
         return 0
     fi
 
     InfoMessage "Creating backup..."
-    # Corrected permission check logic:
+    # Create backup directory in new structure
     if ! mkdir -p "$gc_backup_dir"; then
         WarningMessage "Cannot create backup dir: ${gc_backup_dir}. Skipping backup."
         return 0
@@ -313,11 +423,29 @@ CreateBackup() {
     if ! chmod 700 "$gc_backup_dir"; then
         WarningMessage "Could not set permissions (700) on backup directory: ${gc_backup_dir}"
     fi
+
     if [[ "$is_verbose" == "true" ]]; then
         tar_opts="-czvf"
     fi
 
-    if ! tar "$tar_opts" "$gc_backup_file" -C "$(dirname "$gc_rcforge_dir")" "$(basename "$gc_rcforge_dir")"; then
+    # Determine which installation to back up (old or new structure)
+    local target_dir=""
+    if [[ -d "$gc_old_rcforge_dir" && -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
+        target_dir="$gc_old_rcforge_dir"
+    elif [[ -d "$gc_local_dir" && -f "${gc_local_dir}/rcforge.sh" ]]; then
+        # For 0.5.0+ structure, back up both directories
+        if ! tar "$tar_opts" "$gc_backup_file" -C "$(dirname "$gc_config_dir")" "$(basename "$gc_config_dir")" -C "$(dirname "$gc_local_dir")" "$(basename "$gc_local_dir")"; then
+            ErrorMessage "$is_fresh_install_attempt" "Backup failed: ${gc_backup_file}. Check permissions/space." # Exits
+        fi
+        SuccessMessage "Backup created: $gc_backup_file"
+        return 0
+    else
+        WarningMessage "Cannot determine installation to back up. Skipping."
+        return 0
+    fi
+
+    # Create the backup of the old structure
+    if ! tar "$tar_opts" "$gc_backup_file" -C "$(dirname "$target_dir")" "$(basename "$target_dir")"; then
         ErrorMessage "$is_fresh_install_attempt" "Backup failed: ${gc_backup_file}. Check permissions/space." # Exits
     fi
     SuccessMessage "Backup created: $gc_backup_file"
@@ -411,6 +539,118 @@ DownloadManifest() {
 }
 
 # ============================================================================
+# Function: MigrateToXDGStructure
+# Description: Migrates from pre-0.5.0 to 0.5.0+ XDG structure
+# Usage: MigrateToXDGStructure is_fresh_install is_verbose
+# Arguments:
+#   $1 (required) - Boolean indicating if fresh install.
+#   $2 (required) - Boolean indicating verbose mode.
+# Returns: 0 on success, 1 on failure.
+# ============================================================================
+MigrateToXDGStructure() {
+    local is_fresh_install_attempt="$1"
+    local is_verbose="$2"
+
+    SectionHeader "Migrating to XDG-Compliant Directory Structure"
+
+    InfoMessage "Creating new XDG directory structure..."
+
+    # Create config directory structure
+    mkdir -p "${gc_config_dir}/config"
+    mkdir -p "${gc_config_dir}/rc-scripts"
+    chmod 700 "${gc_config_dir}" "${gc_config_dir}/config" "${gc_config_dir}/rc-scripts"
+
+    # Create local directory structure
+    mkdir -p "${gc_local_dir}/backups"
+    mkdir -p "${gc_local_dir}/config/checksums"
+    mkdir -p "${gc_local_dir}/system/core"
+    mkdir -p "${gc_local_dir}/system/lib"
+    mkdir -p "${gc_local_dir}/system/utils"
+    chmod 700 "${gc_local_dir}" "${gc_local_dir}/backups" "${gc_local_dir}/config"
+    chmod 700 "${gc_local_dir}/system" "${gc_local_dir}/system/core" "${gc_local_dir}/system/lib" "${gc_local_dir}/system/utils"
+
+    InfoMessage "Migrating files from old structure..."
+
+    # Move rc-scripts to new location
+    if [[ -d "${gc_old_rcforge_dir}/rc-scripts" ]]; then
+        find "${gc_old_rcforge_dir}/rc-scripts" -type f -name "*.sh" -exec cp -p {} "${gc_config_dir}/rc-scripts/" \;
+        SuccessMessage "Migrated custom RC scripts to ${gc_config_dir}/rc-scripts/"
+    fi
+
+    # Move user utilities if they exist
+    if [[ -d "${gc_old_rcforge_dir}/utils" ]]; then
+        mkdir -p "${gc_local_dir}/utils"
+        chmod 700 "${gc_local_dir}/utils"
+        find "${gc_old_rcforge_dir}/utils" -type f -exec cp -p {} "${gc_local_dir}/utils/" \;
+        SuccessMessage "Migrated user utilities to ${gc_local_dir}/utils/"
+    fi
+
+    # Move backups if they exist
+    if [[ -d "${gc_old_rcforge_dir}/backups" ]]; then
+        find "${gc_old_rcforge_dir}/backups" -type f -exec cp -p {} "${gc_local_dir}/backups/" \;
+        SuccessMessage "Migrated existing backups to ${gc_local_dir}/backups/"
+    fi
+
+    # Move checksums if they exist
+    if [[ -d "${gc_old_rcforge_dir}/docs/checksums" ]]; then
+        find "${gc_old_rcforge_dir}/docs/checksums" -type f -exec cp -p {} "${gc_local_dir}/config/checksums/" \;
+        SuccessMessage "Migrated checksums to ${gc_local_dir}/config/checksums/"
+    fi
+
+    # Create initial API key settings file
+    mkdir -p "${gc_local_dir}/config"
+    touch "${gc_local_dir}/config/api_key_settings"
+    chmod 600 "${gc_local_dir}/config/api_key_settings"
+    cat >"${gc_local_dir}/config/api_key_settings" <<EOF
+# rcForge API Key Settings
+# This file contains API keys that will be exported as environment variables.
+# Lines starting with # are ignored.
+# Format: NAME='value'
+#
+# Examples:
+# GEMINI_API_KEY='your-api-key-here'
+# CLAUDE_API_KEY='your-api-key-here'
+# AWS_API_KEY='your-api-key-here'
+EOF
+    SuccessMessage "Created initial API key settings file"
+
+    # Create path.conf in new location
+    mkdir -p "${gc_config_dir}/config"
+    cat >"${gc_config_dir}/config/path.conf" <<EOF
+# rcForge PATH Configuration
+# This file configures paths to be added to your PATH environment variable.
+# Lines starting with # are ignored.
+# Empty lines are ignored.
+# Paths are processed in order.
+# ${HOME} is expanded automatically.
+
+# User bin directory
+${HOME}/bin
+
+# Package manager paths
+/opt/homebrew/bin
+/usr/local/bin
+
+# System paths
+/usr/bin
+/bin
+/usr/sbin
+/sbin
+EOF
+    SuccessMessage "Created path configuration file"
+
+    # Record bash location if it exists in old structure
+    if [[ -f "${gc_old_rcforge_dir}/docs/.bash_location" ]]; then
+        mkdir -p "${gc_local_dir}/config"
+        cp -p "${gc_old_rcforge_dir}/docs/.bash_location" "${gc_local_dir}/config/bash-location"
+        SuccessMessage "Migrated Bash location information"
+    fi
+
+    InfoMessage "Migration to XDG structure complete"
+    return 0
+}
+
+# ============================================================================
 # Function: ProcessManifest
 # Description: Reads manifest, creates directories, downloads files using the specified release URL.
 # Usage: ProcessManifest is_fresh_install is_verbose github_raw_url
@@ -429,12 +669,17 @@ ProcessManifest() {
     if [[ ! -f "$gc_manifest_temp_file" ]]; then
         ErrorMessage "$is_fresh_install_attempt" "Manifest temp file not found."
     fi
-    # Corrected permission check logic:
-    if ! mkdir -p "$gc_rcforge_dir"; then
-        ErrorMessage "$is_fresh_install_attempt" "Failed ensure base dir: $gc_rcforge_dir"
+
+    # In 0.5.0+, we have two root directories to handle
+    local config_dir="${gc_config_dir}"
+    local local_dir="${gc_local_dir}"
+
+    # Ensure both root directories exist
+    if ! mkdir -p "$config_dir" "$local_dir"; then
+        ErrorMessage "$is_fresh_install_attempt" "Failed to ensure base dirs: $config_dir and $local_dir"
     fi
-    if ! chmod 700 "$gc_rcforge_dir"; then
-        WarningMessage "Could not set permissions (700) on: $gc_rcforge_dir"
+    if ! chmod 700 "$config_dir" "$local_dir"; then
+        WarningMessage "Could not set permissions (700) on base directories"
     fi
 
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -458,9 +703,17 @@ ProcessManifest() {
         case "$current_section" in
             "DIRS")
                 dir_path="${line#./}"
-                full_dir_path="${gc_rcforge_dir}/${dir_path}"
+
+                # Determine target directory based on path
+                # .config/rcforge paths
+                if [[ "$dir_path" == rc-scripts* || "$dir_path" == config* ]]; then
+                    full_dir_path="${config_dir}/${dir_path}"
+                # .local/rcforge paths (everything else)
+                else
+                    full_dir_path="${local_dir}/${dir_path}"
+                fi
+
                 VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
-                # Corrected permission check logic:
                 if ! mkdir -p "$full_dir_path"; then
                     ErrorMessage "$is_fresh_install_attempt" "Failed create dir: $full_dir_path"
                 fi
@@ -476,7 +729,16 @@ ProcessManifest() {
                     continue
                 fi
                 file_url="${github_raw_url}/${source_suffix}" # Use passed URL base
-                dest_path="${gc_rcforge_dir}/${dest_suffix}"
+
+                # Determine target location based on path
+                # .config/rcforge paths
+                if [[ "$dest_suffix" == rc-scripts/* || "$dest_suffix" == config/* ]]; then
+                    dest_path="${config_dir}/${dest_suffix}"
+                # .local/rcforge paths (everything else)
+                else
+                    dest_path="${local_dir}/${dest_suffix}"
+                fi
+
                 DownloadFile "$is_fresh_install_attempt" "$is_verbose" "$file_url" "$dest_path" # Exits on fail
                 file_count=$((file_count + 1))
                 ;;
@@ -492,404 +754,3 @@ ProcessManifest() {
     SuccessMessage "Processed ${file_count} files."
     return 0
 }
-
-# ============================================================================
-# Function: UpdateShellRc
-# Description: Adds commented-out rcForge source line to standard shell rc files.
-# Usage: UpdateShellRc is_skip_integration is_verbose
-# Arguments: $1, $2 (required) - Booleans.
-# Returns: 0.
-# ============================================================================
-UpdateShellRc() {
-    local is_skip_integration="$1"
-    local is_verbose="$2"
-    local source_line_active source_line_commented rc_file updated_any=false add_block
-    local -a shell_rc_files=("$HOME/.bashrc" "$HOME/.zshrc")
-
-    if [[ "$is_skip_integration" == "true" ]]; then
-        VerboseMessage "$is_verbose" "Skipping shell config update."
-        return 0
-    fi
-    SectionHeader "Updating Shell Configuration Files"
-    source_line_active="[ -f \"${gc_rcforge_dir}/rcforge.sh\" ] && source \"${gc_rcforge_dir}/rcforge.sh\""
-    source_line_commented="# ${source_line_active}"
-    add_block="# rcForge Loader (Commented out by installer - uncomment to enable)\n${source_line_commented}"
-
-    for rc_file in "${shell_rc_files[@]}"; do
-        VerboseMessage "$is_verbose" "Checking: ${rc_file}"
-        if [[ -f "$rc_file" ]]; then
-            if grep -Fxq "$source_line_active" "$rc_file"; then
-                VerboseMessage "$is_verbose" "'${rc_file}' has active line."
-            elif grep -Fxq "$source_line_commented" "$rc_file"; then
-                VerboseMessage "$is_verbose" "'${rc_file}' has commented line."
-            else
-                InfoMessage "Adding commented line to '${rc_file}'..."
-                if printf "\n%b\n" "$add_block" >>"$rc_file"; then
-                    SuccessMessage "Added line to '${rc_file}'."
-                    updated_any=true
-                else
-                    WarningMessage "Failed to update '${rc_file}'. Manual add needed."
-                fi
-            fi
-        else
-            VerboseMessage "$is_verbose" "Skip missing: ${rc_file}"
-        fi
-    done
-    if [[ "$updated_any" == "true" ]]; then
-        InfoMessage "Shell files checked/updated."
-    else
-        InfoMessage "No shell file updates needed."
-    fi
-    return 0
-}
-
-# ============================================================================
-# Function: VerifyInstallation
-# Description: Perform basic checks after installation/upgrade.
-# Usage: VerifyInstallation is_verbose
-# Arguments: $1 (required) - Boolean.
-# Returns: 0 if basic checks pass, 1 if critical issues detected.
-# ============================================================================
-VerifyInstallation() {
-    local is_verbose="$1"
-    local check_status=0
-    local file main_perms file_perms
-    local -a critical_files=(
-        "${gc_rcforge_dir}/rcforge.sh"
-        "${gc_rcforge_dir}/system/lib/utility-functions.sh"
-        "${gc_rcforge_dir}/system/lib/shell-colors.sh"
-        "${gc_rcforge_dir}/system/core/rc.sh"
-    )
-    SectionHeader "Verifying Installation Integrity"
-    InfoMessage "Checking critical files and permissions..."
-    main_perms=$(stat -c %a "$gc_rcforge_dir" 2>/dev/null || stat -f "%Lp" "$gc_rcforge_dir" 2>/dev/null || echo "ERR")
-    if [[ "$main_perms" == "ERR" ]]; then
-        WarningMessage "Verify Warn: Cannot check perms: ${gc_rcforge_dir}"
-    elif [[ "$main_perms" != "700" ]]; then
-        WarningMessage "Verify Warn: Base dir perms ${gc_rcforge_dir} (Need: 700, Got: ${main_perms})"
-    else
-        VerboseMessage "$is_verbose" "Verified base dir perms (700): ${gc_rcforge_dir}"
-    fi
-
-    for file in "${critical_files[@]}"; do
-        if [[ ! -f "$file" ]]; then
-            WarningMessage "Verify FAIL: Missing: ${file}"
-            check_status=1
-            continue
-        fi
-        VerboseMessage "$is_verbose" "Verified exists: ${file}"
-        file_perms=$(stat -c %a "$file" 2>/dev/null || stat -f "%Lp" "$file" 2>/dev/null || echo "ERR")
-        if [[ "$file_perms" == "ERR" ]]; then
-            WarningMessage "Verify Warn: Cannot check perms: ${file}"
-            continue
-        fi
-        # Corrected permission check logic:
-        if [[ "$file" == *.sh ]]; then # Scripts need 700
-            if [[ "$file_perms" != "700" ]]; then
-                WarningMessage "Verify Warn: Script perms ${file} (Need: 700, Got: ${file_perms})"
-            else
-                VerboseMessage "$is_verbose" "Verified script perms (700): ${file}"
-            fi
-        else # Other files expect 600/644
-            if [[ "$file_perms" != "600" && "$file_perms" != "644" ]]; then
-                WarningMessage "Verify Warn: File perms ${file} (Need: 600/644, Got: ${file_perms})"
-            else
-                VerboseMessage "$is_verbose" "Verified file perms (${file_perms}): ${file}"
-            fi
-        fi
-    done
-    printf "\n"
-    if [[ $check_status -eq 0 ]]; then
-        SuccessMessage "Basic verification passed!"
-    else
-        WarningMessage "Verification failed (missing files)."
-    fi
-    return $check_status
-}
-
-# ============================================================================
-# Function: ShowInstructions
-# Description: Display final post-installation instructions.
-# Usage: ShowInstructions effective_install_mode
-# Arguments: $1 (required) - String ('install' or 'upgrade').
-# ============================================================================
-ShowInstructions() {
-    local effective_install_mode="$1"
-    SectionHeader "Installation Complete!"
-    SuccessMessage "rcForge Core v${gc_rcforge_core_version} successfully ${effective_install_mode}ed to ${gc_rcforge_dir}!"
-    printf "\n"
-    InfoMessage "To activate in your ${BOLD}current${RESET} shell session, run:"
-    printf "  %bsource \"%s/rcforge.sh\"%b\n" "${CYAN}" "${gc_rcforge_dir}" "${RESET}"
-    printf "\n"
-    WarningMessage "${BOLD}ACTION REQUIRED:${RESET} Loader line in ${CYAN}~/.bashrc${RESET}/${CYAN}~/.zshrc${RESET} is ${RED}COMMENTED OUT${RESET}."
-    printf "\n"
-    InfoMessage "1. ${BOLD}Test Manually:${RESET} Open a ${GREEN}new${RESET} terminal or run the source command above."
-    InfoMessage "2. ${BOLD}Enable Auto-Load:${RESET} If OK, ${GREEN}uncomment${RESET} line in your RC file(s):"
-    printf "   %b# [ -f \"%s/rcforge.sh\" ] && source \"%s/rcforge.sh\"%b\n" "${YELLOW}" "${gc_rcforge_dir}" "${gc_rcforge_dir}" "${RESET}"
-    printf "   (Remove the leading '#')\n\n"
-    InfoMessage "Once active, try: %brc help%b, %brc diag%b" "${CYAN}" "${RESET}" "${CYAN}" "${RESET}"
-    printf "\n"
-    WarningMessage "${YELLOW}Optional:${RESET} Use Git for your config (${GREEN}${gc_rcforge_dir}/rc-scripts/${RESET})."
-    InfoMessage "Example: ${CYAN}cd \"${gc_rcforge_dir}\" && git init && git add . && git commit -m \"Initial setup\"${RESET}"
-    printf "\n"
-    # Construct URL dynamically based on potential tag (gc_rcforge_core_version might not be a tag name)
-    # It's safer to just point to the main repo URL here.
-    InfoMessage "Project Link: ${BLUE}${gc_repo_base_url/.git/}${RESET}"
-    printf "\n"
-}
-
-# ============================================================================
-# Function: Cleanup
-# Description: Remove temporary files.
-# Usage: trap Cleanup EXIT INT TERM HUP
-# ============================================================================
-Cleanup() {
-    if [[ -n "${gc_manifest_temp_file:-}" ]]; then
-        VerboseMessage "true" "Cleaning up temp manifest: ${gc_manifest_temp_file}"
-        rm -f "$gc_manifest_temp_file" &>/dev/null || true
-    fi
-}
-
-# ============================================================================
-# Function: ShowVersion (Installer Version)
-# Description: Displays installer version information and exits.
-# Exits: 0
-# ============================================================================
-ShowVersion() {
-    echo "rcForge Installer v${gc_installer_version} (Installs Core v${gc_rcforge_core_version})"
-    echo "Copyright (c) $(date +%Y) rcForge Team"
-    echo "Released under the MIT License"
-    exit 0
-}
-
-# ============================================================================
-# Function: ShowHelp (Installer Help)
-# Description: Displays help information for the installer script and exits.
-# Exits: 0
-# ============================================================================
-ShowHelp() {
-    cat <<EOF
-rcForge Installer v${gc_installer_version} (Requires Bash ${gc_installer_required_bash}+)
-
-Installs/upgrades rcForge Core v${gc_rcforge_core_version} using manifest from a specified release tag.
-
-Usage: $0 [options]
-
-Options:
-  --release-tag=TAG    Specify the release tag to install from (Required when run directly).
-  --reinstall          Perform a clean reinstall (removes existing installation).
-  --force, -f          Currently unused placeholder.
-  --verbose, -v        Enable verbose output during installation.
-  --no-backup          Skip creating a backup before installation/upgrade.
-  --no-shell-update    Skip adding/checking commented source line in shell RC files.
-  --skip-version-check Bypass the minimum Bash version check for the installer.
-  --help, -h           Show this help message and exit.
-  --version            Show installer version information and exit.
-
-Example:
-  # Typically run via the install.sh stub, which provides --release-tag
-  bash $0 --release-tag=v0.4.3 --verbose
-EOF
-    exit 0
-}
-
-# ============================================================================
-# Function: ParseArguments (Installer Specific)
-# Description: Parse command-line arguments for the main installer script.
-# Usage: declare -A options; ParseArguments options "$@"
-# Returns: Populates associative array by reference. 0 on success, 1 on error.
-# Exits: Directly for --help, --version.
-# ============================================================================
-ParseArguments() {
-    local -n options_ref="$1" # Nameref (Bash 4.3+)
-    shift
-
-    # Defaults
-    options_ref["install_mode"]="auto"
-    options_ref["is_force"]=false
-    options_ref["is_verbose"]=false
-    options_ref["skip_backup"]=false
-    options_ref["skip_shell_integration"]=false
-    options_ref["skip_version_check"]=false
-    options_ref["release_tag"]="" # Must be provided
-
-    # Argument parsing loop
-    while [[ $# -gt 0 ]]; do
-        local key="$1"
-        case "$key" in
-            --release-tag=*)
-                options_ref["release_tag"]="${key#*=}"
-                shift
-                ;;
-            --release-tag)
-                if [[ -z "${2:-}" || "$2" == -* ]]; then
-                    echo "ERROR: --release-tag requires a value." >&2
-                    return 1
-                fi
-                options_ref["release_tag"]="$2"
-                shift 2
-                ;;
-            --reinstall)
-                options_ref["install_mode"]="reinstall"
-                shift
-                ;;
-            --force | -f)
-                options_ref["is_force"]=true
-                shift
-                ;;
-            --verbose | -v)
-                options_ref["is_verbose"]=true
-                shift
-                ;;
-            --no-backup)
-                options_ref["skip_backup"]=true
-                shift
-                ;;
-            --no-shell-update)
-                options_ref["skip_shell_integration"]=true
-                shift
-                ;;
-            --skip-version-check)
-                options_ref["skip_version_check"]=true
-                shift
-                ;;
-            --help | -h) ShowHelp ;;  # Exits
-            --version) ShowVersion ;; # Exits
-            --)
-                shift
-                break
-                ;; # End of options
-            -*)
-                echo "ERROR: Unknown option: $key" >&2
-                ShowHelp
-                ;; # Exits
-            *)
-                echo "ERROR: Unexpected positional argument: $key" >&2
-                ShowHelp
-                ;; # Exits
-        esac
-    done
-
-    # --- Post-parsing validation ---
-    if [[ -z "${options_ref["release_tag"]:-}" ]]; then
-        echo "ERROR: --release-tag=<tag> is required." >&2
-        ShowHelp # Exits
-        return 1 # Return error (though ShowHelp likely exited)
-    fi
-    return 0
-}
-
-# ============================================================================
-# MAIN INSTALLATION FLOW FUNCTION
-# ============================================================================
-# ============================================================================
-# Function: main
-# Description: Main execution logic for the installer script.
-# Usage: main "$@"
-# Returns: 0 on success. Exits non-zero on failure via ErrorMessage.
-# ============================================================================
-main() {
-    # Use associative array for options (requires Bash 4.3+)
-    declare -A options
-    local effective_install_mode=""
-    local is_fresh_install_attempt=false
-    local github_raw_url="" # Will be constructed based on tag
-
-    # Parse arguments, exit if returns non-zero (includes handling --help/--version/missing tag)
-    ParseArguments options "$@" || exit $?
-
-    # Assign parsed options to local variables for easier access
-    local install_mode="${options[install_mode]}"
-    local is_force="${options[is_force]}"
-    local is_verbose="${options[is_verbose]}"
-    local skip_backup="${options[skip_backup]}"
-    local skip_shell_integration="${options[skip_shell_integration]}"
-    local skip_version_check="${options[skip_version_check]}"
-    local release_tag="${options[release_tag]}" # Guaranteed non-empty
-
-    # Set trap now that variables are defined
-    trap Cleanup EXIT INT TERM HUP
-
-    SectionHeader "rcForge Installer v${gc_installer_version} (Manifest Mode)"
-    InfoMessage "Targeting release: ${release_tag}"
-
-    # Determine effective install mode
-    if [[ "$install_mode" == "auto" ]]; then
-        if IsInstalled; then
-            effective_install_mode="upgrade"
-            InfoMessage "Existing install detected; preparing upgrade..."
-            is_fresh_install_attempt=false
-        else
-            effective_install_mode="install"
-            InfoMessage "Performing fresh installation..."
-            is_fresh_install_attempt=true
-        fi
-    elif [[ "$install_mode" == "reinstall" ]]; then
-        effective_install_mode="reinstall"
-        InfoMessage "Performing reinstallation..."
-        is_fresh_install_attempt=true
-        if ! IsInstalled; then
-            WarningMessage "Note: No existing installation found to reinstall over."
-        fi
-    else
-        ShowHelp # Exit for invalid mode (shouldn't happen)
-    fi
-
-    # --- Prerequisites Checks ---
-    InfoMessage "Checking prerequisites..."
-    CheckBashVersion "$is_fresh_install_attempt" "$skip_version_check" # Exits on failure
-    if ! CommandExists curl && ! CommandExists wget; then
-        ErrorMessage "$is_fresh_install_attempt" "Requires 'curl' or 'wget'." # Exits
-    fi
-    SuccessMessage "Prerequisites met."
-
-    # --- Backup ---
-    CreateBackup "$is_fresh_install_attempt" "$skip_backup" "$is_verbose" # Exits on critical failure
-
-    # --- Remove existing install if reinstalling ---
-    if [[ "$effective_install_mode" == "reinstall" ]] && IsInstalled; then
-        InfoMessage "Removing existing installation for reinstall..."
-        if ! rm -rf "$gc_rcforge_dir"; then
-            ErrorMessage "$is_fresh_install_attempt" "Failed remove existing install: $gc_rcforge_dir" # Exits
-        fi
-        SuccessMessage "Removed existing installation."
-    fi
-
-    # --- Construct Base URL for this Release ---
-    github_raw_url="${gc_repo_base_url}/${release_tag}"
-
-    # --- Download and Process Manifest ---
-    DownloadManifest "$is_fresh_install_attempt" "$is_verbose" "$github_raw_url" # Exits on failure
-    if ! ProcessManifest "$is_fresh_install_attempt" "$is_verbose" "$github_raw_url"; then
-        WarningMessage "Manifest processing completed, but potential issues occurred. Check logs."
-    else
-        SuccessMessage "File installation/upgrade from manifest complete."
-    fi
-
-    # --- Post-Install Steps ---
-    UpdateShellRc "$skip_shell_integration" "$is_verbose" # Doesn't exit
-
-    # --- Verification ---
-    if ! VerifyInstallation "$is_verbose"; then
-        WarningMessage "Post-installation verification detected issues."
-    fi
-
-    # --- Final Instructions ---
-    ShowInstructions "$effective_install_mode"
-
-    exit 0 # Explicit success exit
-}
-
-# ============================================================================
-# SCRIPT EXECUTION START
-# ============================================================================
-# Early Bash version check before main logic
-if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 || ("${BASH_VERSINFO[0]:-0}" -eq 4 && "${BASH_VERSINFO[1]:-0}" -lt 3) ]]; then
-    printf "%bERROR:%b Installer needs Bash v4.3+. Your version: %s%b\n" "${RED}" "${RESET}" "${BASH_VERSION:-N/A}" "${RESET}" >&2
-    exit 1
-fi
-
-# Run main installer function, passing all script arguments
-main "$@"
-
-# EOF

@@ -59,17 +59,8 @@ For example: In the current folder structure, if the user used GIT to sync, it w
 ${HOME}/.config
 └── rcforge
     ├── config
-    │   └── path.txt
+    │   └── path.conf
     └── rc-scripts
-        ├── 050_global_common_path.sh
-        ├── 200_global_common_config.sh
-        ├── 210_global_bash_config.sh
-        ├── 210_global_zsh_config.sh
-        ├── 350_global_bash_prompt.sh
-        ├── 350_global_zsh_prompt.sh
-        ├── 400_global_common_aliases.sh
-        ├── 500_global_common_functions.sh
-        ├── 800_global_common_call_apikeysrc.sh
         └── README.md
 ```
 
