@@ -17,6 +17,7 @@ alias .....='cd ../../../..'
 
 # Go to specific common directories (ensure these paths are relevant)
 alias home='cd "$HOME"'
+alias rcforge='cd $HOME/.config/rcforge'
 # alias dev='cd "$HOME/Development"' # Uncomment or modify if standard dev path exists
 # alias docs='cd "$HOME/Documents"' # Uncomment or modify
 # alias dl='cd "$HOME/Downloads"'   # Uncomment or modify
@@ -73,6 +74,9 @@ alias reload='exec $SHELL -l' # Preferred way to reload entire environment
 
 # ts-node execution
 alias ts='ts-node '
+
+# sudo as su
+alias su='sudo '
 
 # ============================================================================
 # NETWORK ALIASES
