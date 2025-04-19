@@ -4,12 +4,16 @@
 
 Version 0.5.0 of rcForge introduces a major architectural change to adopt XDG Base Directory Specification compliance, as well as new features for API key management and path configuration. This document outlines the detailed implementation plan to create and deploy these changes.
 
+## Directory Structure Reference
+
+This document references the rcForge v0.5.0 XDG-compliant directory structure. For the mosst current and complete directory structure and detailed path information, please refer to the [File Structure Guide](./file-structure-050.md).
+
 ## 2. Key Changes
 
 1. **XDG-Compliant Directory Structure**
    - Separate user configuration from system files
-   - Move configuration to `~/.config/rcforge/`
-   - Move system files to `~/.local/rcforge/`
+   - Move configuration to `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
+   - Move system files to `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
 
 2. **API Key Management**
    - New `apikey` utility
@@ -36,13 +40,13 @@ Version 0.5.0 of rcForge introduces a major architectural change to adopt XDG Ba
 
 2. **Update Environment Variables**
    - Define new environment variables in `rcforge.sh`:
-     - `RCFORGE_CONFIG_ROOT` for ~/.config/rcforge
-     - `RCFORGE_DATA_ROOT` for ~/.local/rcforge
+     - `RCFORGE_CONFIG_ROOT` for ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge
+     - `RCFORGE_DATA_ROOT` for ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge
      - Update all related path variables
 
 3. **Create Configuration Files**
    - Add `path.conf` for PATH configuration
-   - Add `api_key_settings` template
+   - Add `api-keys.conf` template
 
 ### Phase 2: Core Script Updates
 
@@ -111,22 +115,38 @@ Version 0.5.0 of rcForge introduces a major architectural change to adopt XDG Ba
 Create the following structure:
 
 ```
-~/.config/rcforge/          # User configuration
-├── config/                 # Configuration files
-│   └── path.conf           # PATH configuration
-└── rc-scripts/             # Shell configuration scripts
+${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/          # User configuration
+├── config/                            # User configuration files
+│   └── path.conf                      # PATH configuration
+├── utils/                             # User utils
+└── rc-scripts/                        # User shell configuration scripts
+    └── README.md                      # rc-scripts README
 
-~/.local/rcforge/           # System files
-├── backups/                # Backup files
-├── config/                 # System configuration
-│   ├── api_key_settings    # API key storage
-│   ├── bash-location       # Compliant Bash path
-│   └── checksums/          # File checksums
-├── rcforge.sh              # Main loader script
-└── system/                 # System components
-    ├── core/               # Core functionality
-    ├── lib/                # Shared libraries
-    └── utils/              # System utilities
+${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
+├── rcforge.sh                         # Main loader script
+├── backups/                           # Automated backups
+├── config/                            # System configuration
+│   ├── bash-location                  # Path to Bash 4.3+
+│   ├── api-keys.conf                  # API keys configuration
+│   └── checksums/                     # System file checksums
+├── docs/                              # Documentation
+│   ├── LICENCE                        # MIT License
+│   └── README.md                      # rcForge README
+└── system/                            # System file structure
+    ├── core/                          # Core system scripts
+    │   ├── bash-version-check.sh      # Bash compatibility checker
+    │   ├── rc.sh                      # Command dispatcher
+    │   └── run-integrity-checks.sh    # Integrity check runner
+    ├── lib/                           # Shared library functions
+    │   ├── shell-colors.sh            # Color and formatting
+    │   ├── utility-functions.sh       # Common utility functions
+    │   └── set-rcforge-environment.sh # Environment variables
+    └── utils/                         # System utility scripts
+        ├── apikey.sh                  # API key management utility
+        ├── checksums.sh               # Checksum verification
+        ├── chkseq.sh                  # Sequence conflict detection
+        ├── diagram.sh                 # Configuration visualization
+        └── export.sh                  # Configuration export
 ```
 
 ### Step 2: Update `rcforge.sh`
@@ -206,7 +226,7 @@ The migration process for existing users will be:
 2. New files:
    - `apikey.sh`
    - `path.conf` template
-   - `api_key_settings` template
+   - `api-keys.conf` template
 
 3. Updated documentation:
    - `style-guide-050.md`
@@ -216,7 +236,7 @@ The migration process for existing users will be:
 ## 9. Future Considerations
 
 1. **Syncing Functionality**: Enhance syncing between machines now that configuration is separated
-2. **Additional Configuration**: Consider more user-facing configuration options in `~/.config/rcforge/config/`
+2. **Additional Configuration**: Consider more user-facing configuration options in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/config/`
 3. **Plugin System**: Consider a more formal plugin architecture leveraging the new structure
 4. **Installer Improvement**: Enhance installer with more interactive options
 

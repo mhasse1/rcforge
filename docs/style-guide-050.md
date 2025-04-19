@@ -58,6 +58,10 @@ Note that in many cases this document is still aspirational and as code is revis
 
 One more note, if at times the instructions seem pedantic, it is because I found edge cases when working witih AI coding assistants and these explicit instructions were required to address those cases.
 
+## Directory Structure Reference
+
+This document references the rcForge v0.5.0 XDG-compliant directory structure. For the mosst current and complete directory structure and detailed path information, please refer to the [File Structure Guide](./file-structure-050.md).
+
 ## General Principles
 
 1. **No spaces or special characters in file names.**
@@ -149,7 +153,7 @@ The correct name of the project is `rcForge`.  For camel_case applications it sh
 # Description: More detailed explanation of the script's purpose
 
 # Source shared utilities
-source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB:-$HOME/.local/share/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset  # Treat unset variables as errors
@@ -178,8 +182,8 @@ fi
 
 The following environment variables are standard in rcForge v0.5.0:
 
-- `$RCFORGE_CONFIG_ROOT`: Points to the user's rcForge configuration directory (`~/.config/rcforge`)
-- `$RCFORGE_DATA_ROOT`: Points to the rcForge system installation (`~/.local/rcforge`)
+- `$RCFORGE_CONFIG_ROOT`: Points to the user's rcForge configuration directory (`${XDG_CONFIG_HOME:-$HOME/.config}/rcforge`)
+- `$RCFORGE_DATA_ROOT`: Points to the rcForge system installation (`${XDG_DATA_HOME:-$HOME/.local/share}/rcforge`)
 - `$RCFORGE_LIB`: Location of system libraries
 - `$RCFORGE_UTILS`: Location of system utilities
 - `$RCFORGE_SCRIPTS`: Location of user RC scripts
@@ -476,7 +480,7 @@ Example standalone script structure:
 # RC Summary: One-line description for rc help display
 
 # Source required libraries
-source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB:-$HOME/.local/share/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset
@@ -569,7 +573,7 @@ The `rc` command provides a unified interface for accessing utilities.
 # Description: More detailed explanation
 
 # Source necessary libraries
-source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB:-$HOME/.local/share/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset
@@ -722,11 +726,11 @@ fi
 
 ### Utility Template Usage
 
-New for v0.5.0, rcForge provides a template utility script that should be used as the starting point for all new utilities. You can find this template at `~/.local/rcforge/docs/template-utility.sh`. When creating a new utility:
+New for v0.5.0, rcForge provides a template utility script that should be used as the starting point for all new utilities. You can find this template at `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/docs/template-utility.sh`. When creating a new utility:
 
 1. Copy the template to your destination directory:
    ```bash
-   cp ~/.local/rcforge/docs/template-utility.sh ~/.local/rcforge/utils/my-utility.sh
+   cp ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/docs/template-utility.sh ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/my-utility.sh
    ```
 
 2. Edit the template to implement your functionality, updating:
@@ -738,7 +742,7 @@ New for v0.5.0, rcForge provides a template utility script that should be used a
 
 3. Make it executable:
    ```bash
-   chmod 700 ~/.local/rcforge/utils/my-utility.sh
+   chmod 700 ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/my-utility.sh
    ```
 
 ### Standard Function Implementations
@@ -817,10 +821,10 @@ Example override-friendly design:
 # httpheaders.sh - HTTP header inspection utility
 
 # Source necessary libraries
-source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB:-$HOME/.local/share/rcforge/system/lib}/utility-functions.sh"
 
 # Configuration variables with defaults
-: "${HTTPHEADERS_CONFIG_PATH:=$HOME/.config/rcforge/config/httpheaders.conf}"
+: "${HTTPHEADERS_CONFIG_PATH:=${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/config/httpheaders.conf}"
 
 # Load user configuration if it exists
 if [[ -f "$HTTPHEADERS_CONFIG_PATH" ]]; then
@@ -860,8 +864,8 @@ utility_name() {
     unset -f utility_name
 
     # Load full implementation
-    if [[ -f "${RCFORGE_DATA_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh" ]]; then
-        source "${RCFORGE_DATA_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh"
+    if [[ -f "${RCFORGE_DATA_ROOT:-$HOME/.local/share/rcforge}/system/utils/utility_name.sh" ]]; then
+        source "${RCFORGE_DATA_ROOT:-$HOME/.local/share/rcforge}/system/utils/utility_name.sh"
         # Call now-loaded implementation with original arguments
         utility_name "$@"
     else
@@ -1241,33 +1245,14 @@ New in v0.5.0, rcForge follows the XDG Base Directory Specification for improved
 
 ### Directory Structure
 
-rcForge v0.5.0 separates user configuration from system files:
-
-```
-~/.config/rcforge/          # User configuration
-├── config/                 # Configuration files
-│   └── path.conf           # PATH configuration
-└── rc-scripts/             # Shell configuration scripts
-
-~/.local/rcforge/           # System files
-├── backups/                # Backup files
-├── config/                 # System configuration
-│   ├── api_key_settings    # API key storage
-│   ├── bash-location       # Compliant Bash path
-│   └── checksums/          # File checksums
-├── rcforge.sh              # Main loader script
-└── system/                 # System components
-    ├── core/               # Core functionality
-    ├── lib/                # Shared libraries
-    └── utils/              # System utilities
-```
+rcForge v0.5.0 separates user configuration from system files as defined in the [File Structure Guide](./file-structure-050.md).
 
 ### Path References
 
 All scripts should use the following environment variables to reference directories:
 
-- `$RCFORGE_CONFIG_ROOT` for ~/.config/rcforge
-- `$RCFORGE_DATA_ROOT` for ~/.local/rcforge
+- `$RCFORGE_CONFIG_ROOT` for ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge
+- `$RCFORGE_DATA_ROOT` for ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge
 - `$RCFORGE_SCRIPTS` for rc-scripts directory
 - `$RCFORGE_CONFIG` for configuration directory
 - `$RCFORGE_LIB` for libraries directory
@@ -1282,7 +1267,7 @@ config_file="${RCFORGE_CONFIG}/my-config.conf"
 script_dir="${RCFORGE_SCRIPTS}"
 
 # Incorrect (hard-coded paths)
-source "$HOME/.local/rcforge/system/lib/utility-functions.sh" # Bad: hard-coded
+source "$HOME/.local/share/rcforge/system/lib/utility-functions.sh" # Bad: hard-coded
 ```
 
 ### Example Path Fallbacks
@@ -1291,7 +1276,7 @@ When sourcing libraries, use this pattern to support both old and new installati
 
 ```bash
 # Best practice for sourcing libraries with fallback
-source "${RCFORGE_LIB:-$HOME/.local/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB:-$HOME/.local/share/rcforge/system/lib}/utility-functions.sh"
 ```
 
 ## Continuous Improvement

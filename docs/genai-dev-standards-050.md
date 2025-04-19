@@ -12,6 +12,10 @@ AI assistants should use these guidelines when:
 
 These standards apply to rcForge v0.5.0 and later versions, which use the XDG-compliant directory structure.
 
+## Directory Structure Reference
+
+This document references the rcForge v0.5.0 XDG-compliant directory structure. For the mosst current and complete directory structure and detailed path information, please refer to the [File Structure Guide](./file-structure-050.md).
+
 ## 2. Project Overview
 
 - **Name**: rcForge
@@ -35,13 +39,6 @@ rcForge helps users transform shell configuration chaos into a robust, organized
 - Both Bash and Zsh are supported as equal first-class citizens
 - Configuration scripts can be shell-specific or common to both
 - System adapts to user's active shell environment
-
-### Directory Structure (XDG-Compliant)
-
-  - **Configuration files**: Located in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
-    - Contains `rc-scripts/` and `config/` directories
-  - **Program data files**: Located in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
-    - Contains `system/`, `backups/`, `utils/`, `rcforge.sh`, and other program data
 
 ## 4. AI-Specific Development Protocols
 
@@ -90,7 +87,7 @@ Before modifying ANY existing file:
 - Support user override by avoiding hardcoded paths
 - Design with modularity in mind
 - Place system utilities in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/utils/`
-- Place user utilities in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/utils/`
+- Place user utilities in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/`
 
 ### Function vs. Scripts Approach
 - Use the pragmatic approach:
@@ -239,8 +236,8 @@ chmod 600 "$config_path"
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/rc-scripts"
 chmod 700 "${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/rc-scripts"
 
-mkdir -p "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/utils"
-chmod 700 "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/utils"
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils"
+chmod 700 "${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils"
 ```
 
 ## 10. Change Management Guidelines
@@ -263,3 +260,5 @@ chmod 700 "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/utils"
 - For feature additions, indicate documentation that needs updating
 - Suggest version number changes based on semantic versioning principles
 - Recommend changelog entries
+
+# EOF

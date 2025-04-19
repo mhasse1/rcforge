@@ -7,11 +7,11 @@ This document outlines the file structure of rcForge v0.5.0, providing a clear r
 rcForge v0.5.0 introduces a significant architectural improvement by adopting the XDG Base Directory Specification. This change makes rcForge more compliant with modern Unix/Linux standards and improves organization by separating configuration from program data.
 
 Key components:
-1. **Config Files** - User-specific configuration in `~/.config/rcforge/`
-2. **Program Data** - Application files in `~/.local/share/rcforge/`
-3. **RC Scripts** - Shell configuration scripts in `~/.config/rcforge/rc-scripts/`
-4. **System Scripts** - Core functionality in `~/.local/share/rcforge/system/`
-5. **User Utilities** - Custom user scripts in `~/.local/share/rcforge/utils/`
+1. **Config Files** - User-specific configuration in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
+2. **Program Data** - Application files in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
+3. **RC Scripts** - Shell configuration scripts in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/rc-scripts/`
+4. **System Scripts** - Core functionality in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/`
+5. **User Utilities** - Custom user scripts in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/`
 
 ## Technical Requirements
 
@@ -68,21 +68,21 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
 
 | Component              | Purpose                                      | Path                                  |
 |------------------------|----------------------------------------------|---------------------------------------|
-| Loader Script          | Core functionality that loads all rc-scripts | `~/.local/share/rcforge/rcforge.sh`   |
-| System Libraries       | Shared functions and utilities               | `~/.local/share/rcforge/system/lib/`  |
-| System Core Scripts    | Core functionality for the rcForge system    | `~/.local/share/rcforge/system/core/` |
-| System Utilities       | Built-in tools accessible via `rc` command   | `~/.local/share/rcforge/system/utils/`|
-| API Keys Configuration | Store API keys for external services         | `~/.config/rcforge/config/api-keys.conf` |
-| PATH Configuration     | Configure environment PATH                   | `~/.config/rcforge/config/path.conf`  |
+| Loader Script          | Core functionality that loads all rc-scripts | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/rcforge.sh`   |
+| System Libraries       | Shared functions and utilities               | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/`  |
+| System Core Scripts    | Core functionality for the rcForge system    | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/core/` |
+| System Utilities       | Built-in tools accessible via `rc` command   | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/utils/`|
+| API Keys Configuration | Store API keys for external services         | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/config/api-keys.conf` |
+| PATH Configuration     | Configure environment PATH                   | `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/config/path.conf`  |
 
 ### User Components
 
 | Component              | Purpose                                        | Path                                |
 |------------------------|------------------------------------------------|------------------------------------|
-| RC Scripts             | Sequential shell configuration scripts         | `~/.config/rcforge/rc-scripts/`    |
-| User Utility Scripts   | User-created tools                             | `~/.local/share/rcforge/utils/`     |
-| Backups                | Automated backups for upgrades and rollbacks   | `~/.local/share/rcforge/backups/`   |
-| Documentation          | User guides and references                     | `~/.local/share/rcforge/docs/`      |
+| RC Scripts             | Sequential shell configuration scripts         | `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/rc-scripts/`    |
+| User Utility Scripts   | User-created tools                             | `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/`     |
+| Backups                | Automated backups for upgrades and rollbacks   | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/backups/`   |
+| Documentation          | User guides and references                     | `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/docs/`      |
 
 ## Key Files Reference
 
@@ -90,21 +90,21 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
 
 | File                                                      | Purpose                                      |
 |-----------------------------------------------------------|----------------------------------------------|
-| `~/.local/share/rcforge/rcforge.sh`                      | Main loader script                           |
-| `~/.local/share/rcforge/system/lib/shell-colors.sh`      | Color and formatting utilities               |
-| `~/.local/share/rcforge/system/lib/utility-functions.sh` | Common utility functions                     |
-| `~/.local/share/rcforge/system/core/bash-version-check.sh` | Bash version validation                   |
-| `~/.local/share/rcforge/system/lib/set-rcforge-environment.sh` | Set environment variables              |
-| `~/.local/share/rcforge/system/core/rc.sh`              | RC command dispatcher                        |
-| `~/.local/share/rcforge/system/utils/apikey.sh`         | API key management utility                   |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/rcforge.sh`                      | Main loader script                           |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/shell-colors.sh`      | Color and formatting utilities               |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/utility-functions.sh` | Common utility functions                     |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/core/bash-version-check.sh` | Bash version validation                   |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh` | Set environment variables              |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/core/rc.sh`              | RC command dispatcher                        |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/utils/apikey.sh`         | API key management utility                   |
 
 ### User Configuration Files
 
 | File                                      | Purpose                                        |
 |-------------------------------------------|-------------------------------------------------|
-| `~/.config/rcforge/config/path.conf`      | Configure PATH environment variable              |
-| `~/.config/rcforge/config/api-keys.conf`  | Store API keys for external services            |
-| `~/.config/rcforge/rc-scripts/`           | User shell configuration scripts directory       |
+| `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/config/path.conf`      | Configure PATH environment variable              |
+| `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/config/api-keys.conf`  | Store API keys for external services            |
+| `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/rc-scripts/`           | User shell configuration scripts directory       |
 
 ## RC Script Naming Convention
 
@@ -124,17 +124,17 @@ Example: `050_global_common_path.sh` - Script with sequence 050, applies globall
 ## New Features in v0.5.0
 
 ### XDG Base Directory Support
-- Configuration files now stored in `~/.config/rcforge/`
-- Program data now stored in `~/.local/share/rcforge/`
+- Configuration files now stored in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
+- Program data now stored in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
 - Automatically migrates from pre-0.5.0 structure during upgrade
 
 ### PATH Configuration
-- Path configuration now stored in `~/.config/rcforge/config/path.conf`
+- Path configuration now stored in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/config/path.conf`
 - Automatically builds PATH from configured directories
 
 ### API Key Management
 - New API key management system
-- Securely store API keys in `~/.config/rcforge/config/api-keys.conf`
+- Securely store API keys in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/config/api-keys.conf`
 - Use the `rc apikey` command to manage API keys
 
 ## User Override System
@@ -142,14 +142,14 @@ Example: `050_global_common_path.sh` - Script with sequence 050, applies globall
 A key feature of rcForge is the user override system:
 
 1. **RC Scripts**: User-created scripts take precedence in the loading sequence
-2. **Utility Scripts**: User utilities in `~/.local/share/rcforge/utils/` override system utilities with the same name
+2. **Utility Scripts**: User utilities in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/` override system utilities with the same name
 3. **No System Installation**: Everything is contained within the user's home directory
 
 ### How User Overrides Work
 
 To override a system utility:
-1. Identify the system utility you want to customize (e.g., `~/.local/share/rcforge/system/utils/diagram.sh`)
-2. Create a file with the same name in the user utils directory: `~/.local/share/rcforge/utils/diagram.sh`
+1. Identify the system utility you want to customize (e.g., `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/utils/diagram.sh`)
+2. Create a file with the same name in the user utils directory: `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/diagram.sh`
 3. Your version will now be used instead of the system version
 
 ## The RC Command Framework
@@ -175,7 +175,7 @@ All utilities support these standard subcommands:
 rcForge v0.5.0 uses a user-level installation approach:
 
 1. **XDG-Compliant Installation**: Files are placed in standard XDG directories
-2. **Backup**: Before upgrades, creates a timestamped backup in `~/.local/share/rcforge/backups/`
+2. **Backup**: Before upgrades, creates a timestamped backup in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/backups/`
 3. **User Files**: Preserves all user-created RC scripts and utilities during upgrades
 4. **Automated Migration**: Automatically migrates from pre-0.5.0 directory structure
 
@@ -190,5 +190,5 @@ curl -fsSL https://raw.githubusercontent.com/mhasse1/rcforge/main/install.sh | b
 1. Follow the naming convention for RC scripts
 2. Use the standard utility template for new utilities
 3. Implement both `--help` and `--summary` options
-4. Place user utilities in `~/.local/share/rcforge/utils/`
+4. Place user utilities in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/utils/`
 5. Store API keys using the `rc apikey` utility instead of hardcoding them
