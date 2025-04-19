@@ -37,10 +37,11 @@ rcForge helps users transform shell configuration chaos into a robust, organized
 - System adapts to user's active shell environment
 
 ### Directory Structure (XDG-Compliant)
-- **Configuration files**: Located in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
-  - Contains `rc-scripts/` and `config/` directories
-- **Program data files**: Located in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
-  - Contains `system/`, `backups/`, `utils/`, `rcforge.sh`, and other program data
+
+  - **Configuration files**: Located in `${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/`
+    - Contains `rc-scripts/` and `config/` directories
+  - **Program data files**: Located in `${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/`
+    - Contains `system/`, `backups/`, `utils/`, `rcforge.sh`, and other program data
 
 ## 4. AI-Specific Development Protocols
 
