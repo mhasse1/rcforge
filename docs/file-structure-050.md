@@ -30,7 +30,7 @@ Key components:
 ```
 ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/
 ├── config/                         # User configuration files
-│   ├── api_keys.conf               # API keys configuration
+│   ├── api-keys.conf               # API keys configuration
 │   ├── path.conf                   # PATH configuration
 │   └── checksums/                  # Configuration file checksums
 └── rc-scripts/                     # User shell configuration scripts
@@ -75,7 +75,7 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
 | System Libraries       | Shared functions and utilities               | `~/.local/share/rcforge/system/lib/`  |
 | System Core Scripts    | Core functionality for the rcForge system    | `~/.local/share/rcforge/system/core/` |
 | System Utilities       | Built-in tools accessible via `rc` command   | `~/.local/share/rcforge/system/utils/`|
-| API Keys Configuration | Store API keys for external services         | `~/.config/rcforge/config/api_keys.conf` |
+| API Keys Configuration | Store API keys for external services         | `~/.config/rcforge/config/api-keys.conf` |
 | PATH Configuration     | Configure environment PATH                   | `~/.config/rcforge/config/path.conf`  |
 
 ### User Components
@@ -106,7 +106,7 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
 | File                                      | Purpose                                        |
 |-------------------------------------------|-------------------------------------------------|
 | `~/.config/rcforge/config/path.conf`      | Configure PATH environment variable              |
-| `~/.config/rcforge/config/api_keys.conf`  | Store API keys for external services            |
+| `~/.config/rcforge/config/api-keys.conf`  | Store API keys for external services            |
 | `~/.config/rcforge/rc-scripts/`           | User shell configuration scripts directory       |
 
 ## RC Script Naming Convention
@@ -137,7 +137,7 @@ Example: `050_global_common_path.sh` - Script with sequence 050, applies globall
 
 ### API Key Management
 - New API key management system
-- Securely store API keys in `~/.config/rcforge/config/api_keys.conf`
+- Securely store API keys in `~/.config/rcforge/config/api-keys.conf`
 - Use the `rc apikey` command to manage API keys
 
 ## User Override System

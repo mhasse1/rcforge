@@ -22,7 +22,7 @@ set -o pipefail
 [ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
 readonly UTILITY_NAME="apikey"
-readonly API_KEY_FILE="${HOME}/.local/rcforge/config/api_keys.conf"
+readonly API_KEY_FILE="${HOME}/.local/rcforge/config/api-keys.conf"
 
 # ============================================================================
 # Function: ShowHelp

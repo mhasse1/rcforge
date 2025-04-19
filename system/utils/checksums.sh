@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-checksums.sh - Verify checksums of standard shell RC files
+# checksums.sh - Verify checksums of standard shell RC files
 # Author: Mark Hasse / rcForge Team (AI Refactored)
 # Date: 2025-04-16 # Updated Date
 # Version: 0.4.2 # Core Version

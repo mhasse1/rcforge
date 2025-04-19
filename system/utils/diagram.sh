@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# diag.sh - Visualize rcForge configuration loading order
+# diagram.sh - Visualize rcForge configuration loading order
 # Author: rcForge Team
 # Date: 2025-04-08 # Updated for full refactor
 # Version: 0.4.1

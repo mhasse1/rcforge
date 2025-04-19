@@ -1,5 +1,5 @@
 # v0.5.0pre1 File Manifest
-# File version: 0.5.0pre1-3
+# File version: 0.5.0pre1-4
 
 # ----------------------------------------------------------------------------
 # XDG BASE DIRECTORY SUPPORT
@@ -56,16 +56,17 @@ system/lib/utility-functions.sh                 system/lib/utility-functions.sh
 system/lib/set-rcforge-environment.sh           system/lib/set-rcforge-environment.sh
 
 # System Utilities (installed to XDG_DATA_HOME)
-system/utils/check-checksums.sh                 system/utils/check-checksums.sh
+system/utils/checksums.sh                       system/utils/checksums.sh
 system/utils/chkseq.sh                          system/utils/chkseq.sh
 system/utils/concat-files.sh                    system/utils/concat-files.sh
-system/utils/diag.sh                            system/utils/diag.sh
+system/utils/diagram.sh                         system/utils/diagram.sh
 system/utils/export.sh                          system/utils/export.sh
-system/utils/apikey-utility.sh                  system/utils/apikey.sh
+system/utils/apikey.sh                          system/utils/apikey.sh
 
 # RC Scripts example files (installed to XDG_CONFIG_HOME)
 rc-scripts/README.md                            rc-scripts/README.md
 
 # Configuration templates (installed to XDG_CONFIG_HOME)
 config/path.conf.template                       config/path.conf
-config/api_keys.conf.template                   config/api_keys.conf# docs/
+config/api-keys.conf.template                   config/api-keys.conf
+
