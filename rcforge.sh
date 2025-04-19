@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # rcforge.sh - Universal Shell Configuration Loader
-# Author: Mark Hasse / rcForge Team (AI Refactored)
+# Author: Mark Hasse
 # Version: 0.5.0pre1
 # Category: core
 # Description: Main loader script for rcForge shell configuration system.
