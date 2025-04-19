@@ -459,7 +459,7 @@ ParseArguments() {
 
     # Set defaults using sourced functions
     local default_host
-    default_host=$(DetectCurrentHostname)
+    default_host=$(DetectHostname)
     options_ref["target_hostname"]="${default_host}"
     local default_shell
     default_shell=$(DetectShell)

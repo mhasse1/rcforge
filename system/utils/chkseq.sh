@@ -479,7 +479,7 @@ CheckAllSeqConflicts() {
 
     # Always add current hostname to the list to check if not already present
     local current_hostname
-    current_hostname=$(DetectCurrentHostname) # Use sourced function
+    current_hostname=$(DetectHostname) # Use sourced function
     # Use loop to check existence instead of complex regex
     local found_current=false
     for hostname in "${hostnames[@]}"; do
@@ -545,7 +545,7 @@ ParseArguments() {
 
     # Set defaults using sourced functions
     local default_host
-    default_host=$(DetectCurrentHostname)
+    default_host=$(DetectHostname)
     options_ref["target_hostname"]="${default_host}"
     local default_shell
     default_shell=$(DetectShell)

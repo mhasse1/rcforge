@@ -14,7 +14,7 @@
 # --- Include Guard ---
 # Prevents multiple sourcing
 if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
-    return 0
+	return 0
 fi
 _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true # Not Exported
 # --- End Include Guard ---
@@ -22,17 +22,16 @@ _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true # Not Exported
 # Reset rcForge environment
 source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set_rcforge_environment.sh"
 
-
 # --- Source Shell Colors Library ---
 # Needs to be sourced before messaging functions are defined.
 # Assumes shell-colors.sh is in the same directory or found via RCFORGE_LIB.
 if [[ -f "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh" ]]; then
-    # shellcheck disable=SC1090
-    source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
+	# shellcheck disable=SC1090
+	source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/shell-colors.sh"
 else
-    # Critical dependency missing, print basic error and exit sourcing.
-    echo -e "\033[0;31mERROR:\033[0m Cannot source required library: shell-colors.sh. Utility functions unavailable." >&2
-    return 1 # Stop sourcing this file
+	# Critical dependency missing, print basic error and exit sourcing.
+	echo -e "\033[0;31mERROR:\033[0m Cannot source required library: shell-colors.sh. Utility functions unavailable." >&2
+	return 1 # Stop sourcing this file
 fi
 # --- End Source Shell Colors ---
 
@@ -52,23 +51,23 @@ fi
 # ============================================================================
 
 # ============================================================================
-# Function: DetectCurrentHostname
+# Function: DetectHostname
 # Description: Detects the short hostname of the current machine.
-# Usage: local host; host=$(DetectCurrentHostname)
+# Usage: local host; host=$(DetectHostname)
 # Arguments: None
 # Returns: Echoes the short hostname string (e.g., 'my-laptop').
 # ============================================================================
-DetectCurrentHostname() {
-    # Prefer hostname command with short flag if available
-    if CommandExists hostname; then
-        hostname -s 2>/dev/null || hostname | cut -d. -f1
-    # Fallback to environment variable
-    elif [[ -n "${HOSTNAME:-}" ]]; then
-        echo "$HOSTNAME" | cut -d. -f1
-    # Final fallback to uname
-    else
-        uname -n | cut -d. -f1
-    fi
+DetectHostname() {
+	# Prefer hostname command with short flag if available
+	if CommandExists hostname; then
+		hostname -s 2>/dev/null || hostname | cut -d. -f1
+	# Fallback to environment variable
+	elif [[ -n "${HOSTNAME:-}" ]]; then
+		echo "$HOSTNAME" | cut -d. -f1
+	# Final fallback to uname
+	else
+		uname -n | cut -d. -f1
+	fi
 }
 
 # ============================================================================
@@ -88,37 +87,37 @@ DetectCurrentHostname() {
 # Environment: Reads RCFORGE_ALLOW_ROOT. Uses SUDO_USER/USER for messages.
 # ============================================================================
 CheckRoot() {
-    local skip_interactive=false
-    if [[ "${1:-}" == "--skip-interactive" ]]; then
-        skip_interactive=true
-    fi
+	local skip_interactive=false
+	if [[ "${1:-}" == "--skip-interactive" ]]; then
+		skip_interactive=true
+	fi
 
-    # Check if current effective user ID is 0 (root)
-    if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-        # Check for explicit root override
-        if [[ -n "${RCFORGE_ALLOW_ROOT:-}" ]]; then
-            # Still show a warning even if overridden, unless skip_interactive is true
-            if [[ "$skip_interactive" == "false" ]]; then
-                 WarningMessage "Proceeding with root execution due to RCFORGE_ALLOW_ROOT override."
-                 WarningMessage "THIS IS STRONGLY DISCOURAGED FOR SECURITY REASONS."
-            fi
-            return 0 # Allow execution
-        fi
+	# Check if current effective user ID is 0 (root)
+	if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+		# Check for explicit root override
+		if [[ -n "${RCFORGE_ALLOW_ROOT:-}" ]]; then
+			# Still show a warning even if overridden, unless skip_interactive is true
+			if [[ "$skip_interactive" == "false" ]]; then
+				WarningMessage "Proceeding with root execution due to RCFORGE_ALLOW_ROOT override."
+				WarningMessage "THIS IS STRONGLY DISCOURAGED FOR SECURITY REASONS."
+			fi
+			return 0 # Allow execution
+		fi
 
-        # No override, prevent root execution
-        if [[ "$skip_interactive" == "false" ]]; then
-            local non_root_user="${SUDO_USER:-$USER}" # Determine original user if possible
-            TextBlock "SECURITY WARNING: Root Execution Prevented" "$RED" "${BG_WHITE:-$BG_RED}"
-            ErrorMessage "Shell configuration tools should NOT be run as root or with sudo."
-            WarningMessage "Running as root can cause permission errors and security risks."
-            InfoMessage "Recommended Action: Run this script as a regular user (e.g., '${non_root_user}')."
-            InfoMessage "(To override this check, set export RCFORGE_ALLOW_ROOT=1)"
-        fi
-        return 1 # Prevent execution
-    fi
+		# No override, prevent root execution
+		if [[ "$skip_interactive" == "false" ]]; then
+			local non_root_user="${SUDO_USER:-$USER}" # Determine original user if possible
+			TextBlock "SECURITY WARNING: Root Execution Prevented" "$RED" "${BG_WHITE:-$BG_RED}"
+			ErrorMessage "Shell configuration tools should NOT be run as root or with sudo."
+			WarningMessage "Running as root can cause permission errors and security risks."
+			InfoMessage "Recommended Action: Run this script as a regular user (e.g., '${non_root_user}')."
+			InfoMessage "(To override this check, set export RCFORGE_ALLOW_ROOT=1)"
+		fi
+		return 1 # Prevent execution
+	fi
 
-    # Not root, allow execution
-    return 0
+	# Not root, allow execution
+	return 0
 }
 
 # ============================================================================
@@ -127,95 +126,41 @@ CheckRoot() {
 #              Sorts the found files numerically based on sequence prefix.
 # Usage: local -a files; mapfile -t files < <(FindRcScripts "bash" "myhost")
 #        local files_str; files_str=$(FindRcScripts "zsh")
-# Arguments:
-#   $1 (required) - Target shell ('bash' or 'zsh').
-#   $2 (optional) - Target hostname. Defaults to current hostname.
+# Arguments: None
 # Returns: Echoes a newline-separated list of matching script paths, sorted numerically.
 #          Returns status 0 on success (even if no files found), 1 on error (e.g., dir missing).
 # ============================================================================
 FindRcScripts() {
-    local shell="${1:?Shell type required for FindRcScripts}" # Exit if not provided
-    local hostname="${2:-}"
+	local file=""
+	local pipeline_status=0
+	local -a config_files=()
 
-    # Updated for XDG structure in v0.5.0+
-    local scripts_dir=""
-    if [[ -n "${RCFORGE_SCRIPTS:-}" ]]; then
-        scripts_dir="${RCFORGE_SCRIPTS}"
-    elif [[ -n "${RCFORGE_CONFIG_ROOT:-}" ]]; then
-        scripts_dir="${RCFORGE_CONFIG_ROOT}/rc-scripts"
-    else
-        local config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
-        scripts_dir="$config_home/.config/rcforge/rc-scripts"
-    fi
+	local hostname=$(DetectHostname)
+	local shell=$(DetectShell)
+	local pattern="[0-9]{3}_(global|$(hostname))_(common|zsh)_.*\.sh"
 
-    local -a patterns
-    local pattern=""
-    local find_cmd_output="" # Variable to store find output
-    local find_status=0      # Variable to store find status
-    local -a config_files=() # Array to hold results
+	# Check if the scripts directory exists
+	if [[ ! -d "$RCFORGE_SCRIPTS" ]]; then
+		WarningMessage "rc-scripts directory not found: $RCFORGE_SCRIPTS"
+		return 1
+	fi
 
-    # Default to current hostname if not provided
-    if [[ -z "$hostname" ]]; then
-        hostname=$(DetectCurrentHostname)
-    fi
+	while IFS= read -r file; do
+		config_files+=("$file")
+	done < <(find "$RCFORGE_SCRIPTS" -type f -perm -u+x -name '*sh' | grep -E "$regex_pattern" | sort -n)
+	pipeline_status=$?
 
-    # Define filename patterns to search for
-    patterns=(
-        "${scripts_dir}/[0-9][0-9][0-9]_global_common_*.sh"       # Global common
-        "${scripts_dir}/[0-9][0-9][0-9]_global_${shell}_*.sh"      # Global shell-specific
-        "${scripts_dir}/[0-9][0-9][0-9]_${hostname}_common_*.sh"   # Hostname common
-        "${scripts_dir}/[0-9][0-9][0-9]_${hostname}_${shell}_*.sh"  # Hostname shell-specific
-    )
+	if [[ $pipeline_status -ne 0 ]]; then
+		WarningMessage "Find command failed searching rc-scripts (status: $find_status)."
+		return $pipeline_status
+	elif [[ ${#config_files_to_load[@]} -eq 0 ]]; then
+		echo "No rc files found."
+		return 1
+	fi
 
-    # Check if the scripts directory exists
-    if [[ ! -d "$scripts_dir" ]]; then
-        WarningMessage "rc-scripts directory not found: $scripts_dir"
-        return 1 # Indicate error
-    fi
-
-    # Build the find command arguments safely to handle potential spaces/special chars
-    local -a find_args=("$scripts_dir" -maxdepth 1 \( -false ) # Start with a false condition for OR grouping
-    for pattern in "${patterns[@]}"; do
-        local filename_pattern="${pattern##*/}" # Extract just the filename pattern
-        find_args+=(-o -name "$filename_pattern")
-    done
-    find_args+=(\) -type f -print) # End OR grouping and specify file type
-
-    # Execute find, capture output and status
-    find_cmd_output=$(find "${find_args[@]}" 2>/dev/null)
-    find_status=$?
-
-    if [[ $find_status -ne 0 ]]; then
-        WarningMessage "Find command failed searching rc-scripts (status: $find_status)."
-        # DebugMessage "Find arguments were: ${find_args[*]}" # Optional debug
-        return 1 # Indicate error
-    fi
-
-    # Populate the config_files array using the appropriate shell method
-    if [[ -n "$find_cmd_output" ]]; then # Only process if find actually found something
-        if IsZsh; then
-            config_files=( ${(f)find_cmd_output} ) # Zsh: Use field splitting on newlines
-        elif IsBash; then
-            mapfile -t config_files <<< "$find_cmd_output" # Bash: Use mapfile
-        else
-            # Basic fallback (may break with spaces/newlines in names)
-            config_files=( $(echo "$find_cmd_output") )
-        fi
-    else
-        config_files=() # Ensure array is empty if find returned nothing
-    fi
-
-    # Check if any files were found
-    if [[ ${#config_files[@]} -eq 0 ]]; then
-        return 0 # Not an error if no files match
-    fi
-
-    # Sort the found files numerically and print
-    printf '%s\n' "${config_files[@]}" | sort -n
-
-    return 0 # Success
+	# Sort the found files numerically and print
+	echo "${config_files[@]}"
 }
-
 
 # ============================================================================
 # Function: IsExecutedDirectly
@@ -226,17 +171,17 @@ FindRcScripts() {
 # Note: Relies on shell-specific variables/behavior; may not be perfect in all shells.
 # ============================================================================
 IsExecutedDirectly() {
-    if IsZsh; then
-        # Zsh: Check zsh_eval_context for 'file' (indicates sourcing)
-        [[ "$ZSH_EVAL_CONTEXT" != *:file:* ]] && return 0 || return 1
-    elif IsBash; then
-        # Bash: Compare $0 to the *first* element in BASH_SOURCE array.
-        # If they are the same, it's likely being executed directly.
-        [[ "${BASH_SOURCE[0]}" == "${0}" ]] && return 0 || return 1
-    else
-        # Fallback heuristic for other shells (less reliable)
-        [[ "$0" == *"$(basename "$0")"* ]] && return 0 || return 1
-    fi
+	if IsZsh; then
+		# Zsh: Check zsh_eval_context for 'file' (indicates sourcing)
+		[[ "$ZSH_EVAL_CONTEXT" != *:file:* ]] && return 0 || return 1
+	elif IsBash; then
+		# Bash: Compare $0 to the *first* element in BASH_SOURCE array.
+		# If they are the same, it's likely being executed directly.
+		[[ "${BASH_SOURCE[0]}" == "${0}" ]] && return 0 || return 1
+	else
+		# Fallback heuristic for other shells (less reliable)
+		[[ "$0" == *"$(basename "$0")"* ]] && return 0 || return 1
+	fi
 }
 
 # ============================================================================
@@ -247,14 +192,14 @@ IsExecutedDirectly() {
 # Returns: Echoes the shell name ('bash', 'zsh', or basename of $SHELL) or 'unknown'.
 # ============================================================================
 DetectShell() {
-    if [[ -n "${ZSH_VERSION:-}" ]]; then
-        echo "zsh"
-    elif [[ -n "${BASH_VERSION:-}" ]]; then
-        echo "bash"
-    else
-        # Fallback using the SHELL variable
-        basename "${SHELL:-unknown}"
-    fi
+	if [[ -n "${ZSH_VERSION:-}" ]]; then
+		echo "zsh"
+	elif [[ -n "${BASH_VERSION:-}" ]]; then
+		echo "bash"
+	else
+		# Fallback using the SHELL variable
+		basename "${SHELL:-unknown}"
+	fi
 }
 
 # ============================================================================
@@ -265,7 +210,7 @@ DetectShell() {
 # Returns: 0 (true) if Zsh, 1 (false) otherwise.
 # ============================================================================
 IsZsh() {
-    [[ "$(DetectShell)" == "zsh" ]]
+	[[ "$(DetectShell)" == "zsh" ]]
 }
 
 # ============================================================================
@@ -276,7 +221,7 @@ IsZsh() {
 # Returns: 0 (true) if Bash, 1 (false) otherwise.
 # ============================================================================
 IsBash() {
-    [[ "$(DetectShell)" == "bash" ]]
+	[[ "$(DetectShell)" == "bash" ]]
 }
 
 # ============================================================================
@@ -287,14 +232,14 @@ IsBash() {
 # Returns: Echoes 'linux', 'macos', 'windows', or 'unknown'.
 # ============================================================================
 DetectOS() {
-    local os_name="unknown"
-    # Use case statement for clarity
-    case "$(uname -s)" in
-        Linux*)     os_name="linux" ;;
-        Darwin*)    os_name="macos" ;;
-        CYGWIN*|MINGW*|MSYS*) os_name="windows" ;;
-    esac
-    echo "$os_name"
+	local os_name="unknown"
+	# Use case statement for clarity
+	case "$(uname -s)" in
+		Linux*) os_name="linux" ;;
+		Darwin*) os_name="macos" ;;
+		CYGWIN* | MINGW* | MSYS*) os_name="windows" ;;
+	esac
+	echo "$os_name"
 }
 
 # ============================================================================
@@ -305,7 +250,7 @@ DetectOS() {
 # Returns: 0 (true) if macOS, 1 (false) otherwise.
 # ============================================================================
 IsMacOS() {
-    [[ "$(DetectOS)" == "macos" ]]
+	[[ "$(DetectOS)" == "macos" ]]
 }
 
 # ============================================================================
@@ -316,7 +261,7 @@ IsMacOS() {
 # Returns: 0 (true) if Linux, 1 (false) otherwise.
 # ============================================================================
 IsLinux() {
-    [[ "$(DetectOS)" == "linux" ]]
+	[[ "$(DetectOS)" == "linux" ]]
 }
 
 # ============================================================================
@@ -328,8 +273,8 @@ IsLinux() {
 # Note: Needs refinement for more specific BSD checks if required.
 # ============================================================================
 IsBSD() {
-    # Currently just checks for macOS as a common BSD-like system for 'ls' flags etc.
-    IsMacOS
+	# Currently just checks for macOS as a common BSD-like system for 'ls' flags etc.
+	IsMacOS
 }
 
 # ============================================================================
@@ -341,7 +286,7 @@ IsBSD() {
 # Returns: 0 (true) if the command exists, 1 (false) otherwise.
 # ============================================================================
 CommandExists() {
-    command -v "$1" >/dev/null 2>&1
+	command -v "$1" >/dev/null 2>&1
 }
 
 # ============================================================================
@@ -360,47 +305,47 @@ CommandExists() {
 # Returns: 0. Modifies the PATH environment variable.
 # ============================================================================
 AddToPath() {
-    local dir_to_add="$1"
-    local position="${2:-prepend}" # Default to prepend
-    local expanded_dir=""
+	local dir_to_add="$1"
+	local position="${2:-prepend}" # Default to prepend
+	local expanded_dir=""
 
-    # Handle ~ expansion manually for safety
-    if [[ "$dir_to_add" == "~"* ]]; then
-        expanded_dir="${HOME}/${dir_to_add#\~}"
-    else
-        expanded_dir="$dir_to_add"
-    fi
+	# Handle ~ expansion manually for safety
+	if [[ "$dir_to_add" == "~"* ]]; then
+		expanded_dir="${HOME}/${dir_to_add#\~}"
+	else
+		expanded_dir="$dir_to_add"
+	fi
 
-    # Check if the directory actually exists
-    if [[ ! -d "$expanded_dir" ]]; then
-        # DebugMessage "Directory not found, skipping PATH modification: $expanded_dir" # Optional debug
-        return 0
-    fi
+	# Check if the directory actually exists
+	if [[ ! -d "$expanded_dir" ]]; then
+		# DebugMessage "Directory not found, skipping PATH modification: $expanded_dir" # Optional debug
+		return 0
+	fi
 
-    # Check if the directory is already effectively in PATH (handles trailing slashes)
-    case ":${PATH}:" in
-        *":${expanded_dir}:"*)
-            # DebugMessage "Directory already in PATH: $expanded_dir" # Optional debug
-            return 0
-            ;;
-        *":${expanded_dir}/:"*) # Check with trailing slash as well
-            # DebugMessage "Directory already in PATH (with slash): $expanded_dir" # Optional debug
-            return 0
-            ;;
-    esac
+	# Check if the directory is already effectively in PATH (handles trailing slashes)
+	case ":${PATH}:" in
+		*":${expanded_dir}:"*)
+			# DebugMessage "Directory already in PATH: $expanded_dir" # Optional debug
+			return 0
+			;;
+		*":${expanded_dir}/:"*) # Check with trailing slash as well
+			# DebugMessage "Directory already in PATH (with slash): $expanded_dir" # Optional debug
+			return 0
+			;;
+	esac
 
-    # Add to PATH based on position
-    if [[ "$position" == "append" ]]; then
-        # Append, handle potentially empty initial PATH
-        export PATH="${PATH:+$PATH:}$expanded_dir"
-        # DebugMessage "Appended to PATH: $expanded_dir" # Optional debug
-    else
-        # Prepend, handle potentially empty initial PATH
-        export PATH="$expanded_dir${PATH:+:$PATH}"
-        # DebugMessage "Prepended to PATH: $expanded_dir" # Optional debug
-    fi
+	# Add to PATH based on position
+	if [[ "$position" == "append" ]]; then
+		# Append, handle potentially empty initial PATH
+		export PATH="${PATH:+$PATH:}$expanded_dir"
+		# DebugMessage "Appended to PATH: $expanded_dir" # Optional debug
+	else
+		# Prepend, handle potentially empty initial PATH
+		export PATH="$expanded_dir${PATH:+:$PATH}"
+		# DebugMessage "Prepended to PATH: $expanded_dir" # Optional debug
+	fi
 
-    return 0
+	return 0
 }
 
 # ============================================================================
@@ -412,8 +357,8 @@ AddToPath() {
 # Returns: 0. Modifies the PATH environment variable via AddToPath.
 # ============================================================================
 AppendToPath() {
-    # Call AddToPath specifying the 'append' position
-    AddToPath "$1" "append"
+	# Call AddToPath specifying the 'append' position
+	AddToPath "$1" "append"
 }
 
 # ============================================================================
@@ -424,8 +369,8 @@ AppendToPath() {
 # Returns: None. Prints PATH entries to stdout.
 # ============================================================================
 ShowPath() {
-    # Use printf and parameter expansion for safe handling of PATH entries
-    printf '%s\n' "${PATH//:/$'\n'}"
+	# Use printf and parameter expansion for safe handling of PATH entries
+	printf '%s\n' "${PATH//:/$'\n'}"
 }
 
 # ============================================================================
@@ -441,20 +386,20 @@ ShowPath() {
 # Returns: None. Prints information to stdout.
 # ============================================================================
 ShowVersionInfo() {
-    # Determine script name more reliably
-    local script_name=""
-    if [[ -n "${1:-}" ]]; then
-        script_name=$(basename "$1")
-    elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
-        script_name=$(basename "${BASH_SOURCE[0]}") # Use BASH_SOURCE if available
-    else
-        script_name=$(basename "$0") # Fallback to $0
-    fi
+	# Determine script name more reliably
+	local script_name=""
+	if [[ -n "${1:-}" ]]; then
+		script_name=$(basename "$1")
+	elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+		script_name=$(basename "${BASH_SOURCE[0]}") # Use BASH_SOURCE if available
+	else
+		script_name=$(basename "$0") # Fallback to $0
+	fi
 
-    # Use InfoMessage (sourced from shell-colors.sh) for consistent formatting
-    InfoMessage "${script_name} (${gc_app_name} Utility) v${gc_version}"
-    InfoMessage "${gc_copyright}"
-    InfoMessage "${gc_license}"
+	# Use InfoMessage (sourced from shell-colors.sh) for consistent formatting
+	InfoMessage "${script_name} (${gc_app_name} Utility) v${gc_version}"
+	InfoMessage "${gc_copyright}"
+	InfoMessage "${gc_license}"
 }
 
 # ============================================================================
@@ -468,37 +413,37 @@ ShowVersionInfo() {
 # Returns: None. Prints help information to stdout.
 # ============================================================================
 ShowStandardHelp() {
-    local script_specific_options="${1:-}"
-    local calling_script_path="${2:-}"
-    local script_name=""
+	local script_specific_options="${1:-}"
+	local calling_script_path="${2:-}"
+	local script_name=""
 
-    # Determine script name
-    if [[ -n "$calling_script_path" ]]; then
-        script_name=$(basename "$calling_script_path")
-    elif [[ -n "${BASH_SOURCE[1]:-}" ]]; then
-         # If called from another function in the script, BASH_SOURCE[1] might be the original script
-        script_name=$(basename "${BASH_SOURCE[1]}")
-    elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
-        script_name=$(basename "${BASH_SOURCE[0]}")
-    else
-        script_name=$(basename "$0") # Fallback
-    fi
+	# Determine script name
+	if [[ -n "$calling_script_path" ]]; then
+		script_name=$(basename "$calling_script_path")
+	elif [[ -n "${BASH_SOURCE[1]:-}" ]]; then
+		# If called from another function in the script, BASH_SOURCE[1] might be the original script
+		script_name=$(basename "${BASH_SOURCE[1]}")
+	elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+		script_name=$(basename "${BASH_SOURCE[0]}")
+	else
+		script_name=$(basename "$0") # Fallback
+	fi
 
-    # Use InfoMessage for consistency
-    InfoMessage "Usage: ${script_name} [OPTIONS] [ARGUMENTS...]"
-    echo "" # Blank line for readability
-    InfoMessage "Standard Options:"
-    printf "  %-18s %s\n" "--help, -h" "Show this help message and exit."
-    printf "  %-18s %s\n" "--version" "Show version information and exit."
-    printf "  %-18s %s\n" "--summary" "Show a one-line summary (for 'rc list')."
+	# Use InfoMessage for consistency
+	InfoMessage "Usage: ${script_name} [OPTIONS] [ARGUMENTS...]"
+	echo "" # Blank line for readability
+	InfoMessage "Standard Options:"
+	printf "  %-18s %s\n" "--help, -h" "Show this help message and exit."
+	printf "  %-18s %s\n" "--version" "Show version information and exit."
+	printf "  %-18s %s\n" "--summary" "Show a one-line summary (for 'rc list')."
 
-    if [[ -n "$script_specific_options" ]]; then
-        echo "" # Blank line before specific options
-        InfoMessage "Script-Specific Options:"
-        # Print the script-specific options passed in $1
-        printf '%s\n' "${script_specific_options}"
-    fi
-    echo "" # Final blank line
+	if [[ -n "$script_specific_options" ]]; then
+		echo "" # Blank line before specific options
+		InfoMessage "Script-Specific Options:"
+		# Print the script-specific options passed in $1
+		printf '%s\n' "${script_specific_options}"
+	fi
+	echo "" # Final blank line
 }
 
 # ============================================================================
@@ -516,45 +461,45 @@ ShowStandardHelp() {
 #          Returns status 0 on success, 1 if no summary/description found or error.
 # ============================================================================
 ExtractSummary() {
-    local script_file="${1:-}"
-    local summary=""
+	local script_file="${1:-}"
+	local summary=""
 
-    # Validate input file
-    if [[ -z "$script_file" ]]; then
-        WarningMessage "No script path provided to ExtractSummary."
-        echo "(Error: No script path provided)"
-        return 1
-    elif [[ ! -f "$script_file" ]]; then
-        WarningMessage "Script file not found for summary: $script_file"
-        echo "(Error: Script file not found)"
-        return 1
-    elif [[ ! -r "$script_file" ]]; then
-        WarningMessage "Script file not readable for summary: $script_file"
-        echo "(Error: Script file not readable)"
-        return 1
-    fi
+	# Validate input file
+	if [[ -z "$script_file" ]]; then
+		WarningMessage "No script path provided to ExtractSummary."
+		echo "(Error: No script path provided)"
+		return 1
+	elif [[ ! -f "$script_file" ]]; then
+		WarningMessage "Script file not found for summary: $script_file"
+		echo "(Error: Script file not found)"
+		return 1
+	elif [[ ! -r "$script_file" ]]; then
+		WarningMessage "Script file not readable for summary: $script_file"
+		echo "(Error: Script file not readable)"
+		return 1
+	fi
 
-    # Try to extract '# RC Summary:' line using grep, suppressing "not found" error
-    summary=$(grep -m 1 '^# RC Summary:' "$script_file" || true)
-    if [[ -n "$summary" ]]; then
-        # Strip prefix and leading whitespace
-        summary=$(echo "$summary" | sed -e 's/^# RC Summary: //' -e 's/^[[:space:]]*//')
-        echo "$summary"
-        return 0
-    fi
+	# Try to extract '# RC Summary:' line using grep, suppressing "not found" error
+	summary=$(grep -m 1 '^# RC Summary:' "$script_file" || true)
+	if [[ -n "$summary" ]]; then
+		# Strip prefix and leading whitespace
+		summary=$(echo "$summary" | sed -e 's/^# RC Summary: //' -e 's/^[[:space:]]*//')
+		echo "$summary"
+		return 0
+	fi
 
-    # Fallback: Try to extract '# Description:' line
-    summary=$(grep -m 1 '^# Description:' "$script_file" || true)
-    if [[ -n "$summary" ]]; then
-        # Strip prefix and leading whitespace
-        summary=$(echo "$summary" | sed -e 's/^# Description: //' -e 's/^[[:space:]]*//')
-        echo "$summary"
-        return 0
-    fi
+	# Fallback: Try to extract '# Description:' line
+	summary=$(grep -m 1 '^# Description:' "$script_file" || true)
+	if [[ -n "$summary" ]]; then
+		# Strip prefix and leading whitespace
+		summary=$(echo "$summary" | sed -e 's/^# Description: //' -e 's/^[[:space:]]*//')
+		echo "$summary"
+		return 0
+	fi
 
-    # If neither found, return default message and error status
-    echo "No summary available for $(basename "${script_file}")"
-    return 1
+	# If neither found, return default message and error status
+	echo "No summary available for $(basename "${script_file}")"
+	return 1
 }
 
 # ============================================================================
@@ -574,30 +519,30 @@ ExtractSummary() {
 #          Returns status 0 if arg is not handled, exits otherwise.
 # ============================================================================
 _process_common_args() {
-    local arg="${1:-}"
-    local specific_help_text="${2:-}" # Optional specific help text from caller
-    # Determine calling script path more reliably if possible
-    local calling_script_path="${BASH_SOURCE[1]:-$0}" # BASH_SOURCE[1] is the caller
+	local arg="${1:-}"
+	local specific_help_text="${2:-}" # Optional specific help text from caller
+	# Determine calling script path more reliably if possible
+	local calling_script_path="${BASH_SOURCE[1]:-$0}" # BASH_SOURCE[1] is the caller
 
-    case "$arg" in
-        --help | -h)
-            ShowStandardHelp "$specific_help_text" "$calling_script_path" # Use public function
-            exit 0
-            ;;
-        --version)
-            ShowVersionInfo "$calling_script_path" # Use public function
-            exit 0
-            ;;
-        --summary)
-            ExtractSummary "$calling_script_path" # Use public function
-            exit $? # Exit with status from ExtractSummary
-            ;;
-        *)
-            # Argument was not one of the common ones
-            echo "$arg" # Pass it back for further processing
-            return 0
-            ;;
-    esac
+	case "$arg" in
+		--help | -h)
+			ShowStandardHelp "$specific_help_text" "$calling_script_path" # Use public function
+			exit 0
+			;;
+		--version)
+			ShowVersionInfo "$calling_script_path" # Use public function
+			exit 0
+			;;
+		--summary)
+			ExtractSummary "$calling_script_path" # Use public function
+			exit $?                               # Exit with status from ExtractSummary
+			;;
+		*)
+			# Argument was not one of the common ones
+			echo "$arg" # Pass it back for further processing
+			return 0
+			;;
+	esac
 }
 
 # ============================================================================
@@ -609,21 +554,21 @@ _process_common_args() {
 # Returns: Echoes unhandled arguments, one per line. Exits if common args handled.
 # ============================================================================
 _process_arguments() {
-    local arg=""
-    local processed_arg=""
-    local specific_help="" # Caller could potentially set this
+	local arg=""
+	local processed_arg=""
+	local specific_help="" # Caller could potentially set this
 
-    for arg in "$@"; do
-        # Pass along remaining args potentially for specific help text in ShowStandardHelp
-        processed_arg=$(_process_common_args "$arg" "$specific_help")
-        # _process_common_args exits or returns the arg if not handled
+	for arg in "$@"; do
+		# Pass along remaining args potentially for specific help text in ShowStandardHelp
+		processed_arg=$(_process_common_args "$arg" "$specific_help")
+		# _process_common_args exits or returns the arg if not handled
 
-        # If arg was returned, it needs further script-specific processing
-        if [[ -n "$processed_arg" ]]; then
-            # For this example, just echo unhandled args. Real scripts would parse them.
-             printf '%s\n' "$processed_arg"
-        fi
-    done
+		# If arg was returned, it needs further script-specific processing
+		if [[ -n "$processed_arg" ]]; then
+			# For this example, just echo unhandled args. Real scripts would parse them.
+			printf '%s\n' "$processed_arg"
+		fi
+	done
 }
 
 # ============================================================================
@@ -648,125 +593,126 @@ _process_arguments() {
 #     -- "$@"
 # ============================================================================
 StandardParseArgs() {
-    local -n _options_ref="$1"; shift
+	local -n _options_ref="$1"
+	shift
 
-    # Ensure Bash 4.3+ for namerefs
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
-        ErrorMessage "Internal Error: StandardParseArgs requires Bash 4.3+ for namerefs."
-        return 1
-    fi
+	# Ensure Bash 4.3+ for namerefs
+	if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
+		ErrorMessage "Internal Error: StandardParseArgs requires Bash 4.3+ for namerefs."
+		return 1
+	fi
 
-    # Set default values first
-    local default_option=""
-    local option_name=""
-    local option_value=""
+	# Set default values first
+	local default_option=""
+	local option_name=""
+	local option_value=""
 
-    # Process default values (arguments before --)
-    while [[ $# -gt 0 && "$1" != "--" ]]; do
-        default_option="$1"
-        shift
+	# Process default values (arguments before --)
+	while [[ $# -gt 0 && "$1" != "--" ]]; do
+		default_option="$1"
+		shift
 
-        # Skip if not in --option=value format
-        if [[ ! "$default_option" =~ ^--([^=]+)=(.*) ]]; then
-            WarningMessage "Ignoring invalid default option format: $default_option"
-            continue
-        fi
+		# Skip if not in --option=value format
+		if [[ ! "$default_option" =~ ^--([^=]+)=(.*) ]]; then
+			WarningMessage "Ignoring invalid default option format: $default_option"
+			continue
+		fi
 
-        option_name="${BASH_REMATCH[1]}"
-        option_value="${BASH_REMATCH[2]}"
+		option_name="${BASH_REMATCH[1]}"
+		option_value="${BASH_REMATCH[2]}"
 
-        # Set default in the options array
-        _options_ref["$option_name"]="$option_value"
-    done
+		# Set default in the options array
+		_options_ref["$option_name"]="$option_value"
+	done
 
-    # Skip the -- separator
-    if [[ "$1" == "--" ]]; then shift; fi
+	# Skip the -- separator
+	if [[ "$1" == "--" ]]; then shift; fi
 
-    # Now parse actual command-line arguments
-    while [[ $# -gt 0 ]]; do
-        local arg="$1"
+	# Now parse actual command-line arguments
+	while [[ $# -gt 0 ]]; do
+		local arg="$1"
 
-        # Handle --option=value format
-        if [[ "$arg" =~ ^--([^=]+)=(.*) ]]; then
-            option_name="${BASH_REMATCH[1]}"
-            option_value="${BASH_REMATCH[2]}"
-            _options_ref["$option_name"]="$option_value"
+		# Handle --option=value format
+		if [[ "$arg" =~ ^--([^=]+)=(.*) ]]; then
+			option_name="${BASH_REMATCH[1]}"
+			option_value="${BASH_REMATCH[2]}"
+			_options_ref["$option_name"]="$option_value"
 
-        # Handle --option value format
-        elif [[ "$arg" =~ ^--(.*) ]]; then
-            option_name="${BASH_REMATCH[1]}"
+		# Handle --option value format
+		elif [[ "$arg" =~ ^--(.*) ]]; then
+			option_name="${BASH_REMATCH[1]}"
 
-            # Handle flags (--option with no value)
-            if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
-                _options_ref["$option_name"]="true"
-            # Handle options with values
-            elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
-                shift
-                _options_ref["$option_name"]="$1"
-            else
-                ErrorMessage "Option --$option_name requires a value"
-                return 1
-            fi
+			# Handle flags (--option with no value)
+			if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
+				_options_ref["$option_name"]="true"
+			# Handle options with values
+			elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+				shift
+				_options_ref["$option_name"]="$1"
+			else
+				ErrorMessage "Option --$option_name requires a value"
+				return 1
+			fi
 
-        # Handle -o (short options)
-        elif [[ "$arg" =~ ^-([a-zA-Z])$ ]]; then
-            local short_opt="${BASH_REMATCH[1]}"
+		# Handle -o (short options)
+		elif [[ "$arg" =~ ^-([a-zA-Z])$ ]]; then
+			local short_opt="${BASH_REMATCH[1]}"
 
-            # Find corresponding long option by checking option_map if it exists
-            if [[ -v "option_map[$short_opt]" ]]; then
-                option_name="${option_map[$short_opt]}"
+			# Find corresponding long option by checking option_map if it exists
+			if [[ -v "option_map[$short_opt]" ]]; then
+				option_name="${option_map[$short_opt]}"
 
-                # Handle flags
-                if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
-                    _options_ref["$option_name"]="true"
-                # Handle options with values
-                elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
-                    shift
-                    _options_ref["$option_name"]="$1"
-                else
-                    ErrorMessage "Option -$short_opt requires a value"
-                    return 1
-                fi
-            else
-                ErrorMessage "Unknown short option: -$short_opt"
-                return 1
-            fi
+				# Handle flags
+				if [[ -v "_options_ref[$option_name]" && "${_options_ref[$option_name]}" =~ ^(true|false)$ ]]; then
+					_options_ref["$option_name"]="true"
+				# Handle options with values
+				elif [[ $# -gt 1 && ! "$2" =~ ^- ]]; then
+					shift
+					_options_ref["$option_name"]="$1"
+				else
+					ErrorMessage "Option -$short_opt requires a value"
+					return 1
+				fi
+			else
+				ErrorMessage "Unknown short option: -$short_opt"
+				return 1
+			fi
 
-        # Handle special option --
-        elif [[ "$arg" == "--" ]]; then
-            # Stop processing options
-            shift
-            break
+		# Handle special option --
+		elif [[ "$arg" == "--" ]]; then
+			# Stop processing options
+			shift
+			break
 
-        # Handle unknown options
-        elif [[ "$arg" =~ ^- ]]; then
-            ErrorMessage "Unknown option: $arg"
-            return 1
+		# Handle unknown options
+		elif [[ "$arg" =~ ^- ]]; then
+			ErrorMessage "Unknown option: $arg"
+			return 1
 
-        # Handle positional arguments
-        else
-            # If defined, append to positional args array
-            if [[ -v "_options_ref[positional]" ]]; then
-                _options_ref["positional"]+=" $arg"
-            else
-                _options_ref["positional"]="$arg"
-            fi
-        fi
+		# Handle positional arguments
+		else
+			# If defined, append to positional args array
+			if [[ -v "_options_ref[positional]" ]]; then
+				_options_ref["positional"]+=" $arg"
+			else
+				_options_ref["positional"]="$arg"
+			fi
+		fi
 
-        shift
-    done
+		shift
+	done
 
-    # Add remaining arguments to positional if we stopped at --
-    while [[ $# -gt 0 ]]; do
-        if [[ -v "_options_ref[positional]" ]]; then
-            _options_ref["positional"]+=" $1"
-        else
-            _options_ref["positional"]="$1"
-        fi
-        shift
-    done
+	# Add remaining arguments to positional if we stopped at --
+	while [[ $# -gt 0 ]]; do
+		if [[ -v "_options_ref[positional]" ]]; then
+			_options_ref["positional"]+=" $1"
+		else
+			_options_ref["positional"]="$1"
+		fi
+		shift
+	done
 
-    return 0
+	return 0
 }
 
 # ============================================================================
@@ -779,32 +725,33 @@ StandardParseArgs() {
 # Returns: Associative array 'options' populated with values. Exit code of parser.
 # ============================================================================
 InitUtility() {
-    # Must be run in global scope
-    local utility_name="$1"; shift
-    export UTILITY_NAME="$utility_name"
+	# Must be run in global scope
+	local utility_name="$1"
+	shift
+	export UTILITY_NAME="$utility_name"
 
-    # Set up options array
-    declare -gA options
+	# Set up options array
+	declare -gA options
 
-    # Default handling for help, version, summary
-    for arg in "$@"; do
-        case "$arg" in
-            --help|-h)
-                ShowStandardHelp
-                exit 0
-                ;;
-            --version)
-                _rcforge_show_version "$0"
-                exit 0
-                ;;
-            --summary)
-                ExtractSummary "$0"
-                exit $?
-                ;;
-        esac
-    done
+	# Default handling for help, version, summary
+	for arg in "$@"; do
+		case "$arg" in
+			--help | -h)
+				ShowStandardHelp
+				exit 0
+				;;
+			--version)
+				_rcforge_show_version "$0"
+				exit 0
+				;;
+			--summary)
+				ExtractSummary "$0"
+				exit $?
+				;;
+		esac
+	done
 
-    return 0
+	return 0
 }
 
 # ============================================================================
@@ -815,55 +762,54 @@ InitUtility() {
 # Returns: Exits with code 0
 # ============================================================================
 ShowStandardHelp() {
-    # This function requires UTILITY_NAME to be set
-    if [[ -z "${UTILITY_NAME:-}" ]]; then
-        ErrorMessage "UTILITY_NAME must be set before calling ShowStandardHelp"
-        exit 1
-    fi
+	# This function requires UTILITY_NAME to be set
+	if [[ -z "${UTILITY_NAME:-}" ]]; then
+		ErrorMessage "UTILITY_NAME must be set before calling ShowStandardHelp"
+		exit 1
+	fi
 
-    local script_name
-    script_name=$(basename "$0")
-    local version="${gc_version:-0.4.1}"
+	local script_name
+	script_name=$(basename "$0")
+	local version="${gc_version:-0.4.1}"
 
-    echo "${UTILITY_NAME} - rcForge Utility (v${version})"
-    echo ""
+	echo "${UTILITY_NAME} - rcForge Utility (v${version})"
+	echo ""
 
-    # Extract description from script file
-    local description
-    description=$(grep -m 1 "^# Description:" "$0" || echo "# Description: No description available.")
-    description="${description#\# Description: }"
-    echo "Description:"
-    echo "  ${description}"
-    echo ""
+	# Extract description from script file
+	local description
+	description=$(grep -m 1 "^# Description:" "$0" || echo "# Description: No description available.")
+	description="${description#\# Description: }"
+	echo "Description:"
+	echo "  ${description}"
+	echo ""
 
-    echo "Usage:"
-    echo "  rc ${UTILITY_NAME} [options] <arguments>"
-    echo "  ${script_name} [options] <arguments>"
-    echo ""
+	echo "Usage:"
+	echo "  rc ${UTILITY_NAME} [options] <arguments>"
+	echo "  ${script_name} [options] <arguments>"
+	echo ""
 
-    # If a custom help function exists, call it for options
-    if declare -F CustomOptionsHelp >/dev/null; then
-        CustomOptionsHelp
-    else
-        echo "Options:"
-        echo "  --help, -h         Show this help message"
-        echo "  --version          Show version information"
-        echo "  --summary          Show a one-line description (for rc help)"
-    fi
+	# If a custom help function exists, call it for options
+	if declare -F CustomOptionsHelp >/dev/null; then
+		CustomOptionsHelp
+	else
+		echo "Options:"
+		echo "  --help, -h         Show this help message"
+		echo "  --version          Show version information"
+		echo "  --summary          Show a one-line description (for rc help)"
+	fi
 
-    # If a custom examples function exists, call it
-    if declare -F CustomExamplesHelp >/dev/null; then
-        echo ""
-        CustomExamplesHelp
-    else
-        echo ""
-        echo "Examples:"
-        echo "  rc ${UTILITY_NAME} --help"
-    fi
+	# If a custom examples function exists, call it
+	if declare -F CustomExamplesHelp >/dev/null; then
+		echo ""
+		CustomExamplesHelp
+	else
+		echo ""
+		echo "Examples:"
+		echo "  rc ${UTILITY_NAME} --help"
+	fi
 
-    exit 0
+	exit 0
 }
-
 
 # ============================================================================
 # EXPORT PUBLIC FUNCTIONS FOR BASH
@@ -871,15 +817,15 @@ ShowStandardHelp() {
 # Only export functions intended as the public API of this library for Bash.
 # Zsh exports sourced functions automatically.
 if IsBash; then
-    export -f DetectShell
-    export -f IsZsh
-    export -f IsBash
-    export -f DetectOS
-    export -f IsMacOS
-    export -f IsLinux
-    export -f IsBSD
-    export -f CommandExists
-    # DO NOT EXPORT INTERNAL HELPERS like _process_common_args, _process_arguments
+	export -f DetectShell
+	export -f IsZsh
+	export -f IsBash
+	export -f DetectOS
+	export -f IsMacOS
+	export -f IsLinux
+	export -f IsBSD
+	export -f CommandExists
+	# DO NOT EXPORT INTERNAL HELPERS like _process_common_args, _process_arguments
 fi
 
 # EOF

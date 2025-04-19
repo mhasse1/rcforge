@@ -28,7 +28,7 @@ ProcessPathConfiguration() {
     if [[ ! -f "$path_file" ]]; then
         # Create default path file if it doesn't exist
         mkdir -p "$(dirname "$path_file")"
-        cat > "$path_file" << EOF
+        cat >"$path_file" <<EOF
 # rcForge PATH Configuration
 # This file configures paths to be added to your PATH environment variable.
 # Lines starting with # are ignored.
@@ -67,7 +67,7 @@ EOF
             new_path+="${separator}${line}"
             separator=":"
         fi
-    done < "$path_file"
+    done <"$path_file"
 
     # Set PATH environment variable
     if [[ -n "$new_path" ]]; then
@@ -84,7 +84,7 @@ ProcessApiKeys() {
     if [[ ! -f "$api_key_file" ]]; then
         # Create default API key file if it doesn't exist
         mkdir -p "$(dirname "$api_key_file")"
-        cat > "$api_key_file" << EOF
+        cat >"$api_key_file" <<EOF
 # rcForge API Key Settings
 # This file contains API keys that will be exported as environment variables.
 # Lines starting with # are ignored.
@@ -107,7 +107,7 @@ EOF
 
         # Export API key environment variable
         export "$line"
-    done < "$api_key_file"
+    done <"$api_key_file"
 }
 
 # --- Prepend compliant Bash path if recorded by installer ---
@@ -167,17 +167,17 @@ SourceConfigFiles() {
     # Setup for optional timing
     if [[ "${DEBUG_MODE:-false}" == "true" ]]; then
         if CommandExists bc; then
-             have_bc=true
+            have_bc=true
         fi
         # Check if sub-second precision is available via date
         if date +%s.%N &>/dev/null; then
-             use_seconds=false
+            use_seconds=false
         fi
         # Record start time
         if [[ "$use_seconds" == "false" ]]; then
-             start_time=$(date +%s.%N)
+            start_time=$(date +%s.%N)
         else
-             start_time=$SECONDS
+            start_time=$SECONDS
         fi
         DebugMessage "Starting rcForge configuration loading..."
     fi
@@ -185,9 +185,7 @@ SourceConfigFiles() {
     # Loop through and source files
     for file in "${files_to_source[@]}"; do
         if [[ -r "$file" ]]; then
-            if [[ "${DEBUG_MODE:-false}" == "true" ]]; then
-                 DebugMessage "Sourcing $file"
-            fi
+            InfoMessage "Sourcing $file"
             # shellcheck disable=SC1090
             source "$file"
         else
@@ -302,16 +300,15 @@ main() {
     # --- Core Loading Steps ---
     # Check root execution (uses sourced CheckRoot)
     if ! CheckRoot --skip-interactive; then
-		if IsZsh; then
-			export PS1="%{$(tput setaf 226)%}%n%{$(tput setaf 220)%}@%{$(tput setaf 214)%}%m %{$(tput setaf 14)%}%1~ %{$(tput sgr0)%}# "
-		else
-			export PS1="\[$(tput setaf 226)\]\u\[$(tput setaf 220)\]@\[$(tput setaf 214)\]\h \[$(tput setaf 14)\]\w \[$(tput sgr0)\]# "
-     	fi
+        if IsZsh; then
+            export PS1="%{$(tput setaf 226)%}%n%{$(tput setaf 220)%}@%{$(tput setaf 214)%}%m %{$(tput setaf 14)%}%1~ %{$(tput sgr0)%}# "
+        else
+            export PS1="\[$(tput setaf 226)\]\u\[$(tput setaf 220)\]@\[$(tput setaf 214)\]\h \[$(tput setaf 14)\]\w \[$(tput sgr0)\]# "
+        fi
         return 1
     fi
 
-    local current_shell
-    current_shell=$(DetectShell) # Use sourced function
+    local current_shell=$(DetectShell)
     if [[ "$current_shell" != "bash" && "$current_shell" != "zsh" ]]; then
         WarningMessage "Unsupported shell detected: '$current_shell'. rcForge primarily supports bash and zsh."
         # Continue anyway, maybe common scripts work
@@ -332,7 +329,7 @@ main() {
                 # Warnings already printed by runner script
                 # Ask user whether to proceed if interactive
                 if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
-                     ErrorMessage "Running non-interactive. Aborting due to integrity issues." 1 # Use ErrorMessage to exit
+                    ErrorMessage "Running non-interactive. Aborting due to integrity issues." 1 # Use ErrorMessage to exit
                 fi
                 local response=""
                 printf "%b" "${YELLOW}Integrity checks reported issues. Continue loading? (y/N):${RESET} "
@@ -359,23 +356,8 @@ main() {
     SectionHeader "Loading rcForge Configuration"
     InfoMessage "Locating and sourcing configuration files."
 
-    local -a config_files_to_load=()
-    local find_output=""
-    local find_status=0
-
-    # Call FindRcScripts (sourced from utility-functions) - Updated for XDG structure
-    find_output=$(FindRcScripts "$current_shell")
-    find_status=$?
-
-    # Populate array based on shell
-    if IsZsh; then
-        config_files_to_load=( ${(f)find_output} ) # Zsh specific array assignment
-    elif IsBash; then
-        mapfile -t config_files_to_load <<< "$find_output" # Bash mapfile
-    else
-        # Basic fallback for other shells
-        config_files_to_load=( $(echo "$find_output") )
-    fi
+    local -a config_files_to_load=$(FindRcScripts)
+    local find_status=$?
 
     # Check if find failed *and* no files were loaded
     if [[ $find_status -ne 0 && ${#config_files_to_load[@]} -eq 0 ]]; then
@@ -384,10 +366,11 @@ main() {
     fi
 
     # Source the files
+    InfoMessage "Staring rc-script sourcing for ${current_shell} on $(DetectHostname)."
     if [[ ${#config_files_to_load[@]} -gt 0 ]]; then
         SourceConfigFiles "${config_files_to_load[@]}" # Call local function
     else
-        InfoMessage "No specific rcForge configuration files found for ${current_shell} on $(DetectCurrentHostname)."
+        InfoMessage "No specific rcForge configuration files found for ${current_shell} on $(DetectHostname)."
     fi
     SuccessMessage "Configuration files sourced."
 
