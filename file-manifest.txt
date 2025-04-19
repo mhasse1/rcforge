@@ -1,5 +1,5 @@
 # v0.5.0pre1 File Manifest
-# File version: 0.5.0pre1-1
+# File version: 0.5.0pre1-2
 
 # ----------------------------------------------------------------------------
 # XDG BASE DIRECTORY SUPPORT
@@ -65,12 +65,6 @@ system/utils/apikey-utility.sh                  system/utils/apikey.sh
 
 # RC Scripts example files (installed to XDG_CONFIG_HOME)
 rc-scripts/README.md                            rc-scripts/README.md
-rc-scripts/050_global_common_path.sh            rc-scripts/050_global_common_path.sh
-rc-scripts/210_global_bash_config.sh            rc-scripts/210_global_bash_config.sh
-rc-scripts/210_global_zsh_config.sh             rc-scripts/210_global_zsh_config.sh
-rc-scripts/350_global_bash_prompt.sh            rc-scripts/350_global_bash_prompt.sh
-rc-scripts/350_global_zsh_prompt.sh             rc-scripts/350_global_zsh_prompt.sh
-rc-scripts/400_global_common_aliases.sh         rc-scripts/400_global_common_aliases.sh
 
 # Configuration templates (installed to XDG_CONFIG_HOME)
 config/path.conf.template                       config/path.conf
