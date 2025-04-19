@@ -26,11 +26,14 @@ readonly gc_installer_required_bash="4.3" # Installer itself needs 4.3+
 readonly gc_old_rcforge_dir="$HOME/.config/rcforge"
 
 # New XDG directory structure (0.5.0+)
-readonly gc_config_dir="$HOME/.config/rcforge"
-readonly gc_local_dir="$HOME/.local/rcforge"
+readonly gc_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+readonly gc_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+readonly gc_config_dir="$gc_config_home/rcforge"
+readonly gc_data_dir="$gc_data_home/rcforge"
 
 # Backup configuration
-readonly gc_backup_dir="${gc_local_dir}/backups"
+readonly gc_backup_dir="${gc_data_dir}/backups"
 readonly gc_timestamp=$(date +%Y%m%d%H%M%S)
 readonly gc_backup_file="${gc_backup_dir}/rcforge_backup_${gc_timestamp}.tar.gz"
 readonly gc_repo_base_url="https://raw.githubusercontent.com/mhasse1/rcforge" # Base URL part
@@ -84,11 +87,11 @@ InstallHaltedCleanup() {
                 WarningMessage "Failed to remove directory: $gc_config_dir. Please remove it manually."
             fi
         fi
-        if [[ -d "$gc_local_dir" ]]; then
-            if rm -rf "$gc_local_dir"; then
-                SuccessMessage "Removed partially installed directory: $gc_local_dir"
+        if [[ -d "$gc_data_dir" ]]; then
+            if rm -rf "$gc_data_dir"; then
+                SuccessMessage "Removed partially installed directory: $gc_data_dir"
             else
-                WarningMessage "Failed to remove directory: $gc_local_dir. Please remove it manually."
+                WarningMessage "Failed to remove directory: $gc_data_dir. Please remove it manually."
             fi
         fi
     else
@@ -99,7 +102,7 @@ InstallHaltedCleanup() {
 
             # For 0.5.0+ structure, clean up both directories
             InfoMessage "Removing failed upgrade directories before restore..."
-            rm -rf "$gc_config_dir" "$gc_local_dir" || {
+            rm -rf "$gc_config_dir" "$gc_data_dir" || {
                 WarningMessage "Failed to completely remove current directories before restore."
                 WarningMessage "Attempting restore anyway, but manual cleanup might be needed."
             }
@@ -212,7 +215,7 @@ IsInstalled() {
     fi
 
     # Check for 0.5.0+ installation
-    if [[ -d "$gc_local_dir" && -f "${gc_local_dir}/rcforge.sh" ]]; then
+    if [[ -d "$gc_data_dir" && -f "${gc_data_dir}/rcforge.sh" ]]; then
         return 0
     fi
 
@@ -233,8 +236,8 @@ GetInstalledVersion() {
     if [[ -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
         rcforge_sh="${gc_old_rcforge_dir}/rcforge.sh"
     # Check for 0.5.0+ location
-    elif [[ -f "${gc_local_dir}/rcforge.sh" ]]; then
-        rcforge_sh="${gc_local_dir}/rcforge.sh"
+    elif [[ -f "${gc_data_dir}/rcforge.sh" ]]; then
+        rcforge_sh="${gc_data_dir}/rcforge.sh"
     else
         echo "unknown"
         return 1
@@ -366,7 +369,7 @@ CheckBashVersion() {
     if printf '%s\n%s\n' "$min_version_required" "$runtime_bash_version" | sort -V -C &>/dev/null; then
         SuccessMessage "Default Bash version ${runtime_bash_version} meets requirement (>= ${min_version_required})."
         # Record Path - updated for 0.5.0 to use new structure
-        bash_location_file="${gc_local_dir}/config/bash-location"
+        bash_location_file="${gc_data_dir}/config/bash-location"
         docs_dir="$(dirname "$bash_location_file")"
         InfoMessage "Recording compliant Bash location to ${bash_location_file}..."
         if ! mkdir -p "$docs_dir"; then
@@ -432,9 +435,9 @@ CreateBackup() {
     local target_dir=""
     if [[ -d "$gc_old_rcforge_dir" && -f "${gc_old_rcforge_dir}/rcforge.sh" ]]; then
         target_dir="$gc_old_rcforge_dir"
-    elif [[ -d "$gc_local_dir" && -f "${gc_local_dir}/rcforge.sh" ]]; then
+    elif [[ -d "$gc_data_dir" && -f "${gc_data_dir}/rcforge.sh" ]]; then
         # For 0.5.0+ structure, back up both directories
-        if ! tar "$tar_opts" "$gc_backup_file" -C "$(dirname "$gc_config_dir")" "$(basename "$gc_config_dir")" -C "$(dirname "$gc_local_dir")" "$(basename "$gc_local_dir")"; then
+        if ! tar "$tar_opts" "$gc_backup_file" -C "$(dirname "$gc_config_dir")" "$(basename "$gc_config_dir")" -C "$(dirname "$gc_data_dir")" "$(basename "$gc_data_dir")"; then
             ErrorMessage "$is_fresh_install_attempt" "Backup failed: ${gc_backup_file}. Check permissions/space." # Exits
         fi
         SuccessMessage "Backup created: $gc_backup_file"
@@ -561,13 +564,13 @@ MigrateToXDGStructure() {
     chmod 700 "${gc_config_dir}" "${gc_config_dir}/config" "${gc_config_dir}/rc-scripts"
 
     # Create local directory structure
-    mkdir -p "${gc_local_dir}/backups"
-    mkdir -p "${gc_local_dir}/config/checksums"
-    mkdir -p "${gc_local_dir}/system/core"
-    mkdir -p "${gc_local_dir}/system/lib"
-    mkdir -p "${gc_local_dir}/system/utils"
-    chmod 700 "${gc_local_dir}" "${gc_local_dir}/backups" "${gc_local_dir}/config"
-    chmod 700 "${gc_local_dir}/system" "${gc_local_dir}/system/core" "${gc_local_dir}/system/lib" "${gc_local_dir}/system/utils"
+    mkdir -p "${gc_data_dir}/backups"
+    mkdir -p "${gc_data_dir}/config/checksums"
+    mkdir -p "${gc_data_dir}/system/core"
+    mkdir -p "${gc_data_dir}/system/lib"
+    mkdir -p "${gc_data_dir}/system/utils"
+    chmod 700 "${gc_data_dir}" "${gc_data_dir}/backups" "${gc_data_dir}/config"
+    chmod 700 "${gc_data_dir}/system" "${gc_data_dir}/system/core" "${gc_data_dir}/system/lib" "${gc_data_dir}/system/utils"
 
     InfoMessage "Migrating files from old structure..."
 
@@ -579,29 +582,29 @@ MigrateToXDGStructure() {
 
     # Move user utilities if they exist
     if [[ -d "${gc_old_rcforge_dir}/utils" ]]; then
-        mkdir -p "${gc_local_dir}/utils"
-        chmod 700 "${gc_local_dir}/utils"
-        find "${gc_old_rcforge_dir}/utils" -type f -exec cp -p {} "${gc_local_dir}/utils/" \;
-        SuccessMessage "Migrated user utilities to ${gc_local_dir}/utils/"
+        mkdir -p "${gc_data_dir}/utils"
+        chmod 700 "${gc_data_dir}/utils"
+        find "${gc_old_rcforge_dir}/utils" -type f -exec cp -p {} "${gc_data_dir}/utils/" \;
+        SuccessMessage "Migrated user utilities to ${gc_data_dir}/utils/"
     fi
 
     # Move backups if they exist
     if [[ -d "${gc_old_rcforge_dir}/backups" ]]; then
-        find "${gc_old_rcforge_dir}/backups" -type f -exec cp -p {} "${gc_local_dir}/backups/" \;
-        SuccessMessage "Migrated existing backups to ${gc_local_dir}/backups/"
+        find "${gc_old_rcforge_dir}/backups" -type f -exec cp -p {} "${gc_data_dir}/backups/" \;
+        SuccessMessage "Migrated existing backups to ${gc_data_dir}/backups/"
     fi
 
     # Move checksums if they exist
     if [[ -d "${gc_old_rcforge_dir}/docs/checksums" ]]; then
-        find "${gc_old_rcforge_dir}/docs/checksums" -type f -exec cp -p {} "${gc_local_dir}/config/checksums/" \;
-        SuccessMessage "Migrated checksums to ${gc_local_dir}/config/checksums/"
+        find "${gc_old_rcforge_dir}/docs/checksums" -type f -exec cp -p {} "${gc_data_dir}/config/checksums/" \;
+        SuccessMessage "Migrated checksums to ${gc_data_dir}/config/checksums/"
     fi
 
     # Create initial API key settings file
-    mkdir -p "${gc_local_dir}/config"
-    touch "${gc_local_dir}/config/api_key_settings"
-    chmod 600 "${gc_local_dir}/config/api_key_settings"
-    cat >"${gc_local_dir}/config/api_key_settings" <<EOF
+    mkdir -p "${gc_data_dir}/config"
+    touch "${gc_data_dir}/config/api_key_settings"
+    chmod 600 "${gc_data_dir}/config/api_key_settings"
+    cat >"${gc_data_dir}/config/api_key_settings" <<EOF
 # rcForge API Key Settings
 # This file contains API keys that will be exported as environment variables.
 # Lines starting with # are ignored.
@@ -641,8 +644,8 @@ EOF
 
     # Record bash location if it exists in old structure
     if [[ -f "${gc_old_rcforge_dir}/docs/.bash_location" ]]; then
-        mkdir -p "${gc_local_dir}/config"
-        cp -p "${gc_old_rcforge_dir}/docs/.bash_location" "${gc_local_dir}/config/bash-location"
+        mkdir -p "${gc_data_dir}/config"
+        cp -p "${gc_old_rcforge_dir}/docs/.bash_location" "${gc_data_dir}/config/bash-location"
         SuccessMessage "Migrated Bash location information"
     fi
 
@@ -672,7 +675,7 @@ ProcessManifest() {
 
     # In 0.5.0+, we have two root directories to handle
     local config_dir="${gc_config_dir}"
-    local local_dir="${gc_local_dir}"
+    local local_dir="${gc_data_dir}"
 
     # Ensure both root directories exist
     if ! mkdir -p "$config_dir" "$local_dir"; then

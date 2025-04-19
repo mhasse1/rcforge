@@ -2,40 +2,42 @@
 title: rcForge ToDos
 ---
 Inbox:
-	- Cleanup txt files from docs on github @na
-	- Update 041-documentation to 050 @na
-	- Update project-instructions to 050 @na
-	- Update file structure doc to match 050 @na
-	- telemetry (google ads) @maybe
-		- telemetry.md
-			See telementry planning doc
-			- `rc --telemetry` # once telemetry added
-			- opt-in or opti-out
-			- display current status
-			- create new uuid
-			- display telemetry overview
-			- telemetry status should be included in `rc --help`
-	- httpdheaders - update to work inside of rc (pulled from 0.4.2) @maybe
 	- path manipulation scripts should be available in `rc` @na
 	- `rc --home`: cd to ~/.config/rcforge folder. @na
+	- `rc --local`: cd to ~/.local/rcforge @na
+	050 Docs:
+		- Update 041-documentation to 050 @na
+		- Update project-instructions to 050 @na
+		- Update file structure doc to match 050 @na
+	Wiki Docs:
+		- 050 user docs (wiki) updates @na
+		- Add example rc-scripts to wiki @na
+		- Add utility dev guide to wiki @na
 
 Feature Requests:
 
 Ideas:
-	- domain-check
-	- is-up
-	- get-http-status
-	- dnslookup
-	- httpheaders
-	- tmp-httpd
+	- Update rc support functions-create a more cohesive solution @maybe
+	Scripts to migration to rc:
+		- domain-check
+		- is-up
+		- get-http-status
+		- dnslookup
+		- httpheaders
+		- tmp-httpd
+		- httpdheaders - update to work inside of rc (pulled from 0.4.2) @maybe
+	Telemetry (google ads) @maybe:
+		- telemetry.md (telementry planning doc)
+		- `rc --telemetry` # once telemetry added
+		- opt-in or opti-out
+		- display current status
+		- create new uuid
+		- display telemetry overview
+		- telemetry status should be included in `rc --help`
 
 Bugs:
 
 
 Archive:
-
-Search Definitions:
-	Top Priority @search(@priority = 5 and not @done)
-	High Priority @search(@priority > 3 and not @done)
-	Maybe @search(@maybe)
-	Next @search(@na and not @done and not project = "Archive")
+	- Update style guide @done(2025-04-18) @project(Inbox / 050 Docs)
+	- Cleanup txt files from docs on github @na @done(2025-04-18 17:24) @project(Inbox / 050 Docs)

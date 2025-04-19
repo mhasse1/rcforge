@@ -235,10 +235,7 @@ main() {
     done
     # --- End Argument Parsing ---
 
-    # Determine rcForge directory using sourced function
-    rcforge_dir=$(DetectRcForgeDir) # Use sourced function
-
-    # Define checksum directory path
+    rcforge_dir=$RCFORGE_CONFIG_ROOT
     checksum_dir="${rcforge_dir}/docs/checksums" # Store in docs/checksums
 
     # Ensure checksum directory exists

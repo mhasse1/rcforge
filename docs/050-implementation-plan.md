@@ -37,7 +37,7 @@ Version 0.5.0 of rcForge introduces a major architectural change to adopt XDG Ba
 2. **Update Environment Variables**
    - Define new environment variables in `rcforge.sh`:
      - `RCFORGE_CONFIG_ROOT` for ~/.config/rcforge
-     - `RCFORGE_LOCAL_ROOT` for ~/.local/rcforge
+     - `RCFORGE_DATA_ROOT` for ~/.local/rcforge
      - Update all related path variables
 
 3. **Create Configuration Files**

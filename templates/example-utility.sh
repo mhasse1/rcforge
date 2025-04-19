@@ -18,7 +18,7 @@ set -o pipefail
 # ============================================================================
 # GLOBAL CONSTANTS
 # ============================================================================
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.4.1}"
+[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-0.4.1}"
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
 readonly UTILITY_NAME="findlarge"
 
@@ -69,7 +69,7 @@ ShowHelp() {
 ExtractSizeInBytes() {
     local size_str="$1"
     local num_part unit multiplier
-    
+
     # Extract numerical part and unit
     if [[ "$size_str" =~ ^([0-9]+)([KMGT])?$ ]]; then
         num_part="${BASH_REMATCH[1]}"
@@ -78,7 +78,7 @@ ExtractSizeInBytes() {
         ErrorMessage "Invalid size format: $size_str. Use format like 100M, 2G, etc."
         return -1
     fi
-    
+
     # Determine multiplier based on unit
     case "$unit" in
         K) multiplier=1024 ;;
@@ -86,9 +86,12 @@ ExtractSizeInBytes() {
         G) multiplier=$((1024 * 1024 * 1024)) ;;
         T) multiplier=$((1024 * 1024 * 1024 * 1024)) ;;
         "") multiplier=1 ;; # No unit means bytes
-        *) ErrorMessage "Invalid size unit: $unit. Use K, M, G, or T."; return -1 ;;
+        *)
+            ErrorMessage "Invalid size unit: $unit. Use K, M, G, or T."
+            return -1
+            ;;
     esac
-    
+
     # Calculate and return bytes
     echo $((num_part * multiplier))
     return 0
@@ -104,13 +107,13 @@ FormatSizeHuman() {
     local size="$1"
     local -a suffixes=("" "K" "M" "G" "T" "P")
     local suffix_index=0
-    
+
     # Calculate appropriate suffix
     while [[ $size -ge 1024 && $suffix_index -lt ${#suffixes[@]}-1 ]]; do
         size=$((size / 1024))
         ((suffix_index++))
     done
-    
+
     echo "${size}${suffixes[$suffix_index]}"
     return 0
 }
@@ -122,10 +125,11 @@ FormatSizeHuman() {
 # Returns: Populates associative array by reference. Returns 0 on success, 1 on error.
 # ============================================================================
 ParseArguments() {
-    local -n options_ref="$1"; shift
-    
+    local -n options_ref="$1"
+    shift
+
     # Ensure Bash 4.3+ for namerefs (-n)
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
         ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
         return 1
     fi
@@ -138,12 +142,12 @@ ParseArguments() {
     options_ref["summary_only"]=false
     options_ref["verbose_mode"]=false
     options_ref["directories"]=()
-    
+
     # Single loop for arguments
     while [[ $# -gt 0 ]]; do
         local key="$1"
         case "$key" in
-            -h|--help)
+            -h | --help)
                 ShowHelp # Exits
                 ;;
             --summary)
@@ -227,7 +231,7 @@ ParseArguments() {
                 options_ref["exclude"]="$1"
                 shift
                 ;;
-            -v|--verbose)
+            -v | --verbose)
                 options_ref["verbose_mode"]=true
                 shift
                 ;;
@@ -256,7 +260,7 @@ ParseArguments() {
                 ;;
         esac
     done
-    
+
     # Add remaining arguments as directories
     while [[ $# -gt 0 ]]; do
         local dir="$1"
@@ -272,25 +276,25 @@ ParseArguments() {
         fi
         shift
     done
-    
+
     # Set current directory as default if no directories specified
     if [[ -z "${options_ref["directories"]}" ]]; then
         options_ref["directories"]="$(pwd)"
     fi
-    
+
     # Validate size format
     local size_bytes
     size_bytes=$(ExtractSizeInBytes "${options_ref["size"]}")
     if [[ $? -ne 0 || $size_bytes -lt 0 ]]; then
         return 1 # Error message already printed
     fi
-    
+
     # Validate count is a number
     if ! [[ "${options_ref["count"]}" =~ ^[0-9]+$ ]]; then
         ErrorMessage "Count must be a positive number: ${options_ref["count"]}"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -308,49 +312,49 @@ FindLargeFiles() {
     local exclude_pattern="${5:-}"
     local summary_only="${6:-false}"
     local is_verbose="${7:-false}"
-    
+
     local find_cmd="find"
     local find_args=()
     local total_size=0
     local file_count=0
     local results=()
     local max_filename_length=0
-    
+
     # Add directories to find command
     for dir in $dirs; do
         find_args+=("$dir")
     done
-    
+
     # Add standard find options
     find_args+=("-type" "f" "-size" "+${min_size_bytes}c")
-    
+
     # Add exclude pattern if specified
     if [[ -n "$exclude_pattern" ]]; then
         find_args+=("!" "-path" "$exclude_pattern")
     fi
-    
+
     # Execute find command to get matching files
     VerboseMessage "$is_verbose" "Executing find command: find ${find_args[*]}"
-    
+
     # Use null terminator to handle filenames with spaces and special characters
-    while IFS= read -r -d \0' file; do
+    while IFS= read -r -d '\0' file; do
         local file_size
         file_size=$(stat -c "%s" "$file" 2>/dev/null || stat -f "%z" "$file" 2>/dev/null)
-        
+
         if [[ -n "$file_size" ]]; then
             # Track total size and count
             total_size=$((total_size + file_size))
             ((file_count++))
-            
+
             # Only collect details if we're not in summary-only mode
             if [[ "$summary_only" == "false" ]]; then
                 # Get file modified time (in seconds since epoch)
                 local modified
                 modified=$(stat -c "%Y" "$file" 2>/dev/null || stat -f "%m" "$file" 2>/dev/null)
-                
+
                 # Store result with size and modified time for sorting
                 results+=("$file_size|$modified|$file")
-                
+
                 # Track longest filename for formatting
                 local filename_length=${#file}
                 if [[ $filename_length -gt $max_filename_length ]]; then
@@ -359,55 +363,55 @@ FindLargeFiles() {
             fi
         fi
     done < <(find "${find_args[@]}" -print0 2>/dev/null)
-    
+
     # Display summary
     SectionHeader "Large File Search Results"
-    
+
     InfoMessage "Search criteria:"
     echo "  Minimum size: $(FormatSizeHuman "$min_size_bytes")"
     echo "  Directories: $dirs"
     [[ -n "$exclude_pattern" ]] && echo "  Excluding: $exclude_pattern"
     echo ""
-    
+
     InfoMessage "Summary statistics:"
     echo "  Files found: $file_count"
     echo "  Total size: $(FormatSizeHuman "$total_size")"
     echo ""
-    
+
     # Return if summary-only mode or no files found
     if [[ "$summary_only" == "true" || $file_count -eq 0 ]]; then
         [[ $file_count -eq 0 ]] && InfoMessage "No files matching criteria were found."
         return 0
     fi
-    
+
     # Sort results based on sort method
     case "$sort_method" in
         size)
             # Sort by size (descending, numeric)
-            IFS=\n' sorted_results=($(sort -t'|' -k1,1nr <<<"${results[*]}"))
+            IFS='\n' sorted_results=($(sort -t'|' -k1,1nr <<<"${results[*]}"))
             ;;
         name)
             # Sort by filename (ascending, alphabetical)
-            IFS=\n' sorted_results=($(sort -t'|' -k3,3 <<<"${results[*]}"))
+            IFS='\n' sorted_results=($(sort -t'|' -k3,3 <<<"${results[*]}"))
             ;;
         modified)
             # Sort by modification time (newest first)
-            IFS=\n' sorted_results=($(sort -t'|' -k2,2nr <<<"${results[*]}"))
+            IFS='\n' sorted_results=($(sort -t'|' -k2,2nr <<<"${results[*]}"))
             ;;
         *)
             ErrorMessage "Internal error: Invalid sort method '$sort_method'"
             return 1
             ;;
     esac
-    
+
     # Format and display results
     InfoMessage "Top ${count} files by ${sort_method}:"
     echo ""
-    
+
     # Print header
     printf "%-15s %-20s %s\n" "SIZE" "MODIFIED" "FILENAME"
     printf "%s\n" "$(printf '=%.0s' {1..80})"
-    
+
     # Display results (limited by count)
     local displayed=0
     for result in "${sorted_results[@]}"; do
@@ -415,23 +419,23 @@ FindLargeFiles() {
         if [[ $displayed -ge $count ]]; then
             break
         fi
-        
+
         # Parse fields
-        IFS='|' read -r file_size modified file <<< "$result"
-        
+        IFS='|' read -r file_size modified file <<<"$result"
+
         # Format size and modification time
         local size_human
         size_human=$(FormatSizeHuman "$file_size")
         local mod_date
-        mod_date=$(date -d @"$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || \
-                  date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
-        
+        mod_date=$(date -d @"$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null ||
+            date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
+
         # Print formatted result
         printf "%-15s %-20s %s\n" "$size_human" "$mod_date" "$file"
-        
+
         ((displayed++))
     done
-    
+
     echo ""
     InfoMessage "To display more results, use --count=[number]"
     return 0
@@ -448,7 +452,7 @@ main() {
     declare -A options
     # Parse arguments, exit if parser returns non-zero (error)
     ParseArguments options "$@" || exit $?
-    
+
     # Access options from the array
     local size_str="${options[size]}"
     local count="${options[count]}"
@@ -457,14 +461,14 @@ main() {
     local summary_only="${options[summary_only]}"
     local is_verbose="${options[verbose_mode]}"
     local directories="${options[directories]}"
-    
+
     # Convert size to bytes
     local size_bytes
     size_bytes=$(ExtractSizeInBytes "$size_str")
     if [[ $? -ne 0 || $size_bytes -lt 0 ]]; then
         exit 1 # Error message already printed by ExtractSizeInBytes
     fi
-    
+
     # Run the find operation
     FindLargeFiles "$directories" "$size_bytes" "$count" "$sort_method" "$exclude_pattern" "$summary_only" "$is_verbose"
     return $?

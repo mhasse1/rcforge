@@ -14,21 +14,8 @@
 # Set strict modes early for initialization safety
 set -o nounset
 
-# Export core environment variables - Updated for XDG structure
-export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.5.0"
-
-# XDG directory structure - separated configuration from system files
-export RCFORGE_CONFIG_ROOT="${HOME}/.config/rcforge"
-export RCFORGE_LOCAL_ROOT="${HOME}/.local/rcforge"
-
-# Define and export remaining core paths - Updated for XDG structure
-export RCFORGE_LIB="${RCFORGE_LOCAL_ROOT}/system/lib"
-export RCFORGE_CORE="${RCFORGE_LOCAL_ROOT}/system/core"
-export RCFORGE_UTILS="${RCFORGE_LOCAL_ROOT}/system/utils"
-export RCFORGE_USER_UTILS="${RCFORGE_LOCAL_ROOT}/utils"
-export RCFORGE_SCRIPTS="${RCFORGE_CONFIG_ROOT}/rc-scripts"
-export RCFORGE_CONFIG="${RCFORGE_CONFIG_ROOT}/config"
+# Source rcForge environment variabls
+source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set_rcforge_environment.sh"
 
 # --- Path Management (v0.5.0+) ---
 # Process path.conf to set PATH environment variable
@@ -91,7 +78,7 @@ EOF
 # --- API Key Management (v0.5.0+) ---
 # Process API key settings to export environment variables
 ProcessApiKeys() {
-    local api_key_file="${RCFORGE_LOCAL_ROOT}/config/api_key_settings"
+    local api_key_file="${RCFORGE_DATA_ROOT}/config/api_key_settings"
 
     # Check if API key file exists
     if [[ ! -f "$api_key_file" ]]; then
@@ -124,7 +111,7 @@ EOF
 }
 
 # --- Prepend compliant Bash path if recorded by installer ---
-RCFORGE_BASH_LOCATION_FILE="${RCFORGE_LOCAL_ROOT}/config/bash-location"
+RCFORGE_BASH_LOCATION_FILE="${RCFORGE_DATA_ROOT}/config/bash-location"
 if [[ -f "$RCFORGE_BASH_LOCATION_FILE" && -r "$RCFORGE_BASH_LOCATION_FILE" ]]; then
     RCFORGE_COMPLIANT_BASH_PATH=$(<"$RCFORGE_BASH_LOCATION_FILE")
     # Basic validation

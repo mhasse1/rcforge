@@ -579,8 +579,7 @@ ParseArguments() {
 # ============================================================================
 main() {
     local rcforge_dir
-    # Use sourced DetectRcForgeDir
-    rcforge_dir=$(DetectRcForgeDir)
+    rcforge_dir=$RCFORGE_CONFIG_ROOT
     # Use associative array for options (requires Bash 4+)
     declare -A options
     local -a config_files=() # Ensure array is declared locally

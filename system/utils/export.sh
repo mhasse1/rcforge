@@ -157,7 +157,7 @@ ExportConfiguration() {
     local -n options_ref="$1" # Use nameref (Bash 4.3+)
 
     local rcforge_dir
-    rcforge_dir=$(DetectRcForgeDir) # Use sourced function
+    rcforge_dir=$RCFORGE_CONFIG_ROOT
 
     # Extract options using default expansion for safety
     local shell_type="${options_ref[shell_type]:-}"

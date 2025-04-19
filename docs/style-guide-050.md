@@ -179,7 +179,7 @@ fi
 The following environment variables are standard in rcForge v0.5.0:
 
 - `$RCFORGE_CONFIG_ROOT`: Points to the user's rcForge configuration directory (`~/.config/rcforge`)
-- `$RCFORGE_LOCAL_ROOT`: Points to the rcForge system installation (`~/.local/rcforge`)
+- `$RCFORGE_DATA_ROOT`: Points to the rcForge system installation (`~/.local/rcforge`)
 - `$RCFORGE_LIB`: Location of system libraries
 - `$RCFORGE_UTILS`: Location of system utilities
 - `$RCFORGE_SCRIPTS`: Location of user RC scripts
@@ -860,8 +860,8 @@ utility_name() {
     unset -f utility_name
 
     # Load full implementation
-    if [[ -f "${RCFORGE_LOCAL_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh" ]]; then
-        source "${RCFORGE_LOCAL_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh"
+    if [[ -f "${RCFORGE_DATA_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh" ]]; then
+        source "${RCFORGE_DATA_ROOT:-$HOME/.local/rcforge}/system/utils/utility_name.sh"
         # Call now-loaded implementation with original arguments
         utility_name "$@"
     else
@@ -1267,7 +1267,7 @@ rcForge v0.5.0 separates user configuration from system files:
 All scripts should use the following environment variables to reference directories:
 
 - `$RCFORGE_CONFIG_ROOT` for ~/.config/rcforge
-- `$RCFORGE_LOCAL_ROOT` for ~/.local/rcforge
+- `$RCFORGE_DATA_ROOT` for ~/.local/rcforge
 - `$RCFORGE_SCRIPTS` for rc-scripts directory
 - `$RCFORGE_CONFIG` for configuration directory
 - `$RCFORGE_LIB` for libraries directory

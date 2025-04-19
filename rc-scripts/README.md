@@ -26,6 +26,8 @@ Where:
 - `[environment]`: One of "common", "bash", or "zsh"
 - `[description]`: Brief description of what the script does
 
+IMPORTANT! No white space may be used in file names.
+
 ## Best Practices
 
 - Use the same sequence number for similar functions across different shells
