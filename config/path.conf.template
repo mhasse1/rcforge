@@ -1,0 +1,19 @@
+# rcForge PATH Configuration
+# This file configures paths to be added to your PATH environment variable.
+# Lines starting with # are ignored.
+# Empty lines are ignored.
+# Paths are processed in order and will be checked for existance before adding.
+# ${HOME} is expanded automatically.
+
+# User bin directory
+${HOME}/bin
+
+# Package manager paths
+/opt/homebrew/bin
+/usr/local/bin
+
+# System paths
+/usr/bin
+/bin
+/usr/sbin
+/sbin

@@ -715,3 +715,417 @@ ProcessManifest() {
     SuccessMessage "Processed ${file_count} files."
     return 0
 }
+
+# ============================================================================
+# Function: ProcessManifest
+# Description: Reads manifest, creates directories, downloads files using the specified release URL.
+# Usage: ProcessManifest is_fresh_install is_verbose github_raw_url
+# Arguments: $1, $2 (required) - Booleans. $3 (required) - Base RAW URL for the release tag.
+# Returns: 0 on success, 1 if no files processed. Exits via ErrorMessage otherwise.
+# ============================================================================
+ProcessManifest() {
+    local is_fresh_install_attempt="$1"
+    local is_verbose="$2"
+    local github_raw_url="$3" # Use the passed base URL
+    local current_section="NONE"
+    local line_num=0 dir_count=0 file_count=0
+    local line dir_path full_dir_path source_suffix dest_suffix file_url dest_path
+
+    SectionHeader "Processing Manifest File"
+    if [[ ! -f "$gc_manifest_temp_file" ]]; then
+        ErrorMessage "$is_fresh_install_attempt" "Manifest temp file not found."
+    fi
+
+    # In 0.5.0+, we have two root directories to handle
+    local config_dir="${gc_config_dir}"
+    local local_dir="${gc_data_dir}"
+
+    # Ensure both root directories exist
+    if ! mkdir -p "$config_dir" "$local_dir"; then
+        ErrorMessage "$is_fresh_install_attempt" "Failed to ensure base dirs: $config_dir and $local_dir"
+    fi
+    if ! chmod 700 "$config_dir" "$local_dir"; then
+        WarningMessage "Could not set permissions (700) on base directories"
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line_num=$((line_num + 1))
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}" # Trim
+        if [[ -z "$line" || "$line" =~ ^# ]]; then
+            continue
+        fi
+        if [[ "$line" == "DIRECTORIES:" ]]; then
+            current_section="DIRS"
+            InfoMessage "Processing directories..."
+            continue
+        fi
+        if [[ "$line" == "FILES:" ]]; then
+            current_section="FILES"
+            InfoMessage "Processing files..."
+            continue
+        fi
+
+        case "$current_section" in
+            "DIRS")
+                dir_path="${line#./}"
+
+                # Determine target directory based on path
+                # .config/rcforge paths
+                if [[ "$dir_path" == rc-scripts* || "$dir_path" == config* ]]; then
+                    full_dir_path="${config_dir}/${dir_path}"
+                # .local/rcforge paths (everything else)
+                else
+                    full_dir_path="${local_dir}/${dir_path}"
+                fi
+
+                VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
+                if ! mkdir -p "$full_dir_path"; then
+                    ErrorMessage "$is_fresh_install_attempt" "Failed create dir: $full_dir_path"
+                fi
+                if ! chmod 700 "$full_dir_path"; then
+                    WarningMessage "Could not set permissions (700) on: $full_dir_path"
+                fi
+                dir_count=$((dir_count + 1))
+                ;;
+            "FILES")
+                read -r source_suffix dest_suffix <<<"$line"
+                if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
+                    WarningMessage "Line $line_num: Invalid format. Skip: '$line'"
+                    continue
+                fi
+                file_url="${github_raw_url}/${source_suffix}" # Use passed URL base
+
+                # Determine target location based on path
+                # .config/rcforge paths
+                if [[ "$dest_suffix" == rc-scripts/* || "$dest_suffix" == config/* ]]; then
+                    dest_path="${config_dir}/${dest_suffix}"
+                # .local/rcforge paths (everything else)
+                else
+                    dest_path="${local_dir}/${dest_suffix}"
+                fi
+
+                DownloadFile "$is_fresh_install_attempt" "$is_verbose" "$file_url" "$dest_path" # Exits on fail
+                file_count=$((file_count + 1))
+                ;;
+            *) VerboseMessage "$is_verbose" "Ignoring line $line_num before section: $line" ;;
+        esac
+    done <"$gc_manifest_temp_file"
+
+    SuccessMessage "Processed ${dir_count} directories."
+    if [[ $file_count -eq 0 ]]; then
+        WarningMessage "No files processed from manifest FILES section."
+        return 1
+    fi
+    SuccessMessage "Processed ${file_count} files."
+    return 0
+}
+
+# ============================================================================
+# Function: AddRcFileLines
+# Description: Adds the source line to the user's shell RC files.
+# Usage: AddRcFileLines is_fresh_install
+# Arguments:
+#   $1 (required) - Boolean indicating if fresh install.
+# Returns: 0 on success, 1 on failure.
+# ============================================================================
+AddRcFileLines() {
+    local is_fresh_install_attempt="$1"
+    local source_line="source \"\${XDG_DATA_HOME:-\$HOME/.local/share}/rcforge/rcforge.sh\""
+    local bashrc_path="$HOME/.bashrc"
+    local zshrc_path="$HOME/.zshrc"
+    local status=0
+
+    InfoMessage "Checking shell RC files..."
+
+    # Check for .bashrc
+    if [[ -f "$bashrc_path" ]]; then
+        # Check if line already exists
+        if ! grep -q "rcforge/rcforge.sh" "$bashrc_path"; then
+            InfoMessage "Adding source line to $bashrc_path"
+
+            # Add the source line directly (no comment)
+            echo "" >>"$bashrc_path"
+            echo "# rcForge - Shell Configuration Manager" >>"$bashrc_path"
+            echo "$source_line" >>"$bashrc_path"
+
+            SuccessMessage "Added source line to $bashrc_path"
+        else
+            # Update older style lines to new XDG path if needed
+            if grep -q "\.config/rcforge/rcforge.sh" "$bashrc_path"; then
+                InfoMessage "Updating rcForge path in $bashrc_path to use XDG structure"
+                sed -i.bak 's|source.*\.config/rcforge/rcforge.sh.*|'"$source_line"'|' "$bashrc_path"
+                SuccessMessage "Updated source line in $bashrc_path"
+            else
+                InfoMessage "rcForge source line already exists in $bashrc_path"
+            fi
+        fi
+    else
+        WarningMessage "$bashrc_path not found. Create it and add: $source_line"
+        status=1
+    fi
+
+    # Check for .zshrc
+    if [[ -f "$zshrc_path" ]]; then
+        # Check if line already exists
+        if ! grep -q "rcforge/rcforge.sh" "$zshrc_path"; then
+            InfoMessage "Adding source line to $zshrc_path"
+
+            # Add the source line directly (no comment)
+            echo "" >>"$zshrc_path"
+            echo "# rcForge - Shell Configuration Manager" >>"$zshrc_path"
+            echo "$source_line" >>"$zshrc_path"
+
+            SuccessMessage "Added source line to $zshrc_path"
+        else
+            # Update older style lines to new XDG path if needed
+            if grep -q "\.config/rcforge/rcforge.sh" "$zshrc_path"; then
+                InfoMessage "Updating rcForge path in $zshrc_path to use XDG structure"
+                sed -i.bak 's|source.*\.config/rcforge/rcforge.sh.*|'"$source_line"'|' "$zshrc_path"
+                SuccessMessage "Updated source line in $zshrc_path"
+            else
+                InfoMessage "rcForge source line already exists in $zshrc_path"
+            fi
+        fi
+    else
+        WarningMessage "$zshrc_path not found. Create it and add: $source_line"
+        status=1
+    fi
+
+    return $status
+}
+
+# ============================================================================
+# Function: CleanupInstall
+# Description: Performs final cleanup after successful installation.
+# Usage: CleanupInstall
+# Returns: 0 on success.
+# ============================================================================
+CleanupInstall() {
+    # Remove temporary files
+    if [[ -f "$gc_manifest_temp_file" ]]; then
+        rm -f "$gc_manifest_temp_file"
+    fi
+
+    # Perform any other cleanup needed
+    return 0
+}
+
+# ============================================================================
+# Function: ParseArguments
+# Description: Parse command-line arguments for the installation script.
+# Usage: ParseArguments "$@"
+# Arguments: $@ - Command line arguments passed to the script.
+# Returns: Sets global option variables. Returns 0 on success, 1 on error.
+# ============================================================================
+ParseArguments() {
+    # Global option variables - used across functions
+    RELEASE_TAG=""
+    SKIP_BACKUP=false
+    SKIP_BASH_CHECK=false
+    SKIP_RC_FILE_MODS=false
+    FORCE_INSTALL=false
+    VERBOSE_MODE=false
+
+    # Process arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --release-tag=*)
+                RELEASE_TAG="${1#*=}"
+                shift
+                ;;
+            --release-tag)
+                shift
+                if [[ -z "${1:-}" || "$1" == -* ]]; then
+                    WarningMessage "--release-tag requires a value"
+                    return 1
+                fi
+                RELEASE_TAG="$1"
+                shift
+                ;;
+            --skip-backup)
+                SKIP_BACKUP=true
+                shift
+                ;;
+            --skip-bash-check)
+                SKIP_BASH_CHECK=true
+                shift
+                ;;
+            --skip-rc-mods)
+                SKIP_RC_FILE_MODS=true
+                shift
+                ;;
+            --force)
+                FORCE_INSTALL=true
+                shift
+                ;;
+            -v | --verbose)
+                VERBOSE_MODE=true
+                shift
+                ;;
+            --help)
+                ShowHelp
+                exit 0
+                ;;
+            *)
+                WarningMessage "Unknown option: $1"
+                ShowHelp
+                return 1
+                ;;
+        esac
+    done
+
+    # Validate required arguments
+    if [[ -z "$RELEASE_TAG" ]]; then
+        WarningMessage "No release tag specified. Required: --release-tag=TAG"
+        ShowHelp
+        return 1
+    fi
+
+    # Calculate the base GitHub raw URL for the specified tag
+    GITHUB_RAW_URL="${gc_repo_base_url}/${RELEASE_TAG}"
+
+    return 0
+}
+
+# ============================================================================
+# Function: ShowHelp
+# Description: Display help information for the installation script.
+# Usage: ShowHelp
+# Arguments: None
+# Exits: 0
+# ============================================================================
+ShowHelp() {
+    cat <<EOF
+rcForge Installer (v${gc_installer_version})
+
+Usage: $(basename "$0") [OPTIONS]
+
+Options:
+  --release-tag=TAG      Specify the release tag to install (required)
+  --skip-backup          Skip creating a backup (not recommended)
+  --skip-bash-check      Skip checking Bash version compatibility
+  --skip-rc-mods         Skip modifying shell RC files
+  --force                Force installation even if version is the same
+  --verbose, -v          Show more detailed output
+  --help                 Show this help message
+
+Examples:
+  $(basename "$0") --release-tag=v0.5.0
+  $(basename "$0") --release-tag=v0.5.0 --verbose --skip-backup
+EOF
+}
+
+# ============================================================================
+# Function: main
+# Description: Main installation function orchestrating the install process.
+# Usage: main "$@"
+# Arguments: $@ - Command line arguments passed to the script.
+# Returns: 0 on success, >0 on failure.
+# ============================================================================
+main() {
+    # Parse arguments
+    if ! ParseArguments "$@"; then
+        return 1
+    fi
+
+    SectionHeader "rcForge Installation (v${gc_installer_version})"
+    InfoMessage "Target version: ${gc_rcforge_core_version} (Tag: ${RELEASE_TAG})"
+    InfoMessage "Base URL: ${GITHUB_RAW_URL}"
+
+    # Check if running in bash and if bash meets version requirements
+    if [[ "${SKIP_BASH_CHECK}" != "true" ]]; then
+        # Determine if this is a fresh install
+        IS_FRESH_INSTALL=false
+        if ! IsInstalled; then
+            IS_FRESH_INSTALL=true
+        fi
+
+        CheckBashVersion "$IS_FRESH_INSTALL" "false"
+    else
+        InfoMessage "Skipping Bash version check (--skip-bash-check)"
+    fi
+
+    # Detect installation state
+    if IsInstalled; then
+        local current_version
+        current_version=$(GetInstalledVersion)
+
+        if [[ "$current_version" == "unknown" ]]; then
+            InfoMessage "Existing installation detected, but version could not be determined."
+            InfoMessage "Proceeding with installation/upgrade."
+        else
+            InfoMessage "Existing installation detected (Version: ${current_version})."
+
+            # Check if it's the same version
+            if [[ "$current_version" == "$gc_rcforge_core_version" && "$FORCE_INSTALL" != "true" ]]; then
+                WarningMessage "Installed version ($current_version) matches target version ($gc_rcforge_core_version)."
+                InfoMessage "Use --force to reinstall anyway."
+                return 0
+            fi
+
+            InfoMessage "Will upgrade from v${current_version} to v${gc_rcforge_core_version}"
+        fi
+
+        # Check if XDG upgrade is needed
+        if NeedsUpgradeToXDG; then
+            if ConfirmUpgradeToXDG; then
+                CreateBackup "false" "$SKIP_BACKUP" "$VERBOSE_MODE"
+                MigrateToXDGStructure "false" "$VERBOSE_MODE"
+            else
+                return 1 # User cancelled
+            fi
+        else
+            # Standard upgrade, take backup
+            CreateBackup "false" "$SKIP_BACKUP" "$VERBOSE_MODE"
+        fi
+
+        # Download and process manifest
+        DownloadManifest "false" "$VERBOSE_MODE" "$GITHUB_RAW_URL"
+        ProcessManifest "false" "$VERBOSE_MODE" "$GITHUB_RAW_URL"
+
+        # Update RC files if needed
+        if [[ "$SKIP_RC_FILE_MODS" != "true" ]]; then
+            AddRcFileLines "false"
+        else
+            InfoMessage "Skipping RC file modifications (--skip-rc-mods)"
+        fi
+
+        InfoMessage "Upgrade complete to rcForge v${gc_rcforge_core_version}"
+    else
+        # Fresh installation
+        InfoMessage "No existing installation detected. Performing fresh install."
+
+        # Create structure, download and process manifest
+        DownloadManifest "true" "$VERBOSE_MODE" "$GITHUB_RAW_URL"
+        ProcessManifest "true" "$VERBOSE_MODE" "$GITHUB_RAW_URL"
+
+        # Add source lines to RC files
+        if [[ "$SKIP_RC_FILE_MODS" != "true" ]]; then
+            AddRcFileLines "true"
+        else
+            InfoMessage "Skipping RC file modifications (--skip-rc-mods)"
+        fi
+
+        InfoMessage "Fresh installation complete of rcForge v${gc_rcforge_core_version}"
+    fi
+
+    # Cleanup
+    CleanupInstall
+
+    # Final messages
+    SuccessMessage "rcForge v${gc_rcforge_core_version} has been successfully installed!"
+    InfoMessage "To start using rcForge in your current shell session:"
+    InfoMessage "  source \"\${XDG_DATA_HOME:-\$HOME/.local/share}/rcforge/rcforge.sh\""
+    InfoMessage "Or open a new terminal window."
+    echo ""
+    InfoMessage "Remember: You can press '.' during initialization to abort rcForge loading if needed."
+
+    return 0
+}
+
+# Call the main function with all script arguments
+main "$@"
+exit $?
+
+# EOF
