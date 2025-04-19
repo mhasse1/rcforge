@@ -15,7 +15,7 @@
 set -o nounset
 
 # Source rcForge environment variabls
-source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set_rcforge_environment.sh"
+source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
 # --- Path Management (v0.5.0+) ---
 # Process path.conf to set PATH environment variable
