@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # rcforge.sh - Universal Shell Configuration Loader
 # Author: Mark Hasse
-# Version: 0.5.0pre1
+# Version: 0.5.0pre2
 # Category: core
 # Description: Main loader script for rcForge shell configuration system.
 #              Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
@@ -78,7 +78,7 @@ EOF
 # --- API Key Management (v0.5.0+) ---
 # Process API key settings to export environment variables
 ProcessApiKeys() {
-	local api_key_file="${RCFORGE_DATA_ROOT}/config/api_keys.conf"
+	local api_key_file="${RCFORGE_DATA_ROOT}/config/api-keys.conf"
 
 	# Check if API key file exists
 	if [[ ! -f "$api_key_file" ]]; then

@@ -267,7 +267,11 @@ NeedsUpgradeToXDG() {
 
 		# Use sort -V to compare versions
 		if [[ "$(printf '%s\n' "0.5.0" "$current_version" | sort -V | head -n1)" == "$current_version" ]]; then
-			return 0 # Upgrade needed
+			# Also verify that the XDG structure doesn't already exist
+			if [[ ! -d "$gc_config_dir" || ! -d "$gc_data_dir" ||
+				! -f "${gc_data_dir}/rcforge.sh" ]]; then
+				return 0 # Upgrade needed
+			fi
 		fi
 	fi
 
@@ -558,19 +562,50 @@ MigrateToXDGStructure() {
 
 	InfoMessage "Creating new XDG directory structure..."
 
-	# Create config directory structure
-	mkdir -p "${gc_config_dir}/config"
-	mkdir -p "${gc_config_dir}/rc-scripts"
-	chmod 700 "${gc_config_dir}" "${gc_config_dir}/config" "${gc_config_dir}/rc-scripts"
+	# Create a processed manifest file with XDG placeholders replaced
+	local processed_manifest_file="${gc_manifest_temp_file}_processed"
+	InfoMessage "Processing XDG placeholders in manifest for migration..."
 
-	# Create data directory structure
-	mkdir -p "${gc_data_dir}/backups"
-	mkdir -p "${gc_data_dir}/config/checksums"
-	mkdir -p "${gc_data_dir}/system/core"
-	mkdir -p "${gc_data_dir}/system/lib"
-	mkdir -p "${gc_data_dir}/system/utils"
-	chmod 700 "${gc_data_dir}" "${gc_data_dir}/backups" "${gc_data_dir}/config"
-	chmod 700 "${gc_data_dir}/system" "${gc_data_dir}/system/core" "${gc_data_dir}/system/lib" "${gc_data_dir}/system/utils"
+	# Replace placeholders with XDG paths
+	if ! sed -e "s|{xdg-home}|${XDG_CONFIG_HOME:-$HOME/.config}/rcforge|g" \
+		-e "s|{xdg-data}|${XDG_DATA_HOME:-$HOME/.local/share}/rcforge|g" \
+		"$gc_manifest_temp_file" >"$processed_manifest_file"; then
+		ErrorMessage "$is_fresh_install_attempt" "Failed to process XDG placeholders in manifest."
+	fi
+
+	# Check processed file was created successfully
+	if [[ ! -f "$processed_manifest_file" || ! -s "$processed_manifest_file" ]]; then
+		ErrorMessage "$is_fresh_install_attempt" "Failed to create processed manifest file."
+	fi
+
+	# Read the directory structure from the processed manifest file
+	local dir_path
+	local in_dirs_section=false
+
+	# Process directories from manifest
+	while IFS= read -r line; do
+		# Skip comments and empty lines
+		if [[ -z "$line" || "$line" =~ ^# ]]; then
+			continue
+		fi
+
+		if [[ "$line" == "DIRECTORIES:" ]]; then
+			in_dirs_section=true
+			continue
+		fi
+
+		if [[ "$line" == "FILES:" ]]; then
+			break # Stop when we reach FILES section
+		fi
+
+		if [[ "$in_dirs_section" == "true" ]]; then
+			dir_path="$line"
+			# Create directory if it doesn't exist
+			VerboseMessage "$is_verbose" "Creating directory from manifest: $dir_path"
+			mkdir -p "$dir_path"
+			chmod 700 "$dir_path"
+		fi
+	done <"$processed_manifest_file"
 
 	InfoMessage "Migrating files from old structure..."
 
@@ -582,10 +617,10 @@ MigrateToXDGStructure() {
 
 	# Move user utilities if they exist
 	if [[ -d "${gc_old_rcforge_dir}/utils" ]]; then
-		mkdir -p "${gc_data_dir}/utils"
-		chmod 700 "${gc_data_dir}/utils"
-		find "${gc_old_rcforge_dir}/utils" -type f -exec cp -p {} "${gc_data_dir}/utils/" \;
-		SuccessMessage "Migrated user utilities to ${gc_data_dir}/utils/"
+		mkdir -p "${gc_config_dir}/utils"
+		chmod 700 "${gc_config_dir}/utils"
+		find "${gc_old_rcforge_dir}/utils" -type f -exec cp -p {} "${gc_config_dir}/utils/" \;
+		SuccessMessage "Migrated user utilities to ${gc_config_dir}/utils/"
 	fi
 
 	# Move backups if they exist
@@ -631,109 +666,20 @@ ProcessManifest() {
 		ErrorMessage "$is_fresh_install_attempt" "Manifest temp file not found."
 	fi
 
-	# In 0.5.0+, we have two root directories to handle
-	local config_dir="${gc_config_dir}"
-	local local_dir="${gc_data_dir}"
+	# Create a processed manifest file with XDG placeholders replaced
+	local processed_manifest_file="${gc_manifest_temp_file}_processed"
+	InfoMessage "Processing XDG placeholders in manifest..."
 
-	# Ensure both root directories exist
-	if ! mkdir -p "$config_dir" "$local_dir"; then
-		ErrorMessage "$is_fresh_install_attempt" "Failed to ensure base dirs: $config_dir and $local_dir"
+	# Replace placeholders with XDG paths
+	if ! sed -e "s|{xdg-home}|${XDG_CONFIG_HOME:-$HOME/.config}/rcforge|g" \
+		-e "s|{xdg-data}|${XDG_DATA_HOME:-$HOME/.local/share}/rcforge|g" \
+		"$gc_manifest_temp_file" >"$processed_manifest_file"; then
+		ErrorMessage "$is_fresh_install_attempt" "Failed to process XDG placeholders in manifest."
 	fi
-	if ! chmod 700 "$config_dir" "$local_dir"; then
-		WarningMessage "Could not set permissions (700) on base directories"
-	fi
 
-	while IFS= read -r line || [[ -n "$line" ]]; do
-		line_num=$((line_num + 1))
-		line="${line#"${line%%[![:space:]]*}"}"
-		line="${line%"${line##*[![:space:]]}"}" # Trim
-		if [[ -z "$line" || "$line" =~ ^# ]]; then
-			continue
-		fi
-		if [[ "$line" == "DIRECTORIES:" ]]; then
-			current_section="DIRS"
-			InfoMessage "Processing directories..."
-			continue
-		fi
-		if [[ "$line" == "FILES:" ]]; then
-			current_section="FILES"
-			InfoMessage "Processing files..."
-			continue
-		fi
-
-		case "$current_section" in
-			"DIRS")
-				dir_path="${line#./}"
-
-				# Determine target directory based on path
-				# .config/rcforge paths
-				if [[ "$dir_path" == rc-scripts* || "$dir_path" == config* ]]; then
-					full_dir_path="${config_dir}/${dir_path}"
-				# .local/rcforge paths (everything else)
-				else
-					full_dir_path="${local_dir}/${dir_path}"
-				fi
-
-				VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
-				if ! mkdir -p "$full_dir_path"; then
-					ErrorMessage "$is_fresh_install_attempt" "Failed create dir: $full_dir_path"
-				fi
-				if ! chmod 700 "$full_dir_path"; then
-					WarningMessage "Could not set permissions (700) on: $full_dir_path"
-				fi
-				dir_count=$((dir_count + 1))
-				;;
-			"FILES")
-				read -r source_suffix dest_suffix <<<"$line"
-				if [[ -z "$source_suffix" || -z "$dest_suffix" ]]; then
-					WarningMessage "Line $line_num: Invalid format. Skip: '$line'"
-					continue
-				fi
-				file_url="${github_raw_url}/${source_suffix}" # Use passed URL base
-
-				# Determine target location based on path
-				# .config/rcforge paths
-				if [[ "$dest_suffix" == rc-scripts/* || "$dest_suffix" == config/* ]]; then
-					dest_path="${config_dir}/${dest_suffix}"
-				# .local/rcforge paths (everything else)
-				else
-					dest_path="${local_dir}/${dest_suffix}"
-				fi
-
-				DownloadFile "$is_fresh_install_attempt" "$is_verbose" "$file_url" "$dest_path" # Exits on fail
-				file_count=$((file_count + 1))
-				;;
-			*) VerboseMessage "$is_verbose" "Ignoring line $line_num before section: $line" ;;
-		esac
-	done <"$gc_manifest_temp_file"
-
-	SuccessMessage "Processed ${dir_count} directories."
-	if [[ $file_count -eq 0 ]]; then
-		WarningMessage "No files processed from manifest FILES section."
-		return 1
-	fi
-	SuccessMessage "Processed ${file_count} files."
-	return 0
-}
-
-# ============================================================================
-# Function: ProcessManifest
-# Description: Reads manifest, creates directories, downloads files using the specified release URL.
-# Usage: ProcessManifest is_fresh_install is_verbose github_raw_url
-# Arguments: $1, $2 (required) - Booleans. $3 (required) - Base RAW URL for the release tag.
-# Returns: 0 on success, 1 if no files processed. Exits via ErrorMessage otherwise.
-# ============================================================================
-ProcessManifest() {
-	local is_fresh_install_attempt="$1"
-	local is_verbose="$2"
-	local github_raw_url="$3" # Use the passed base URL
-	local current_section="NONE"
-	local line_num=0 dir_count=0 file_count=0
-	local line dir_path full_dir_path source_suffix dest_suffix file_url dest_path
-
-	SectionHeader "Processing Manifest File"
-	if [[ ! -f "$gc_manifest_temp_file" ]]; then
-		ErrorMessage "$is_fresh_install_attempt" "Manifest temp file not found."
+	# Check processed file was created successfully
+	if [[ ! -f "$processed_manifest_file" || ! -s "$processed_manifest_file" ]]; then
+		ErrorMessage "$is_fresh_install_attempt" "Failed to create processed manifest file."
 	fi
 
 	# In 0.5.0+, we have two root directories to handle
@@ -770,14 +716,8 @@ ProcessManifest() {
 			"DIRS")
 				dir_path="${line#./}"
 
-				# Determine target directory based on path
-				# .config/rcforge paths
-				if [[ "$dir_path" == rc-scripts* || "$dir_path" == config* ]]; then
-					full_dir_path="${config_dir}/${dir_path}"
-				# .local/rcforge paths (everything else)
-				else
-					full_dir_path="${local_dir}/${dir_path}"
-				fi
+				# Now using the full path directly (placeholders already replaced)
+				full_dir_path="$line"
 
 				VerboseMessage "$is_verbose" "Ensuring directory: $full_dir_path"
 				if ! mkdir -p "$full_dir_path"; then
@@ -796,21 +736,15 @@ ProcessManifest() {
 				fi
 				file_url="${github_raw_url}/${source_suffix}" # Use passed URL base
 
-				# Determine target location based on path
-				# .config/rcforge paths
-				if [[ "$dest_suffix" == rc-scripts/* || "$dest_suffix" == config/* ]]; then
-					dest_path="${config_dir}/${dest_suffix}"
-				# .local/rcforge paths (everything else)
-				else
-					dest_path="${local_dir}/${dest_suffix}"
-				fi
+				# Now using the destination path directly (placeholders already replaced)
+				dest_path="$dest_suffix"
 
 				DownloadFile "$is_fresh_install_attempt" "$is_verbose" "$file_url" "$dest_path" # Exits on fail
 				file_count=$((file_count + 1))
 				;;
 			*) VerboseMessage "$is_verbose" "Ignoring line $line_num before section: $line" ;;
 		esac
-	done <"$gc_manifest_temp_file"
+	done <"$processed_manifest_file"
 
 	SuccessMessage "Processed ${dir_count} directories."
 	if [[ $file_count -eq 0 ]]; then
@@ -905,6 +839,10 @@ CleanupInstall() {
 	# Remove temporary files
 	if [[ -f "$gc_manifest_temp_file" ]]; then
 		rm -f "$gc_manifest_temp_file"
+	fi
+	# Remove the processed manifest file as well
+	if [[ -f "${gc_manifest_temp_file}_processed" ]]; then
+		rm -f "${gc_manifest_temp_file}_processed"
 	fi
 
 	# Perform any other cleanup needed
