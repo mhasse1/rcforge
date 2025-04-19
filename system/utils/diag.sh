@@ -612,8 +612,7 @@ main() {
     # Use sourced SectionHeader
     SectionHeader "rcForge Configuration Diagram Generation (v${gc_version})"
 
-    # Find config files using the *sourced* FindRcScripts function directly
-    find_output=$(FindRcScripts "${options[target_shell]}" "${options[target_hostname]}")
+    config_files=$(FindRcScripts "${options[target_shell]}" "${options[target_hostname]}")
     find_status=$?
 
     if [[ $find_status -ne 0 ]]; then
@@ -623,9 +622,6 @@ main() {
         InfoMessage "No configuration files found for ${options[target_shell]}/${options[target_hostname]}. Diagram not generated."
         return 0 # Not an error if no files found
     fi
-
-    # Load file list into array using mapfile
-    mapfile -t config_files <<<"$find_output"
 
     # Generate the diagram
     GenerateDiagram \

@@ -5,6 +5,7 @@ Inbox:
 	- path manipulation scripts should be available in `rc` @na
 	- `rc --home`: cd to ~/.config/rcforge folder. @na
 	- `rc --local`: cd to ~/.local/rcforge @na
+	- Rename diag to diagram @na
 	050 Docs:
 		- Update 041-documentation to 050 @na
 		- Update project-instructions to 050 @na
