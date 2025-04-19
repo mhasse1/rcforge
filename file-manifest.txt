@@ -1,5 +1,5 @@
 # v0.5.0pre1 File Manifest
-# File version: 0.5.0pre1-2
+# File version: 0.5.0pre1-3
 
 # ----------------------------------------------------------------------------
 # XDG BASE DIRECTORY SUPPORT
