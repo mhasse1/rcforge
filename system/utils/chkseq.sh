@@ -351,8 +351,7 @@ CheckSeqConflicts() {
 
     InfoMessage "Checking sequence conflicts for ${hostname}/${shell}..."
 
-    # Find config files using the *sourced* FindRcScripts function directly
-    find_output=$(FindRcScripts "$shell" "$hostname")
+    config_files==$(FindRcScripts "$shell" "$hostname")
     find_status=$?
 
     if [[ $find_status -ne 0 ]]; then
@@ -362,8 +361,6 @@ CheckSeqConflicts() {
         InfoMessage "No configuration files found for ${hostname}/${shell}. Skipping check."
         return 0 # Not an error if no files
     fi
-    # Load file list into array using mapfile
-    mapfile -t config_files <<<"$find_output"
 
     # Populate the sequence map
     for file in "${config_files[@]}"; do

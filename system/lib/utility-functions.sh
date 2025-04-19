@@ -126,17 +126,19 @@ CheckRoot() {
 #              Sorts the found files numerically based on sequence prefix.
 # Usage: local -a files; mapfile -t files < <(FindRcScripts "bash" "myhost")
 #        local files_str; files_str=$(FindRcScripts "zsh")
-# Arguments: None
+# Arguments:
+#          $1 (optional) - Target shell ('bash' or 'zsh').
+#          $2 (optional) - Target hostname. Defaults to current hostname.
 # Returns: Echoes a newline-separated list of matching script paths, sorted numerically.
 #          Returns status 0 on success (even if no files found), 1 on error (e.g., dir missing).
 # ============================================================================
 FindRcScripts() {
+	local shell=${1:-$(DetectShell)}
+	local hostname=${2:-$(DetectHostname)}
 	local file=""
 	local pipeline_status=0
 	local -a config_files=()
 
-	local hostname=$(DetectHostname)
-	local shell=$(DetectShell)
 	local pattern="[0-9]{3}_(global|$(hostname))_(common|zsh)_.*\.sh"
 
 	# Check if the scripts directory exists
