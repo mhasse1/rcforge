@@ -84,7 +84,7 @@ ${HOME}/.config/rcforge/
 │   ├── lib                           # System libraries
 │   └── utils                         # System utility scripts
 │       ├── seq.sh                    # Example system utils
-│       ├── diag.sh                   #    ↓
+│       ├── diagram.sh                   #    ↓
 │       ├── export.sh                 #    ↓
 │       └── dnslookup.sh              #    ↓
 └── utils                             # User utility scripts
@@ -170,9 +170,9 @@ Source-able files like `shell-colors.sh` remain important for maintaining consis
 
 - Supports a flexible, discoverable interface for system and user utilities
 
-- While the utility scripts written to support rc will have the .sh extension, execution from within rc will not require or list the .sh extension. For example, `htttheaders.sh` would be executed as `rc httpheaders example.com` and would be listed as 
+- While the utility scripts written to support rc will have the .sh extension, execution from within rc will not require or list the .sh extension. For example, `htttheaders.sh` would be executed as `rc httpheaders example.com` and would be listed as
 
-  ​	`httpheaders   Retrieves and displays HTTP headers for the specified URL` 
+  ​	`httpheaders   Retrieves and displays HTTP headers for the specified URL`
 
 ##### Command Types
 
@@ -302,7 +302,7 @@ flowchart TD
     file1[210: global/bash<br>config] --> file2
     file2[350: global/bash<br>prompt] --> file3
     file3[400: global/common<br>aliases] --> End([End rcForge])
-    
+
     class FirstFile global,common
     class file1 global,shell
     class file2 global,shell
@@ -372,7 +372,7 @@ flowchart TD
 
    ```bash
    # post-install messaging
-   
+
    if $gc_upgrade; then
      display upgrade message
      display any specific upgrade steps
@@ -417,7 +417,7 @@ flowchart TD
    ```bash
    # Source rcForge in your current shell
    source ~/.config/rcforge/rcforge.sh
-   
+
    # Run the help command to see available utilities
    rc help
    ```
@@ -426,7 +426,7 @@ flowchart TD
    ```bash
    # Create a custom alias configuration
    vim ~/.config/rcforge/rc-scripts/410_global_common_myaliases.sh
-   
+
    # Example content for the file:
    #!/bin/bash
    # My custom aliases
@@ -482,7 +482,7 @@ flowchart TD
 
 0.6.5 - RC rework
 - Will vary based on results as I test rc
-- One big feature will be categorization of utilities 
+- One big feature will be categorization of utilities
   - Use the scrit comment blocks like I did for the summary function
 	- `rc list network` should list all of my network utilities, etc.
 - rc diag - add "full system diagram" that include conditionals to show branching

@@ -39,7 +39,7 @@ PerformIntegrityChecks() {
 
 	local -A checks=(
 		["Sequence Conflict Check"]="${RCFORGE_UTILS}/chkseq.sh"
-		["RC File Checksum Check"]="${RCFORGE_UTILS}/check-checksums.sh"
+		["RC File Checksum Check"]="${RCFORGE_UTILS}/checksums.sh"
 	)
 
 	for check_name in "${!checks[@]}"; do

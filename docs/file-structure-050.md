@@ -29,40 +29,37 @@ Key components:
 
 ```
 ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/
-├── config/                         # User configuration files
-│   ├── api-keys.conf               # API keys configuration
-│   ├── path.conf                   # PATH configuration
-│   └── checksums/                  # Configuration file checksums
-└── rc-scripts/                     # User shell configuration scripts
-    ├── 050_global_common_path.sh   # Example sequenced rc-script
-    ├── 210_global_bash_config.sh   # Bash-specific config
-    ├── 210_global_zsh_config.sh    # Zsh-specific config
-    └── ...                         # Additional user scripts
+├── config/                            # User configuration files
+│   └── path.conf                      # PATH configuration
+├── utils/                             # User utils
+└── rc-scripts/                        # User shell configuration scripts
+    └── README.md                      # rc-scripts README
 
 ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
-├── backups/                        # Automated backups
-├── config/                         # System configuration
-│   ├── bash-location               # Path to Bash 4.3+
-│   └── checksums/                  # System file checksums
-├── docs/                           # Documentation
-├── rcforge.sh                      # Main loader script
-├── system/                         # Core system files
-│   ├── core/                       # Core system scripts
-│   │   ├── bash-version-check.sh   # Bash compatibility checker
-│   │   ├── rc.sh                   # Command dispatcher
-│   │   └── run-integrity-checks.sh # Integrity check runner
-│   ├── lib/                        # Shared library functions
-│   │   ├── shell-colors.sh         # Color and formatting
-│   │   ├── utility-functions.sh    # Common utility functions
-│   │   └── set_rcforge_environment.sh # Environment variables
-│   └── utils/                      # System utility scripts
-│       ├── apikey.sh               # API key management utility
-│       ├── check-checksums.sh      # Checksum verification
-│       ├── chkseq.sh               # Sequence conflict detection
-│       ├── diag.sh                 # Configuration visualization
-│       ├── export.sh               # Configuration export
-│       └── ...                     # Other system utilities
-└── utils/                          # User-created utilities
+├── rcforge.sh                         # Main loader script
+├── backups/                           # Automated backups
+├── config/                            # System configuration
+│   ├── bash-location                  # Path to Bash 4.3+
+│   ├── api-keys.conf                  # API keys configuration
+│   └── checksums/                     # System file checksums
+├── docs/                              # Documentation
+│   ├── LICENCE                        # MIT License
+│   └── README.md                      # rcForge README
+└── system/                            # System file structure
+    ├── core/                          # Core system scripts
+    │   ├── bash-version-check.sh      # Bash compatibility checker
+    │   ├── rc.sh                      # Command dispatcher
+    │   └── run-integrity-checks.sh    # Integrity check runner
+    ├── lib/                           # Shared library functions
+    │   ├── shell-colors.sh            # Color and formatting
+    │   ├── utility-functions.sh       # Common utility functions
+    │   └── set-rcforge-environment.sh # Environment variables
+    └── utils/                         # System utility scripts
+        ├── apikey.sh                  # API key management utility
+        ├── checksums.sh               # Checksum verification
+        ├── chkseq.sh                  # Sequence conflict detection
+        ├── diagram.sh                 # Configuration visualization
+        └── export.sh                  # Configuration export
 ```
 
 ## Component Descriptions
@@ -97,7 +94,7 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
 | `~/.local/share/rcforge/system/lib/shell-colors.sh`      | Color and formatting utilities               |
 | `~/.local/share/rcforge/system/lib/utility-functions.sh` | Common utility functions                     |
 | `~/.local/share/rcforge/system/core/bash-version-check.sh` | Bash version validation                   |
-| `~/.local/share/rcforge/system/lib/set_rcforge_environment.sh` | Set environment variables              |
+| `~/.local/share/rcforge/system/lib/set-rcforge-environment.sh` | Set environment variables              |
 | `~/.local/share/rcforge/system/core/rc.sh`              | RC command dispatcher                        |
 | `~/.local/share/rcforge/system/utils/apikey.sh`         | API key management utility                   |
 
@@ -151,8 +148,8 @@ A key feature of rcForge is the user override system:
 ### How User Overrides Work
 
 To override a system utility:
-1. Identify the system utility you want to customize (e.g., `~/.local/share/rcforge/system/utils/diag.sh`)
-2. Create a file with the same name in the user utils directory: `~/.local/share/rcforge/utils/diag.sh`
+1. Identify the system utility you want to customize (e.g., `~/.local/share/rcforge/system/utils/diagram.sh`)
+2. Create a file with the same name in the user utils directory: `~/.local/share/rcforge/utils/diagram.sh`
 3. Your version will now be used instead of the system version
 
 ## The RC Command Framework

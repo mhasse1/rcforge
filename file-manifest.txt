@@ -20,53 +20,48 @@
 #   - Paths starting with "rc-scripts/" or "config/" go to ${XDG_CONFIG_HOME}/rcforge/
 #   - All other paths go to ${XDG_DATA_HOME}/rcforge/
 
-DIRECTORIES:
-# Directory structure for XDG_CONFIG_HOME/rcforge/
-config
-config/checksums
-rc-scripts
+# xdg-home = ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/
+{xdg-home}/
+{xdg-home}/config/
+{xdg-home}/utils/
+{xdg-home}/rc-scripts/
 
-# Directory structure for XDG_DATA_HOME/rcforge/
-backups
-config
-config/checksums
-docs
-system
-system/core
-system/lib
-system/utils
-utils
+# xdg-data = ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
+{xdg-data}/
+{xdg-data}/backups/
+{xdg-data}/config/
+{xdg-data}/config/checksums/
+{xdg-data}/docs/
+{xdg-data}/system/
+{xdg-data}/system/core/
+{xdg-data}/system/lib/
+{xdg-data}/system/utils/
 
 FILES:
 # Source Path (relative to project root)        Destination Path (relative to XDG roots)
 # --------------------------------------------- ----------------------------------------
-# Documentation (installed to XDG_DATA_HOME)
-LICENSE                                         docs/LICENSE
-README.md                                       docs/README.md
+rcforge.sh                                      {xdg-data}/rcforge.sh
 
-# Main script (installed to XDG_DATA_HOME)
-rcforge.sh                                      rcforge.sh
+LICENSE                                         {xdg-data}/docs/LICENSE
+README.md                                       {xdg-data}/docs/README.md
 
-# Core System files (installed to XDG_DATA_HOME)
-system/core/bash-version-check.sh               system/core/bash-version-check.sh
-system/core/rc.sh                               system/core/rc.sh
-system/core/run-integrity-checks.sh             system/core/run-integrity-checks.sh
-system/lib/shell-colors.sh                      system/lib/shell-colors.sh
-system/lib/utility-functions.sh                 system/lib/utility-functions.sh
-system/lib/set-rcforge-environment.sh           system/lib/set-rcforge-environment.sh
+config/api-keys.conf.template                   {xdg-data}/config/api-keys.conf
 
-# System Utilities (installed to XDG_DATA_HOME)
-system/utils/checksums.sh                       system/utils/checksums.sh
-system/utils/chkseq.sh                          system/utils/chkseq.sh
-system/utils/concat-files.sh                    system/utils/concat-files.sh
-system/utils/diagram.sh                         system/utils/diagram.sh
-system/utils/export.sh                          system/utils/export.sh
-system/utils/apikey.sh                          system/utils/apikey.sh
+system/core/bash-version-check.sh               {xdg-data}/system/core/bash-version-check.sh
+system/core/rc.sh                               {xdg-data}/system/core/rc.sh
+system/core/run-integrity-checks.sh             {xdg-data}/system/core/run-integrity-checks.sh
 
-# RC Scripts example files (installed to XDG_CONFIG_HOME)
-rc-scripts/README.md                            rc-scripts/README.md
+system/lib/shell-colors.sh                      {xdg-data}/system/lib/shell-colors.sh
+system/lib/utility-functions.sh                 {xdg-data}/system/lib/utility-functions.sh
+system/lib/set-rcforge-environment.sh           {xdg-data}/system/lib/set-rcforge-environment.sh
 
-# Configuration templates (installed to XDG_CONFIG_HOME)
-config/path.conf.template                       config/path.conf
-config/api-keys.conf.template                   config/api-keys.conf
+system/utils/checksums.sh                       {xdg-data}/system/utils/checksums.sh
+system/utils/chkseq.sh                          {xdg-data}/system/utils/chkseq.sh
+system/utils/concat-files.sh                    {xdg-data}/system/utils/concat-files.sh
+system/utils/diagram.sh                         {xdg-data}/system/utils/diagram.sh
+system/utils/export.sh                          {xdg-data}/system/utils/export.sh
+system/utils/apikey.sh                          {xdg-data}/system/utils/apikey.sh
+
+rc-scripts/README.md                            {xdg-home}/rc-scripts/README.md
+config/path.conf.template                       {xdg-home}/config/path.conf
 

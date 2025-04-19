@@ -87,10 +87,10 @@ ${HOME}/.local
         │   ├── shell-colors.sh
         │   └── utility-functions.sh
         └── utils
-            ├── check-checksums.sh
+            ├── checksums.sh
             ├── chkseq.sh
             ├── concat-files.sh
-            ├── diag.sh
+            ├── diagram.sh
             └── export.sh
 ```
 
