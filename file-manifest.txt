@@ -43,7 +43,6 @@ FILES:
 # Documentation (installed to XDG_DATA_HOME)
 LICENSE                                         docs/LICENSE
 README.md                                       docs/README.md
-docs/utility-dev-guide.md                       docs/utility-dev-guide.md
 
 # Main script (installed to XDG_DATA_HOME)
 rcforge.sh                                      rcforge.sh
@@ -54,7 +53,7 @@ system/core/rc.sh                               system/core/rc.sh
 system/core/run-integrity-checks.sh             system/core/run-integrity-checks.sh
 system/lib/shell-colors.sh                      system/lib/shell-colors.sh
 system/lib/utility-functions.sh                 system/lib/utility-functions.sh
-system/lib/set_rcforge_environment.sh           system/lib/set_rcforge_environment.sh
+system/lib/set-rcforge-environment.sh           system/lib/set-rcforge-environment.sh
 
 # System Utilities (installed to XDG_DATA_HOME)
 system/utils/check-checksums.sh                 system/utils/check-checksums.sh
@@ -75,4 +74,4 @@ rc-scripts/400_global_common_aliases.sh         rc-scripts/400_global_common_ali
 
 # Configuration templates (installed to XDG_CONFIG_HOME)
 config/path.conf.template                       config/path.conf
-config/api_keys.conf.template                   config/api_keys.conf
+config/api_keys.conf.template                   config/api_keys.conf# docs/
