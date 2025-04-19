@@ -208,7 +208,7 @@ ExportConfiguration() {
     fi
 
     # Find config files using the *sourced* FindRcScripts function
-    find_output=$(FindRcScripts "$shell_type" "$hostname")
+    config_files=$(FindRcScripts "$shell_type" "$hostname")
     find_status=$?
 
     if [[ $find_status -ne 0 ]]; then
@@ -218,9 +218,6 @@ ExportConfiguration() {
         InfoMessage "No configuration files found for shell: $shell_type${hostname:+ (hostname: $hostname)}. Nothing to export."
         return 0 # Not an error if no files found
     fi
-
-    # Load file list into array using mapfile
-    mapfile -t config_files <<<"$find_output"
 
     if [[ "$is_verbose" == "true" ]]; then
         InfoMessage "Found ${#config_files[@]} configuration files to process:"
