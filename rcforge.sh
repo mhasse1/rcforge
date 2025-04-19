@@ -393,6 +393,6 @@ unset -f ProcessApiKeys
 # Note: 'rc' function remains exported
 
 # Return the final status of the main loader function
-return $_RCFORGE_INIT_STATUS
+exit $_RCFORGE_INIT_STATUS
 
 # EOF

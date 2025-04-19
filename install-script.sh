@@ -563,7 +563,7 @@ MigrateToXDGStructure() {
     mkdir -p "${gc_config_dir}/rc-scripts"
     chmod 700 "${gc_config_dir}" "${gc_config_dir}/config" "${gc_config_dir}/rc-scripts"
 
-    # Create local directory structure
+    # Create data directory structure
     mkdir -p "${gc_data_dir}/backups"
     mkdir -p "${gc_data_dir}/config/checksums"
     mkdir -p "${gc_data_dir}/system/core"
@@ -599,48 +599,6 @@ MigrateToXDGStructure() {
         find "${gc_old_rcforge_dir}/docs/checksums" -type f -exec cp -p {} "${gc_data_dir}/config/checksums/" \;
         SuccessMessage "Migrated checksums to ${gc_data_dir}/config/checksums/"
     fi
-
-    # Create initial API key settings file
-    mkdir -p "${gc_data_dir}/config"
-    touch "${gc_data_dir}/config/api_key_settings"
-    chmod 600 "${gc_data_dir}/config/api_key_settings"
-    cat >"${gc_data_dir}/config/api_key_settings" <<EOF
-# rcForge API Key Settings
-# This file contains API keys that will be exported as environment variables.
-# Lines starting with # are ignored.
-# Format: NAME='value'
-#
-# Examples:
-# GEMINI_API_KEY='your-api-key-here'
-# CLAUDE_API_KEY='your-api-key-here'
-# AWS_API_KEY='your-api-key-here'
-EOF
-    SuccessMessage "Created initial API key settings file"
-
-    # Create path.conf in new location
-    mkdir -p "${gc_config_dir}/config"
-    cat >"${gc_config_dir}/config/path.conf" <<EOF
-# rcForge PATH Configuration
-# This file configures paths to be added to your PATH environment variable.
-# Lines starting with # are ignored.
-# Empty lines are ignored.
-# Paths are processed in order.
-# ${HOME} is expanded automatically.
-
-# User bin directory
-${HOME}/bin
-
-# Package manager paths
-/opt/homebrew/bin
-/usr/local/bin
-
-# System paths
-/usr/bin
-/bin
-/usr/sbin
-/sbin
-EOF
-    SuccessMessage "Created path configuration file"
 
     # Record bash location if it exists in old structure
     if [[ -f "${gc_old_rcforge_dir}/docs/.bash_location" ]]; then

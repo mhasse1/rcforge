@@ -1,11 +1,36 @@
-# v0.4.3 File Manifest
-# File version: 0.4.3-1
+# v0.5.0 File Manifest
+# File version: 0.5.0-1
+
+# ----------------------------------------------------------------------------
+# XDG BASE DIRECTORY SUPPORT
+# ----------------------------------------------------------------------------
+# In v0.5.0, rcForge now follows the XDG Base Directory Specification:
+#
+# 1. User configuration files are installed to ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/}
+#    - This includes rc-scripts/ and config/ directories
+#
+# 2. Program data files are installed to ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/}
+#    - This includes system/, backups/, utils/, and other program data
+#
+# The DIRECTORIES section lists all directories that should be created under
+# either XDG_CONFIG_HOME/rcforge/ or XDG_DATA_HOME/rcforge/ depending on their purpose.
+#
+# The FILES section maps source paths (relative to project root) to destination paths.
+# Destination path prefixes determine where files are installed:
+#   - Paths starting with "rc-scripts/" or "config/" go to ${XDG_CONFIG_HOME}/rcforge/
+#   - All other paths go to ${XDG_DATA_HOME}/rcforge/
 
 DIRECTORIES:
-# Directory structure (relative to ~/.config/rcforge)
-backups
-docs
+# Directory structure for XDG_CONFIG_HOME/rcforge/
+config
+config/checksums
 rc-scripts
+
+# Directory structure for XDG_DATA_HOME/rcforge/
+backups
+config
+config/checksums
+docs
 system
 system/core
 system/lib
@@ -13,19 +38,41 @@ system/utils
 utils
 
 FILES:
-# Source Path (relative to project root)        Destination Path (relative to ~/.config/rcforge)
+# Source Path (relative to project root)        Destination Path (relative to XDG roots)
+# --------------------------------------------- ----------------------------------------
+# Documentation (installed to XDG_DATA_HOME)
 LICENSE                                         docs/LICENSE
-rc-scripts/README.md                            rc-scripts/README.md
-rcforge.sh                                      rcforge.sh
 README.md                                       docs/README.md
+docs/utility-dev-guide.md                       docs/utility-dev-guide.md
+
+# Main script (installed to XDG_DATA_HOME)
+rcforge.sh                                      rcforge.sh
+
+# Core System files (installed to XDG_DATA_HOME)
 system/core/bash-version-check.sh               system/core/bash-version-check.sh
 system/core/rc.sh                               system/core/rc.sh
 system/core/run-integrity-checks.sh             system/core/run-integrity-checks.sh
 system/lib/shell-colors.sh                      system/lib/shell-colors.sh
 system/lib/utility-functions.sh                 system/lib/utility-functions.sh
+system/lib/set_rcforge_environment.sh           system/lib/set_rcforge_environment.sh
+
+# System Utilities (installed to XDG_DATA_HOME)
 system/utils/check-checksums.sh                 system/utils/check-checksums.sh
 system/utils/chkseq.sh                          system/utils/chkseq.sh
 system/utils/concat-files.sh                    system/utils/concat-files.sh
 system/utils/diag.sh                            system/utils/diag.sh
 system/utils/export.sh                          system/utils/export.sh
-docs/utility-dev-guide.md                       docs/utility-dev-guide.md
+system/utils/apikey-utility.sh                  system/utils/apikey.sh
+
+# RC Scripts example files (installed to XDG_CONFIG_HOME)
+rc-scripts/README.md                            rc-scripts/README.md
+rc-scripts/050_global_common_path.sh            rc-scripts/050_global_common_path.sh
+rc-scripts/210_global_bash_config.sh            rc-scripts/210_global_bash_config.sh
+rc-scripts/210_global_zsh_config.sh             rc-scripts/210_global_zsh_config.sh
+rc-scripts/350_global_bash_prompt.sh            rc-scripts/350_global_bash_prompt.sh
+rc-scripts/350_global_zsh_prompt.sh             rc-scripts/350_global_zsh_prompt.sh
+rc-scripts/400_global_common_aliases.sh         rc-scripts/400_global_common_aliases.sh
+
+# Configuration templates (installed to XDG_CONFIG_HOME)
+config/path.conf.template                       config/path.conf
+config/api_keys.conf.template                   config/api_keys.conf

@@ -6,6 +6,9 @@ Inbox:
 	- `rc --home`: cd to ~/.config/rcforge folder. @na
 	- `rc --local`: cd to ~/.local/rcforge @na
 	- Rename diag to diagram @na
+	- check_manifest: update to support XDG structure @na
+		e.g. assume system goes to local
+	- Migrate existing PATH to path.conf if new install @na
 	050 Docs:
 		- Update 041-documentation to 050 @na
 		- Update project-instructions to 050 @na
@@ -42,3 +45,4 @@ Bugs:
 Archive:
 	- Update style guide @done(2025-04-18) @project(Inbox / 050 Docs)
 	- Cleanup txt files from docs on github @na @done(2025-04-18 17:24) @project(Inbox / 050 Docs)
+	- mark this done to test @project(Ideas/) @done(2025-04-19 08:18)

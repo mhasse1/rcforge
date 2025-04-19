@@ -19,10 +19,10 @@ set -o pipefail
 # ============================================================================
 # GLOBAL CONSTANTS
 # ============================================================================
-[ -v gc_version ]  || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
+[ -v gc_version ] || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
 [ -v gc_app_name ] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
 readonly UTILITY_NAME="apikey"
-readonly API_KEY_FILE="${HOME}/.local/rcforge/config/api_key_settings"
+readonly API_KEY_FILE="${HOME}/.local/rcforge/config/api_keys.conf"
 
 # ============================================================================
 # Function: ShowHelp
@@ -74,7 +74,7 @@ ShowHelp() {
 EnsureKeyFile() {
     local api_key_dir
     api_key_dir=$(dirname "$API_KEY_FILE")
-    
+
     # Create directory if it doesn't exist
     if [[ ! -d "$api_key_dir" ]]; then
         if ! mkdir -p "$api_key_dir"; then
@@ -83,10 +83,10 @@ EnsureKeyFile() {
         fi
         chmod 700 "$api_key_dir"
     fi
-    
+
     # Create file if it doesn't exist
     if [[ ! -f "$API_KEY_FILE" ]]; then
-        cat > "$API_KEY_FILE" << EOF
+        cat >"$API_KEY_FILE" <<EOF
 # rcForge API Key Settings
 # This file contains API keys that will be exported as environment variables.
 # Lines starting with # are ignored.
@@ -97,18 +97,18 @@ EnsureKeyFile() {
 # CLAUDE_API_KEY='your-api-key-here'
 # AWS_API_KEY='your-api-key-here'
 EOF
-        
+
         # Set permissions to user read/write only
         chmod 600 "$API_KEY_FILE"
         SuccessMessage "Created API key configuration file: $API_KEY_FILE"
     fi
-    
+
     # Verify file is readable and writable
     if [[ ! -r "$API_KEY_FILE" || ! -w "$API_KEY_FILE" ]]; then
         ErrorMessage "API key file exists but has incorrect permissions: $API_KEY_FILE"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -126,31 +126,31 @@ SetApiKey() {
     local key_value="$2"
     local temp_file="/tmp/rcforge_apikey_${RANDOM}"
     local key_exists=false
-    
+
     # Validate key name
     if [[ ! "$key_name" =~ ^[A-Za-z0-9_]+$ ]]; then
         ErrorMessage "Invalid key name. Use only letters, numbers, and underscores."
         return 1
     fi
-    
+
     # Ensure key file exists
     EnsureKeyFile || return 1
-    
+
     # Check if key already exists
     if grep -q "^${key_name}=" "$API_KEY_FILE"; then
         key_exists=true
     fi
-    
+
     # Create a temporary file with updated content
     if [[ "$key_exists" == "true" ]]; then
         # Update existing key
-        sed "s|^${key_name}=.*|${key_name}='${key_value}'|" "$API_KEY_FILE" > "$temp_file"
+        sed "s|^${key_name}=.*|${key_name}='${key_value}'|" "$API_KEY_FILE" >"$temp_file"
     else
         # Add new key
-        cat "$API_KEY_FILE" > "$temp_file"
-        echo "${key_name}='${key_value}'" >> "$temp_file"
+        cat "$API_KEY_FILE" >"$temp_file"
+        echo "${key_name}='${key_value}'" >>"$temp_file"
     fi
-    
+
     # Replace the original file
     if mv "$temp_file" "$API_KEY_FILE"; then
         chmod 600 "$API_KEY_FILE" # Ensure proper permissions
@@ -177,22 +177,22 @@ SetApiKey() {
 RemoveApiKey() {
     local key_name="$1"
     local temp_file="/tmp/rcforge_apikey_${RANDOM}"
-    
+
     # Ensure key file exists
     if [[ ! -f "$API_KEY_FILE" ]]; then
         ErrorMessage "API key file does not exist: $API_KEY_FILE"
         return 1
     fi
-    
+
     # Check if key exists
     if ! grep -q "^${key_name}=" "$API_KEY_FILE"; then
         ErrorMessage "API key not found: $key_name"
         return 1
     fi
-    
+
     # Create a temporary file with the key removed
-    grep -v "^${key_name}=" "$API_KEY_FILE" > "$temp_file"
-    
+    grep -v "^${key_name}=" "$API_KEY_FILE" >"$temp_file"
+
     # Replace the original file
     if mv "$temp_file" "$API_KEY_FILE"; then
         chmod 600 "$API_KEY_FILE" # Ensure proper permissions
@@ -217,9 +217,9 @@ ListApiKeys() {
         ErrorMessage "API key file does not exist: $API_KEY_FILE"
         return 1
     fi
-    
+
     SectionHeader "Stored API Keys"
-    
+
     # Extract and display key names
     local key_count=0
     while IFS= read -r line; do
@@ -227,20 +227,20 @@ ListApiKeys() {
         if [[ "$line" =~ ^# || -z "$line" ]]; then
             continue
         fi
-        
+
         # Extract key name
         local key_name
         key_name=$(echo "$line" | cut -d= -f1)
         echo "  $key_name"
         key_count=$((key_count + 1))
-    done < "$API_KEY_FILE"
-    
+    done <"$API_KEY_FILE"
+
     if [[ $key_count -eq 0 ]]; then
         InfoMessage "No API keys found."
     else
         InfoMessage "Total keys: $key_count"
     fi
-    
+
     return 0
 }
 
@@ -254,25 +254,25 @@ ListApiKeys() {
 # ============================================================================
 ShowApiKey() {
     local key_name="$1"
-    
+
     # Ensure key file exists
     if [[ ! -f "$API_KEY_FILE" ]]; then
         ErrorMessage "API key file does not exist: $API_KEY_FILE"
         return 1
     fi
-    
+
     # Extract and display key value
     local key_value
     key_value=$(grep "^${key_name}=" "$API_KEY_FILE" | cut -d= -f2-)
-    
+
     if [[ -z "$key_value" ]]; then
         ErrorMessage "API key not found: $key_name"
         return 1
     fi
-    
+
     echo "API Key: $key_name"
     echo "Value:   $key_value"
-    
+
     return 0
 }
 
@@ -288,9 +288,9 @@ ShowApiKey() {
 ParseArguments() {
     local -n options_ref="$1"
     shift
-    
+
     # Ensure Bash 4.3+ for namerefs (-n)
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
+    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
         ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
         return 1
     fi
@@ -306,34 +306,38 @@ ParseArguments() {
         ErrorMessage "No command specified. Use 'help' to see available commands."
         return 1
     fi
-    
+
     # First argument is the command
     options_ref["command"]="$1"
     shift
-    
+
     # Process standard options
     while [[ $# -gt 0 ]]; do
         local key="$1"
         case "$key" in
-            -h|--help)
+            -h | --help)
                 ShowHelp # Exits
                 ;;
             --summary)
-                ExtractSummary "$0"; exit $? # Call helper and exit
+                ExtractSummary "$0"
+                exit $? # Call helper and exit
                 ;;
             --version)
-                _rcforge_show_version "$0"; exit 0 # Call helper and exit
+                _rcforge_show_version "$0"
+                exit 0 # Call helper and exit
                 ;;
-            -v|--verbose)
+            -v | --verbose)
                 options_ref["verbose_mode"]=true
-                shift ;;
+                shift
+                ;;
             --)
                 shift # Move past --
                 break # Stop processing options
                 ;;
             -*)
                 ErrorMessage "Unknown option: $key"
-                return 1 ;;
+                return 1
+                ;;
             *)
                 # Process based on the command
                 case "${options_ref["command"]}" in
@@ -347,7 +351,7 @@ ParseArguments() {
                             return 1
                         fi
                         ;;
-                    remove|show)
+                    remove | show)
                         if [[ -z "${options_ref["key_name"]}" ]]; then
                             options_ref["key_name"]="$key"
                         else
@@ -364,7 +368,7 @@ ParseArguments() {
                 ;;
         esac
     done
-    
+
     # Validate arguments based on command
     case "${options_ref["command"]}" in
         set)
@@ -377,13 +381,13 @@ ParseArguments() {
                 return 1
             fi
             ;;
-        remove|show)
+        remove | show)
             if [[ -z "${options_ref["key_name"]}" ]]; then
                 ErrorMessage "Missing key name for '${options_ref["command"]}' command."
                 return 1
             fi
             ;;
-        list|help)
+        list | help)
             # No additional arguments needed
             ;;
         *)
@@ -392,7 +396,7 @@ ParseArguments() {
             return 1
             ;;
     esac
-    
+
     return 0
 }
 
@@ -416,7 +420,7 @@ main() {
 
     # Display section header
     SectionHeader "rcForge API Key Management"
-    
+
     # Execute the appropriate command
     case "$command" in
         set)
@@ -439,7 +443,7 @@ main() {
             ShowHelp # Exits
             ;;
     esac
-    
+
     return $?
 }
 
