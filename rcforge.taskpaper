@@ -9,6 +9,8 @@ Inbox:
 	- check_manifest: update to support XDG structure @na
 		e.g. assume system goes to local
 	- Migrate existing PATH to path.conf if new install @na
+	- Example script: Cannot embed arrays error @na
+	- Have the AI take a look at the language regarding set-rcforge-env in @na
 	050 Docs:
 		- Update 041-documentation to 050 @na
 		- Update project-instructions to 050 @na

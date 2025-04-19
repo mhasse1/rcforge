@@ -20,7 +20,7 @@ _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true # Not Exported
 # --- End Include Guard ---
 
 # Reset rcForge environment
-source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set_rcforge_environment.sh"
+source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
 # --- Source Shell Colors Library ---
 # Needs to be sourced before messaging functions are defined.
