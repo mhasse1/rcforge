@@ -266,6 +266,13 @@ process_manifest() {
 	if [[ -f "$api_keys_file" ]]; then
 		chmod 600 "$api_keys_file"
 	fi
+
+	# Save the installed version to a file
+	local version_file="${DATA_HOME}/config/rcforge-version.conf"
+	mkdir -p "$(dirname "$version_file")"
+	echo "RCFORGE_VERSION=\"$RELEASE_TAG\"" >"$version_file"
+	chmod 600 "$version_file"
+	echo "✓ Saved installation version: $RELEASE_TAG"
 }
 
 # Update shell RC files if needed
@@ -401,15 +408,14 @@ main() {
 	echo "✓ rcForge installation complete!"
 	echo ""
 	echo "To activate rcForge in your CURRENT shell session, run:"
-	echo ""
 	echo "  source \"\${XDG_DATA_HOME:-\$HOME/.local/share}/rcforge/rcforge.sh\""
 	echo ""
-	echo "For automatic loading in new sessions, verify this line is present in your"
-	echo "~/.bashrc or ~/.zshrc (the installer has attempted to add it)."
+	echo "For automatic loading in new sessions, ensure this line is present"
+	echo "in your ~/.bashrc or ~/.zshrc (the installer has attempted to add it)."
 	echo ""
 	echo "TIP: When rcForge starts, you'll have a 1-second window to press '.' to abort"
-	echo "     the loading process. This emergency exit can be helpful if you experience"
-	echo "     any issues with your configuration."
+	echo "     the loading process if needed. This emergency exit can be helpful if you"
+	echo "     experience any issues with your configuration."
 	echo ""
 
 	return 0
