@@ -1,6 +1,6 @@
 # Export core environment variables
 export RCFORGE_APP_NAME="rcForge"
-export RCFORGE_VERSION="0.5.0"
+export RCFORGE_VERSION="xxxxxxxxxxx"
 
 export RCFORGE_CONFIG_ROOT="${XDG_CONFIG_HOME:-$HOME/.config}/rcforge"
 export RCFORGE_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/rcforge"

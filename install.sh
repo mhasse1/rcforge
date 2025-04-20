@@ -76,7 +76,7 @@ if [[ -n "$SPECIFIED_TAG" ]]; then
 else
 	InfoMessage "No specific tag provided, fetching latest release tag for ${OWNER_REPO}..."
 	# Query GitHub API for the latest release
-	LATEST_TAG=$(curl --silent "https://api.github.com/repos/${OWNER_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	LATEST_TAG=$(curl --silent "https://api.github.com/repos/${OWNER_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*": "(.*)",/\1/g')
 	# Fallback: If 'latest' release isn't explicitly marked, try fetching the latest tag
 	if [[ -z "$LATEST_TAG" ]]; then
 		InfoMessage "No 'latest' release found via API, trying latest tag..."
