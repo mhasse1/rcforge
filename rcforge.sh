@@ -14,7 +14,7 @@ _print() {
 	local reset='\033[0m'
 	local fg='\033[1;33m'
 	local bg='\033[41m'
-	local text_color=$_fg$_bg
+	local text_color="${fg}${bg}"
 	local nl=""
 
 	# Basic options parsing
@@ -22,22 +22,33 @@ _print() {
 		nl='\n'
 		shift
 	elif [[ $1 == "-r" ]]; then
-		$nl='\r'
+		nl='\r' # Fixed - removed the $ prefix
 		shift
 	fi
 	local msg="${1}"
 
-	printf "%b%s%s%b" "$text_color" "$msg" "$nl" "$reset"
+	printf "%b%s%b%b" "$text_color" "$msg" "$nl" "$reset"
+}
+
+_clear_line() {
+	printf "%75s\r" "" # Clear line
 }
 
 # ============================================================================
 # CRITICAL: INTERACTIVE SOURCING CHECK
 # ============================================================================
 _interactive_source=true
+
 # Handle Zsh
-[[ -n "${ZSH_VERSION:-}" && "$ZSH_EVAL_CONTEXT" != *:file:* || ! -o interactive ]] && _interactive_source=false
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+	[[ "$ZSH_EVAL_CONTEXT" != *:file:* && -o interactive ]] || _interactive_source=false
 # Handle Bash
-[[ -n "${BASH_VERSION:-}" && "${BASH_SOURCE[0]}" == "${0}" || $- != *i* ]] && _interactive_source=false
+elif [[ -n "${BASH_VERSION:-}" ]]; then
+	[[ "${BASH_SOURCE[0]}" != "${0}" && $- == *i* ]] || _interactive_source=false
+else
+	# Other shells - assume not interactive for safety
+	_interactive_source=false
+fi
 
 if ! $_interactive_source; then
 	_print -n "ERROR: rcForge must be sourced in an interactive shell."
@@ -57,16 +68,16 @@ else
 	read -s -N 1 -t "${_timeout}" _rcf_key
 fi
 
-printf "%75s\r" "" # Clear line
+_clear_line
 
-if [[ "$_abort_key" == "." ]]; then
-	echo "rcForge aborted by user."
+if [[ "$_rcf_key" == "." ]]; then
+	_print -n "rcForge aborted by user."
 	return 1
-elif [[ "$_abort_key" == "d" ]]; then
-	echo "DEBUG_MODE enabled."
+elif [[ "$_rcf_key" == "d" ]]; then
+	_print -n "DEBUG_MODE enabled."
 	DEBUG_MODE=true
 fi
-unset _abort_key _timeout
+unset _rcf_key _timeout
 
 # ============================================================================
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
@@ -122,18 +133,18 @@ VerifyBashVersion() {
 	local bash_cmd=$(command -v bash || echo "")
 
 	[[ -z "$bash_cmd" ]] && {
-		echo "ERROR: Bash not found in PATH. Required: $required+" >&2
+		_print -n "ERROR: Bash not found in PATH. Required: $required+"
 		return 1
 	}
 
 	local version=$("$bash_cmd" --version | grep -o "version [0-9]\+\.[0-9]\+" | cut -d' ' -f2)
 	[[ -z "$version" ]] && {
-		echo "ERROR: Could not determine Bash version." >&2
+		_print -n "ERROR: Could not determine Bash version."
 		return 1
 	}
 
 	printf '%s\n%s\n' "$required" "$version" | sort -V -C || {
-		echo "ERROR: Bash version $version is too old. Required: $required+" >&2
+		_print -n "ERROR: Bash version $version is too old. Required: $required+"
 		return 1
 	}
 
@@ -154,8 +165,8 @@ if [[ -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
 	# shellcheck disable=SC1090
 	source "${RCFORGE_LIB}/utility-functions.sh"
 else
-	# Cannot use ErrorMessage if sourcing failed, use basic echo
-	echo -e "${_text_color}ERROR:\033[0m Critical library missing: ${RCFORGE_LIB}/utility-functions.sh. Cannot proceed.${_reset}" >&2
+	# Cannot use ErrorMessage if sourcing failed, use our local function
+	_print -n "ERROR: Critical library missing: ${RCFORGE_LIB}/utility-functions.sh. Cannot proceed."
 	return 1 # Stop sourcing this script
 fi
 # --- End Library Sourcing ---
@@ -173,7 +184,7 @@ SourceConfigFiles() {
 			# shellcheck disable=SC1090
 			source "$file"
 		else
-			echo "Warning: Cannot read configuration file: $file. Skipping." >&2
+			WarningMessage "Cannot read configuration file: $file. Skipping."
 		fi
 	done
 }
@@ -189,13 +200,8 @@ rc() {
 		bash "$rc_impl_path" "$@"
 		return $? # Return the exit status of the rc.sh script
 	else
-		# Use ErrorMessage if available (sourced from utility-functions)
-		if command -v ErrorMessage &>/dev/null; then
-			ErrorMessage "rc command core script not found or not executable: $rc_impl_path"
-		else
-			# Fallback if ErrorMessage failed to load
-			echo "ERROR: rc command core script not found or not executable: $rc_impl_path" >&2
-		fi
+		# Use ErrorMessage now that utility-functions is sourced
+		ErrorMessage "rc command core script not found or not executable: $rc_impl_path"
 		return 127 # Command not found status
 	fi
 }
@@ -218,28 +224,28 @@ main() {
 	local check_runner="${RCFORGE_CORE}/run-integrity-checks.sh"
 	if [[ -x "$check_runner" ]]; then
 		bash "$check_runner" || {
-			echo -e "\033[0;33mIntegrity issues detected. Continue anyway? (y/N):\033[0m "
+			WarningMessage "Integrity issues detected. Continue anyway? (y/N):"
 			read -r response
 			[[ ! "$response" =~ ^[Yy]$ ]] && return 1
 		}
 	fi
 
 	# Load configuration files
-	echo "Loading rcForge configuration..."
+	InfoMessage "Loading rcForge configuration..."
 	local -a config_files=()
 
 	if command -v FindRcScripts &>/dev/null; then
 		mapfile -t config_files < <(FindRcScripts)
 	else
-		echo "Warning: FindRcScripts function not available." >&2
+		WarningMessage "FindRcScripts function not available."
 		return 1
 	fi
 
 	if [[ ${#config_files[@]} -gt 0 && "${config_files[0]}" != "No rc files found." ]]; then
 		SourceConfigFiles "${config_files[@]}"
-		echo "Configuration files loaded."
+		SuccessMessage "Configuration files loaded."
 	else
-		echo "No configuration files found."
+		InfoMessage "No configuration files found."
 	fi
 
 	return 0
