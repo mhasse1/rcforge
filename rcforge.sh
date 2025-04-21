@@ -11,46 +11,57 @@
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
 # ============================================================================
 
+# --- Abort Check (optional) ---
+# Locate immediately after comment block
+_rcf_key=""
+_timeout=3
+_fg='\033[0;31m'
+_bg='\033[47m'
+_reset='\033[0m'
+
+printf "%b%bInitializing rcForge. Press '.' to abort or 'd' to turn on debug within %is.%b\n" $_fg $_bg $_timeout $_reset
+
+# Read user input with timeout
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+	read -s -t "$_timeout" -k 1 _rcf_key
+else
+	read -s -N 1 -t "$_timeout" _rcf_key
+fi
+
+echo ""
+
+if [[ -n "${_rcf_key:-}" ]]; then
+	case "$_rcf_key" in
+		".")
+			echo "rcForge loading aborted by user."
+			return 1
+			;;
+		"d")
+			echo "DEBUG_MODE turned on."
+			DEBUG_MODE=true
+			;;
+	esac
+fi
+
+echo ""
+unset _rcf_key
+unset _timeout
+unset _fg
+unset _bg
+unset _reset
+# --- End Abort Check ---
+
 # Set strict modes early for initialization safety
 set -o nounset
 
 # Source rcForge environment variabls
 source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
-# --- Path Management (v0.5.0+) ---
 # Process path.conf to set PATH environment variable
 ProcessPathConfiguration() {
 	local path_file="${RCFORGE_CONFIG}/path.conf"
 	local new_path=""
 	local separator=""
-
-	# Check if path file exists
-	if [[ ! -f "$path_file" ]]; then
-		# Create default path file if it doesn't exist
-		mkdir -p "$(dirname "$path_file")"
-		cat >"$path_file" <<EOF
-# rcForge PATH Configuration
-# This file configures paths to be added to your PATH environment variable.
-# Lines starting with # are ignored.
-# Empty lines are ignored.
-# Paths are processed in order.
-# \${HOME} is expanded automatically.
-
-# User bin directory
-\${HOME}/bin
-
-# Package manager paths
-/opt/homebrew/bin
-/usr/local/bin
-
-# System paths
-/usr/bin
-/bin
-/usr/sbin
-/sbin
-EOF
-		chmod 600 "$path_file"
-	fi
 
 	# Process path file line by line
 	while IFS= read -r line; do
@@ -75,28 +86,9 @@ EOF
 	fi
 }
 
-# --- API Key Management (v0.5.0+) ---
 # Process API key settings to export environment variables
 ProcessApiKeys() {
 	local api_key_file="${RCFORGE_DATA_ROOT}/config/api-keys.conf"
-
-	# Check if API key file exists
-	if [[ ! -f "$api_key_file" ]]; then
-		# Create default API key file if it doesn't exist
-		mkdir -p "$(dirname "$api_key_file")"
-		cat >"$api_key_file" <<EOF
-# rcForge API Key Settings
-# This file contains API keys that will be exported as environment variables.
-# Lines starting with # are ignored.
-# Format: NAME='value'
-#
-# Examples:
-# GEMINI_API_KEY='your-api-key-here'
-# CLAUDE_API_KEY='your-api-key-here'
-# AWS_API_KEY='your-api-key-here'
-EOF
-		chmod 600 "$api_key_file"
-	fi
 
 	# Process API key file line by line
 	while IFS= read -r line; do
@@ -109,24 +101,6 @@ EOF
 		export "$line"
 	done <"$api_key_file"
 }
-
-# --- Prepend compliant Bash path if recorded by installer ---
-RCFORGE_BASH_LOCATION_FILE="${RCFORGE_DATA_ROOT}/config/bash-location"
-if [[ -f "$RCFORGE_BASH_LOCATION_FILE" && -r "$RCFORGE_BASH_LOCATION_FILE" ]]; then
-	RCFORGE_COMPLIANT_BASH_PATH=$(<"$RCFORGE_BASH_LOCATION_FILE")
-	# Basic validation
-	if [[ -n "$RCFORGE_COMPLIANT_BASH_PATH" && -x "$RCFORGE_COMPLIANT_BASH_PATH" ]]; then
-		RCFORGE_COMPLIANT_BASH_DIR=$(dirname "$RCFORGE_COMPLIANT_BASH_PATH")
-		# Prepend if not already effectively in PATH
-		case ":${PATH}:" in
-			*":${RCFORGE_COMPLIANT_BASH_DIR}:"*) : ;; # Already there
-			*) export PATH="${RCFORGE_COMPLIANT_BASH_DIR}${PATH:+:${PATH}}" ;;
-		esac
-		unset RCFORGE_COMPLIANT_BASH_DIR # Clean up temp var
-	fi
-	unset RCFORGE_COMPLIANT_BASH_PATH # Clean up temp var
-fi
-unset RCFORGE_BASH_LOCATION_FILE # Clean up temp var
 
 # Process PATH configuration (0.5.0+ feature)
 ProcessPathConfiguration
@@ -259,44 +233,6 @@ fi
 # Returns: 0 on successful loading, 1 on abort or critical failure.
 # ============================================================================
 main() {
-	# --- Process API Keys (v0.5.0+ feature) ---
-	ProcessApiKeys
-
-	# --- Abort Check (optional) ---
-	local user_input=""
-	local timeout_seconds=1
-	local read_cmd_status=0
-
-	printf "%b" "${BRIGHT_BLUE}[INFO]${RESET} Initializing rcForge v${RCFORGE_VERSION}. ${BRIGHT_WHITE}(Press '.' within ${timeout_seconds}s to abort).${RESET}"
-
-	# Read user input with timeout
-	if IsZsh; then
-		# Zsh: -k 1 for one char, -s silent, -t timeout
-		read -s -t "$timeout_seconds" -k 1 user_input
-		read_cmd_status=$?
-	else
-		# Bash: -N 1 for one char, -s silent, -t timeout
-		read -s -N 1 -t "$timeout_seconds" user_input
-		read_cmd_status=$?
-	fi
-
-	# Process read result
-	echo "" # Print newline regardless of read outcome
-	if [[ $read_cmd_status -eq 0 ]]; then
-		if [[ "$user_input" == "." ]]; then
-			WarningMessage "rcForge loading aborted by user."
-			return 1
-		fi
-	# Check if read timed out (status > 128 in bash, non-zero in zsh might indicate timeout or error)
-	elif [[ $read_cmd_status -gt 128 || (IsZsh && $read_cmd_status -ne 0) ]]; then
-		# Timeout occurred, which is normal, continue silently
-		: # No message needed for normal timeout
-	else
-		# Some other read error occurred
-		WarningMessage "Read command failed unexpectedly during abort check (Status: $read_cmd_status). Continuing..."
-	fi
-	# --- End Abort Check ---
-
 	# --- Core Loading Steps ---
 	# Check root execution (uses sourced CheckRoot)
 	if ! CheckRoot --skip-interactive; then
@@ -307,6 +243,9 @@ main() {
 		fi
 		return 1
 	fi
+
+	# --- Process API Keys (v0.5.0+ feature) ---
+	ProcessApiKeys
 
 	local current_shell=$(DetectShell)
 	if [[ "$current_shell" != "bash" && "$current_shell" != "zsh" ]]; then
