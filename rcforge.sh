@@ -8,68 +8,65 @@
 #              Now supports XDG structure and API key management.
 
 # ============================================================================
+# Local message function (when sourced colors not available)
+# ============================================================================
+_print() {
+	local reset='\033[0m'
+	local fg='\033[1;33m'
+	local bg='\033[41m'
+	local text_color=$_fg$_bg
+	local nl=""
+
+	# Basic options parsing
+	if [[ $1 == "-n" ]]; then
+		nl="\n"
+		shift
+	elif [[ $1 == "-r" ]]; then
+		$nl="\r"
+		shift
+	fi
+	local msg="${*}${nl}"
+
+	printf "%b%s%b" $text_color $msg $reset
+}
+
+# ============================================================================
 # CRITICAL: INTERACTIVE SOURCING CHECK
 # ============================================================================
-_error=false
+_interactive_source=true
+# Handle Zsh
+[[ -n "${ZSH_VERSION:-}" && "$ZSH_EVAL_CONTEXT" != *:file:* || ! -o interactive ]] && _interactive_source=false
+# Handle Bash
+[[ -n "${BASH_VERSION:-}" && "${BASH_SOURCE[0]}" == "${0}" || $- != *i* ]] && _interactive_source=false
 
-# Check appropriate shell-specific variables to detect if we're being sourced
-if [[ -n "${ZSH_VERSION:-}" ]]; then
-	[[ "$ZSH_EVAL_CONTEXT" != *:file:* ]] && _error=true # Check if being sourced
-	[[ ! -o interactive ]] && _error=true                # Check if interactive
-elif [[ -n "${BASH_VERSION:-}" ]]; then
-	[[ "${BASH_SOURCE[0]}" == "${0}" ]] && _error=true # Check if being sourced
-	[[ $- != *i* ]] && _error=true                     # Check if interactive
-else
-	printf "\033[1;WARNING: Unverified shell detected. Continuing.\033[0m\n" >&2
-fi
-
-if $_error; then
-	printf "\a\n\033[1;31mERROR: rcForge must be sourced in an interactive shell.\033[0m\n\n" >&2
+if ! $_interactive_source; then
+	_print -n "ERROR: rcForge must be sourced in an interactive shell."
 	return 1
 fi
-
-unset _error
-
-# If we get here, we're in an interactive shell and being sourced correctly
-# --- End interactive sourcing check ---------------------------------------------------------
+unset _interactive_source
 
 # ============================================================================
 # CRITICAL: ABORT CHECK
 # ============================================================================
-# Locate immediately after comment block
-_rcf_key=""
 _timeout=3
-_fg='\033[0;31m'
-_bg='\033[47m'
-_reset='\033[0m'
+_print -r "Initializing rcForge. Press '.' to abort, 'd' for debug (${_timeout}s)..."
 
-printf "%b%bInitializing rcForge. Press '.' to abort or 'd' to turn on debug within %is.%b\r" $_fg $_bg $_timeout $_reset
-
-# Read user input with timeout
 if [[ -n "${ZSH_VERSION:-}" ]]; then
-	read -s -t "$_timeout" -k 1 _rcf_key
+	read -s -t "${_timeout}" -k 1 _rcf_key
 else
-	read -s -N 1 -t "$_timeout" _rcf_key
+	read -s -N 1 -t "${_timeout}" _rcf_key
 fi
 
-printf "%79s\r" "" # remove the previous line
+printf "%75s\r" "" # Clear line
 
-if [[ -n "${_rcf_key:-}" ]]; then
-	case "$_rcf_key" in
-		".")
-			printf "rcForge aborted by user."
-			return 1
-			;;
-		"d")
-			printf "DEBUG_MODE turned on."
-			DEBUG_MODE=true
-			;;
-	esac
+if [[ "$_abort_key" == "." ]]; then
+	echo "rcForge aborted by user."
+	return 1
+elif [[ "$_abort_key" == "d" ]]; then
+	echo "DEBUG_MODE enabled."
+	DEBUG_MODE=true
 fi
-
-echo ""
-unset _rcf_key _timeout _fg _bg _reset
-# --- End abort check ---------------------------------------------------------
+unset _abort_key _timeout
 
 # ============================================================================
 # CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
@@ -81,84 +78,71 @@ set -o nounset
 # Source rcForge environment variables
 source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
-# Process path.conf to set PATH environment variable
-ProcessPathConfiguration() {
-	local path_file="${RCFORGE_CONFIG}/path.conf"
-	local new_path=""
+# ============================================================================
+# SIMPLIFIED CONFIGURATION PROCESSING
+# ============================================================================
+ProcessConfiguration() {
+	local file="$1"
+	local is_path="${2:-false}"
 	local separator=""
+	local new_path=""
 
-	# Process path file line by line
+	# Skip if file doesn't exist
+	[[ ! -f "$file" ]] && return 0
+
+	# Process file line by line
 	while IFS= read -r line; do
 		# Skip comments and empty lines
-		if [[ "$line" =~ ^# || -z "$line" ]]; then
-			continue
+		[[ "$line" =~ ^# || -z "$line" ]] && continue
+
+		if [[ "$is_path" == "true" ]]; then
+			# Path configuration handling
+			line=$(eval echo "$line")
+			if [[ -d "$line" && ":$new_path:" != *":$line:"* ]]; then
+				new_path+="${separator}${line}"
+				separator=":"
+			fi
+		else
+			# API key handling
+			export "$line"
 		fi
+	done <"$file"
 
-		# Expand variables like ${HOME}
-		line=$(eval echo "$line")
-
-		# Add path if directory exists and not already in new_path
-		if [[ -d "$line" && ":$new_path:" != *":$line:"* ]]; then
-			new_path+="${separator}${line}"
-			separator=":"
-		fi
-	done <"$path_file"
-
-	# Set PATH environment variable
-	if [[ -n "$new_path" ]]; then
+	# Update PATH for path configuration
+	if [[ "$is_path" == "true" && -n "$new_path" ]]; then
 		export PATH="$new_path"
 	fi
 }
 
-# Process API key settings to export environment variables
-ProcessApiKeys() {
-	local api_key_file="${RCFORGE_DATA_ROOT}/config/api-keys.conf"
-
-	# Process API key file line by line
-	while IFS= read -r line; do
-		# Skip comments and empty lines
-		if [[ "$line" =~ ^# || -z "$line" ]]; then
-			continue
-		fi
-
-		# Export API key environment variable
-		export "$line"
-	done <"$api_key_file"
-}
-
-# Process PATH configuration (0.5.0+ feature)
-ProcessPathConfiguration
-
-# Check if Bash version meets requirements (>= 4.3)
+# ============================================================================
+# SIMPLIFIED BASH VERSION VERIFICATION
+# ============================================================================
 VerifyBashVersion() {
-	local required_version="4.3"
-	local bash_path=""
-	local bash_version=""
+	local required="4.3"
+	local bash_cmd=$(command -v bash || echo "")
 
-	# Find first bash in PATH
-	bash_path=$(command -v bash 2>/dev/null)
-
-	if [[ -z "$bash_path" ]]; then
-		echo -e "\033[0;31mERROR:\033[0m Bash not found in PATH. rcForge requires Bash 4.3+." >&2
+	[[ -z "$bash_cmd" ]] && {
+		echo "ERROR: Bash not found in PATH. Required: $required+" >&2
 		return 1
-	fi
+	}
 
-	# Get bash version
-	bash_version=$("$bash_path" --version | head -n 1 | sed -n 's/.*GNU bash, version \([0-9]\+\.[0-9.]*\).*/\1/p')
-
-	if [[ -z "$bash_version" ]]; then
-		echo -e "\033[0;31mERROR:\033[0m Unable to determine Bash version. rcForge requires Bash 4.3+." >&2
+	local version=$("$bash_cmd" --version | grep -o "version [0-9]\+\.[0-9]\+" | cut -d' ' -f2)
+	[[ -z "$version" ]] && {
+		echo "ERROR: Could not determine Bash version." >&2
 		return 1
-	fi
+	}
 
-	# Compare versions (using sort -V for version comparison)
-	if ! printf '%s\n%s\n' "$required_version" "$bash_version" | sort -V -C; then
-		echo -e "\033[0;31mERROR:\033[0m Bash version $bash_version is too old. rcForge requires $required_version+." >&2
+	printf '%s\n%s\n' "$required" "$version" | sort -V -C || {
+		echo "ERROR: Bash version $version is too old. Required: $required+" >&2
 		return 1
-	fi
+	}
 
 	return 0
 }
+
+# Process configuration files
+ProcessConfiguration "${RCFORGE_CONFIG}/path.conf" true
+ProcessConfiguration "${RCFORGE_DATA_ROOT}/config/api-keys.conf" false
 
 # Verify bash version right after setting PATH
 if ! VerifyBashVersion; then
@@ -166,28 +150,18 @@ if ! VerifyBashVersion; then
 fi
 
 # --- Source Core Utility Library ---
-# This needs to happen *after* PATH is set up
 if [[ -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
 	# shellcheck disable=SC1090
 	source "${RCFORGE_LIB}/utility-functions.sh"
 else
 	# Cannot use ErrorMessage if sourcing failed, use basic echo
-	echo -e "\033[0;31mERROR:\033[0m Critical library missing: ${RCFORGE_LIB}/utility-functions.sh. Cannot proceed." >&2
+	echo -e "${_text_color}ERROR:\033[0m Critical library missing: ${RCFORGE_LIB}/utility-functions.sh. Cannot proceed.${_reset}" >&2
 	return 1 # Stop sourcing this script
 fi
 # --- End Library Sourcing ---
 
 # ============================================================================
-# INTERNAL LOADER FUNCTIONS
-# ============================================================================
-
-# ============================================================================
-# Function: SourceConfigFiles
-# Description: Sources an array of configuration files, handling errors and optionally timing.
-# Usage: SourceConfigFiles "file1" "file2" ...
-# Arguments:
-#   $@ - Array of absolute paths to configuration files to source.
-# Returns: None. Sources files into the current shell environment.
+# CONFIGURATION FILE SOURCING
 # ============================================================================
 SourceConfigFiles() {
 	local -a files_to_source=("$@")
@@ -198,24 +172,14 @@ SourceConfigFiles() {
 		if [[ -r "$file" ]]; then
 			# shellcheck disable=SC1090
 			source "$file"
-			SuccessMessage "Sourced $file"
 		else
-			WarningMessage "Cannot read configuration file: $file. Skipping."
+			echo "Warning: Cannot read configuration file: $file. Skipping." >&2
 		fi
 	done
 }
 
 # ============================================================================
 # RC COMMAND WRAPPER FUNCTION (Exported)
-# ============================================================================
-# ============================================================================
-# Function: rc
-# Description: Wrapper function to find and execute rcForge utility scripts.
-#              Handles user overrides and dispatches to the core implementation.
-# Usage: rc <command> [options] [arguments]
-# Arguments:
-#   $@ - Command name, options, and arguments passed to the utility script.
-# Returns: Exit status of the executed utility script, or error status.
 # ============================================================================
 rc() {
 	local rc_impl_path="${RCFORGE_CORE}/rc.sh"
@@ -226,8 +190,8 @@ rc() {
 		return $? # Return the exit status of the rc.sh script
 	else
 		# Use ErrorMessage if available (sourced from utility-functions)
-		if CommandExists ErrorMessage; then
-			ErrorMessage "rc command core script not found or not executable: $rc_impl_path" 127 # Provide exit code
+		if command -v ErrorMessage &>/dev/null; then
+			ErrorMessage "rc command core script not found or not executable: $rc_impl_path"
 		else
 			# Fallback if ErrorMessage failed to load
 			echo "ERROR: rc command core script not found or not executable: $rc_impl_path" >&2
@@ -236,7 +200,7 @@ rc() {
 	fi
 }
 # Export the 'rc' function for the current shell if possible (Bash requires -f)
-if IsBash; then
+if command -v IsBash &>/dev/null && IsBash; then
 	export -f rc
 fi
 # Zsh exports functions sourced by default, no explicit export needed
@@ -244,87 +208,41 @@ fi
 # ============================================================================
 # MAIN LOADER FUNCTION
 # ============================================================================
-# ============================================================================
-# Function: main (rcForge Loader)
-# Description: Main entry point for the rcForge loader script. Performs checks,
-#              finds relevant rc-scripts, and sources them.
-# Usage: Called at the end of this script.
-# Arguments:
-#   $@ - Arguments passed when sourcing (usually none).
-# Returns: 0 on successful loading, 1 on abort or critical failure.
-# ============================================================================
 main() {
-	# --- Core Loading Steps ---
-	# Check root execution (uses sourced CheckRoot)
-	if ! CheckRoot --skip-interactive; then
-		if IsZsh; then
-			export PS1="%{$(tput setaf 226)%}%n%{$(tput setaf 220)%}@%{$(tput setaf 214)%}%m %{$(tput setaf 14)%}%1~ %{$(tput sgr0)%}# "
-		else
-			export PS1="\[$(tput setaf 226)\]\u\[$(tput setaf 220)\]@\[$(tput setaf 214)\]\h \[$(tput setaf 14)\]\w \[$(tput sgr0)\]# "
-		fi
+	# Root execution check (simple, no messaging if passed)
+	if command -v CheckRoot &>/dev/null; then
+		CheckRoot --skip-interactive || return 1
+	fi
+
+	# Perform integrity check (simplified approach)
+	local check_runner="${RCFORGE_CORE}/run-integrity-checks.sh"
+	if [[ -x "$check_runner" ]]; then
+		bash "$check_runner" || {
+			echo -e "\033[0;33mIntegrity issues detected. Continue anyway? (y/N):\033[0m "
+			read -r response
+			[[ ! "$response" =~ ^[Yy]$ ]] && return 1
+		}
+	fi
+
+	# Load configuration files
+	echo "Loading rcForge configuration..."
+	local -a config_files=()
+
+	if command -v FindRcScripts &>/dev/null; then
+		mapfile -t config_files < <(FindRcScripts)
+	else
+		echo "Warning: FindRcScripts function not available." >&2
 		return 1
 	fi
 
-	# --- Process API Keys (v0.5.0+ feature) ---
-	ProcessApiKeys
-
-	# Perform integrity checks
-	local check_runner_script="${RCFORGE_CORE}/run-integrity-checks.sh"
-	local check_status=0
-	local has_integrity_issue=false
-
-	# Check if script exists and is executable
-	if [[ ! -f "$check_runner_script" || ! -x "$check_runner_script" ]]; then
-		WarningMessage "Integrity check runner not found/executable: $check_runner_script"
-		has_integrity_issue=true
+	if [[ ${#config_files[@]} -gt 0 && "${config_files[0]}" != "No rc files found." ]]; then
+		SourceConfigFiles "${config_files[@]}"
+		echo "Configuration files loaded."
 	else
-		# Execute the checks
-		bash "$check_runner_script"
-		check_status=$?
-
-		if [[ $check_status -ne 0 ]]; then
-			has_integrity_issue=true
-		else
-			SuccessMessage "All integrity checks passed."
-		fi
+		echo "No configuration files found."
 	fi
 
-	# Handle integrity issues (combined approach)
-	if [[ "$has_integrity_issue" == "true" ]]; then
-		local response=""
-		printf "%b" "${YELLOW}Integrity check issues detected. Continue loading anyway? (y/N):${RESET} "
-		read -r response
-		if [[ ! "$response" =~ ^[Yy]$ ]]; then
-			ErrorMessage "Aborted by user due to integrity issues."
-			return 1
-		else
-			WarningMessage "Continuing despite integrity warnings..."
-		fi
-	fi
-
-	# --- Find and Source Configuration Files ---
-	SectionHeader "Loading rcForge Configuration"
-	InfoMessage "Locating and sourcing configuration files."
-
-	local -a config_files_to_load=($(FindRcScripts))
-	local find_status=$?
-
-	# Check if find failed *and* no files were loaded
-	if [[ $find_status -ne 0 && ${#config_files_to_load[@]} -eq 0 ]]; then
-		WarningMessage "FindRcScripts failed (status: $find_status) and no files loaded. Aborting load."
-		return 1
-	fi
-
-	# Source the files
-	InfoMessage "Starting rc-script sourcing for $(DetectShell) on $(DetectHostname)."
-	if [[ ${#config_files_to_load[@]} -gt 0 ]]; then
-		SourceConfigFiles "${config_files_to_load[@]}"
-	else
-		InfoMessage "No specific rcForge configuration files found for ${current_shell} on $(DetectHostname)."
-	fi
-	SuccessMessage "Configuration files sourced."
-
-	return 0 # Indicate successful loading
+	return 0
 }
 
 # ============================================================================
@@ -337,8 +255,7 @@ main "$@"
 # Clean up loader-specific function definitions from the shell environment
 unset -f main
 unset -f SourceConfigFiles
-unset -f ProcessPathConfiguration
-unset -f ProcessApiKeys
+unset -f ProcessConfiguration
 unset -f VerifyBashVersion
 # Note: 'rc' function remains exported
 
