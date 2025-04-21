@@ -8,10 +8,36 @@
 #              Now supports XDG structure and API key management.
 
 # ============================================================================
-# CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
+# CRITICAL: INTERACTIVE SOURCING CHECK
 # ============================================================================
+# Check if being sourced (not executed directly)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	printf "\033[1;31mERROR: rcForge must be sourced, not executed directly.\033[0m\n" >&2
+	exit 1
+fi
 
-# --- Abort Check (optional) ---
+# Check if we're in an interactive shell
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+	if [[ ! -o interactive ]]; then
+		printf "\033[1;31mERROR: rcForge must be sourced in an interactive Zsh shell.\033[0m\n" >&2
+		return 1
+	fi
+elif [[ -n "${BASH_VERSION:-}" ]]; then
+	# Bash: Check if interactive mode flag is set in $-
+	if [[ $- != *i* ]]; then
+		printf "\033[1;31mERROR: rcForge must be sourced in an interactive Bash shell.\033[0m\n" >&2
+		return 1
+	fi
+else
+	# Unknown shell
+	printf "\033[1;31mERROR: rcForge requires either Bash or Zsh.\033[0m\n" >&2
+	return 1
+fi
+# --- End interactive sourcing check ---------------------------------------------------------
+
+# ============================================================================
+# CRITICAL: ABORT CHECK
+# ============================================================================
 # Locate immediately after comment block
 _rcf_key=""
 _timeout=3
@@ -45,7 +71,11 @@ fi
 
 echo ""
 unset _rcf_key _timeout _fg _bg _reset
-# --- End Abort Check ---
+# --- End abort check ---------------------------------------------------------
+
+# ============================================================================
+# CORE SYSTEM INITIALIZATION & ENVIRONMENT SETUP
+# ============================================================================
 
 # Set strict modes early for initialization safety
 set -o nounset
@@ -270,13 +300,6 @@ main() {
 
 	# Handle integrity issues (combined approach)
 	if [[ "$has_integrity_issue" == "true" ]]; then
-		# Only prompt if interactive
-		if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
-			ErrorMessage "Running non-interactive. Aborting due to integrity issues."
-			return 1
-		fi
-
-		# Prompt user
 		local response=""
 		printf "%b" "${YELLOW}Integrity check issues detected. Continue loading anyway? (y/N):${RESET} "
 		read -r response
