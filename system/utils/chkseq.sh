@@ -77,13 +77,13 @@ ShowHelp() {
 ValidateShell() {
 	local shell_to_check="${1:-}"
 	local supported_shell=""
-	
+
 	for supported_shell in "${GC_SUPPORTED_SHELLS[@]}"; do
 		if [[ "$shell_to_check" == "$supported_shell" ]]; then
 			return 0
 		fi
 	done
-	
+
 	ErrorMessage "Invalid shell specified: '$shell_to_check'. Supported are: ${GC_SUPPORTED_SHELLS[*]}"
 	return 1
 }
@@ -97,7 +97,7 @@ ValidateShell() {
 GetSequenceNumber() {
 	local filename="${1:-}"
 	local seq="${filename%%_*}"
-	
+
 	# Validate it's 3 digits
 	if [[ "$seq" =~ ^[0-9]{3}$ ]]; then
 		echo "$seq"
@@ -110,19 +110,19 @@ GetSequenceNumber() {
 # Function: SuggestNewSeqNum
 # Description: Suggest the next available 3-digit sequence number.
 # Usage: SuggestNewSeqNum current_seq_str all_used_seqs_str
-# Returns: Echoes suggested 3-digit sequence number or "ERR". 
+# Returns: Echoes suggested 3-digit sequence number or "ERR".
 # ============================================================================
 SuggestNewSeqNum() {
 	local current_seq_str="${1:-}"
 	local all_used_seqs_str="${2:-}"
-	
+
 	# Validate input format
 	if ! [[ "$current_seq_str" =~ ^[0-9]{3}$ ]]; then
 		ErrorMessage "Invalid current sequence '$current_seq_str' passed to SuggestNewSeqNum."
 		echo "ERR"
 		return 1
 	fi
-	
+
 	local current_seq_num=$((10#$current_seq_str)) # Force base 10
 	local suggestion=""
 	local range_start=$(((current_seq_num / 100) * 100))
@@ -152,7 +152,7 @@ SuggestNewSeqNum() {
 		if [[ $block -eq $((range_start / 100)) ]]; then
 			continue # Skip the block we already checked
 		fi
-		
+
 		for ((i = block * 100; i < (block + 1) * 100; i++)); do
 			printf -v formatted_seq "%03d" "$i"
 			if [[ ! ",${all_used_seqs_str}," =~ ",${formatted_seq}," ]]; then
@@ -186,21 +186,21 @@ RenameConflictingFile() {
 	local scripts_dir="$3"
 	local -n used_seqs_ref="$4"
 	local is_dry_run="$5"
-	
+
 	# Calculate new filename
 	local suffix="${file_to_rename#*_}"
 	local new_filename="${new_seq_num}_${suffix}"
 	local current_path="${scripts_dir}/${file_to_rename}"
 	local new_path="${scripts_dir}/${new_filename}"
-	
+
 	InfoMessage "    Renaming: '${file_to_rename}' → '${new_filename}'"
-	
+
 	if [[ "$is_dry_run" == "true" ]]; then
 		InfoMessage "    [DRY RUN] Would rename file."
 		used_seqs_ref+=",${new_seq_num}"
 		return 0
 	fi
-	
+
 	# Actually perform the rename
 	if mv -v "$current_path" "$new_path"; then
 		SuccessMessage "    File renamed successfully."
@@ -223,30 +223,30 @@ PromptForNewSequence() {
 	local suggested_seq="$1"
 	local all_used_seqs="$2"
 	local response=""
-	
+
 	# Prompt user for input
 	printf "%s" "    Enter new sequence (3 digits), 's' to skip, or Enter for suggestion [${suggested_seq}]: "
 	read -r response
 	response="${response:-$suggested_seq}" # Default to suggestion
-	
+
 	if [[ "$response" =~ ^[Ss]$ ]]; then
 		echo "skip"
 		return 0
 	fi
-	
+
 	# Validate user input
 	if ! [[ "$response" =~ ^[0-9]{3}$ ]]; then
 		WarningMessage "    Invalid input '$response'. Must be 3 digits. Using suggestion '$suggested_seq'."
 		echo "$suggested_seq"
 		return 0
 	fi
-	
+
 	if [[ ",${all_used_seqs}," =~ ",${response}," ]]; then
 		WarningMessage "    Sequence '$response' is already in use. Using suggestion '$suggested_seq'."
 		echo "$suggested_seq"
 		return 0
 	fi
-	
+
 	echo "$response"
 	return 0
 }
@@ -265,27 +265,28 @@ FixSeqConflicts() {
 	local -n seq_map_ref="$4" # Nameref (Bash 4.3+)
 	local is_interactive="${5:-false}"
 	local is_dry_run="${6:-false}"
-	
+
 	local all_fixed_or_skipped=true
 	local all_used_seqs_str="" # Comma-separated list of all sequence numbers in use
-	
+
 	# Ensure Bash 4.3+ for namerefs
 	if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
 		ErrorMessage "Internal Error: FixSeqConflicts requires Bash 4.3+ for namerefs."
 		return 1
 	fi
-	
+
 	if [[ "$is_interactive" == "false" ]]; then
 		WarningMessage "Non-interactive conflict fixing is not supported."
 		WarningMessage "Conflicts remain for ${hostname}/${shell}."
 		return 1
 	fi
-	
-	SectionHeader "Interactive Conflict Resolution for ${hostname}/${shell}"
-	
+
 	# Build string of all used sequence numbers
-	all_used_seqs_str=$(IFS=,; echo "${!seq_map_ref[*]}")
-	
+	all_used_seqs_str=$(
+		IFS=,
+		echo "${!seq_map_ref[*]}"
+	)
+
 	# Sort the conflicting sequence numbers
 	local sorted_conflicting_seqs=()
 	for seq_num in "${!seq_map_ref[@]}"; do
@@ -295,57 +296,57 @@ FixSeqConflicts() {
 		fi
 	done
 	sorted_conflicting_seqs=($(printf '%s\n' "${sorted_conflicting_seqs[@]}" | sort -n))
-	
+
 	# Process each conflicting sequence
 	for seq_num in "${sorted_conflicting_seqs[@]}"; do
 		local files_string="${seq_map_ref[$seq_num]}"
 		local conflict_files=()
-		
+
 		echo # Blank line for spacing
 		InfoMessage "${CYAN}Resolving conflict for sequence ${BOLD}${seq_num}${RESET}${CYAN}:${RESET}"
 		IFS=',' read -r -a conflict_files <<<"$files_string"
-		
+
 		# Keep first file at current sequence
 		InfoMessage "  Keeping: '${conflict_files[0]}'"
-		
+
 		# Process other conflicting files
 		for ((i = 1; i < ${#conflict_files[@]}; i++)); do
 			local file_to_rename="${conflict_files[$i]}"
 			local suggested_seq=$(SuggestNewSeqNum "$seq_num" "$all_used_seqs_str")
-			
+
 			if [[ "$suggested_seq" == "ERR" ]]; then
 				ErrorMessage "  Cannot suggest a new number for '$file_to_rename'. Skipping."
 				all_fixed_or_skipped=false
 				continue
 			fi
-			
+
 			echo
 			InfoMessage "  File to renumber: ${CYAN}${file_to_rename}${RESET}"
 			InfoMessage "    Current sequence: ${RED}${seq_num}${RESET}"
 			InfoMessage "    Suggested sequence: ${GREEN}${suggested_seq}${RESET}"
-			
+
 			if [[ "$is_dry_run" == "true" ]]; then
 				InfoMessage "    [DRY RUN] Would rename to sequence ${suggested_seq}."
 				all_used_seqs_str+=",${suggested_seq}" # Add for subsequent suggestions
 				continue
 			fi
-			
+
 			# Get new sequence number from user or use suggestion
 			local new_seq_num_str=$(PromptForNewSequence "$suggested_seq" "$all_used_seqs_str")
-			
+
 			if [[ "$new_seq_num_str" == "skip" ]]; then
 				WarningMessage "    Skipping rename for '$file_to_rename'."
 				all_fixed_or_skipped=false
 				continue
 			fi
-			
+
 			# Perform the rename
 			if ! RenameConflictingFile "$file_to_rename" "$new_seq_num_str" "$scripts_dir" all_used_seqs_str "$is_dry_run"; then
 				all_fixed_or_skipped=false
 			fi
 		done
 	done
-	
+
 	echo "" # Add final newline
 	if [[ "$all_fixed_or_skipped" == "true" ]]; then
 		if [[ "$is_dry_run" == "true" ]]; then
@@ -361,7 +362,7 @@ FixSeqConflicts() {
 }
 
 # ============================================================================
-# Function: FindConfigFiles 
+# Function: FindConfigFiles
 # Description: Find configuration files for a specific shell/hostname
 # Usage: FindConfigFiles shell hostname
 # Returns: Array of matching files
@@ -370,14 +371,14 @@ FindConfigFiles() {
 	local shell="$1"
 	local hostname="$2"
 	local config_files=()
-	
+
 	# Use the rcForge function to find scripts
 	mapfile -t config_files < <(FindRcScripts "$shell" "$hostname")
-	
+
 	if [[ ${#config_files[@]} -eq 0 || "${config_files[0]}" == "No rc files found." ]]; then
 		return 1
 	fi
-	
+
 	printf '%s\n' "${config_files[@]}"
 	return 0
 }
@@ -393,22 +394,22 @@ BuildSequenceMap() {
 	shift
 	local -a files=("$@")
 	local has_conflicts=false
-	
+
 	# Clear the map
 	seq_map=()
-	
+
 	# Process each file
 	for file in "${files[@]}"; do
 		[[ -z "$file" ]] && continue
-		
+
 		local filename=$(basename "$file")
 		local seq_num=$(GetSequenceNumber "$filename")
-		
+
 		if [[ "$seq_num" == "INVALID" ]]; then
 			WarningMessage "Skipping file with invalid sequence format: $filename"
 			continue
 		fi
-		
+
 		# Check for conflicts
 		if [[ -v "seq_map[$seq_num]" ]]; then
 			seq_map["$seq_num"]+=",${filename}"
@@ -417,7 +418,7 @@ BuildSequenceMap() {
 			seq_map["$seq_num"]="$filename"
 		fi
 	done
-	
+
 	if [[ "$has_conflicts" == "true" ]]; then
 		return 0
 	else
@@ -435,27 +436,27 @@ DisplayConflicts() {
 	local -n seq_map="$1"
 	local shell="$2"
 	local hostname="$3"
-	
+
 	# Use sourced TextBlock
 	TextBlock "Sequence Conflicts Detected for ${hostname}/${shell}" "$RED" "${BG_WHITE:-$BG_RED}"
 	echo ""
-	
+
 	# Sort sequence numbers for display
 	local sorted_seqs=($(printf '%s\n' "${!seq_map[@]}" | sort -n))
-	
+
 	for seq_num in "${sorted_seqs[@]}"; do
 		local files_string="${seq_map[$seq_num]}"
-		
+
 		# Only display if it's actually a conflict (multiple files)
 		if [[ "$files_string" == *,* ]]; then
 			echo -e "${RED}Conflict at sequence ${BOLD}${seq_num}${RESET}${RED}:${RESET}"
-			
+
 			# Indent list for consistency
 			echo "$files_string" | tr ',' '\n' | sed 's/^/  /'
 			echo ""
 		fi
 	done
-	
+
 	return 0
 }
 
@@ -472,29 +473,29 @@ CheckSeqConflicts() {
 	local is_interactive="${4:-true}"
 	local is_dry_run="${5:-false}"
 	local rcforge_dir="${RCFORGE_CONFIG_ROOT}"
-	
+
 	local -a config_files=()
 	local has_conflicts=false
 	declare -A sequence_map
-	
+
 	InfoMessage "Checking sequence conflicts for ${hostname}/${shell}..."
-	
+
 	# Find all matching config files
 	mapfile -t config_files < <(FindConfigFiles "$shell" "$hostname")
 	if [[ $? -ne 0 || ${#config_files[@]} -eq 0 ]]; then
 		InfoMessage "No configuration files found for ${hostname}/${shell}. Skipping check."
 		return 0
 	fi
-	
+
 	# Build sequence map
 	if ! BuildSequenceMap sequence_map "${config_files[@]}"; then
 		SuccessMessage "No sequence conflicts found for ${hostname}/${shell}."
 		return 0
 	fi
-	
+
 	# Display conflicts
 	DisplayConflicts sequence_map "$shell" "$hostname"
-	
+
 	# Fix conflicts if requested
 	if [[ "$is_fix_mode" == "true" ]]; then
 		if FixSeqConflicts "$rcforge_dir" "$shell" "$hostname" sequence_map "$is_interactive" "$is_dry_run"; then
@@ -518,21 +519,21 @@ DetectHostnames() {
 	local scripts_dir="${RCFORGE_SCRIPTS}"
 	local -a detected_hosts=("global") # Always include global
 	local current_hostname=$(DetectHostname)
-	
+
 	# Add current hostname
 	detected_hosts+=("$current_hostname")
-	
+
 	# Find other hostnames from script files
 	if [[ -d "$scripts_dir" ]]; then
 		while IFS= read -r hostname; do
 			[[ -n "$hostname" && "$hostname" != "global" ]] && detected_hosts+=("$hostname")
-		done < <(find "$scripts_dir" -maxdepth 1 -type f -name "[0-9][0-9][0-9]_*_*_*.sh" | 
-			xargs -r basename | 
-			cut -d '_' -f 2 | 
-			grep -v '^global$' | 
+		done < <(find "$scripts_dir" -maxdepth 1 -type f -name "[0-9][0-9][0-9]_*_*_*.sh" |
+			xargs -r basename |
+			cut -d '_' -f 2 |
+			grep -v '^global$' |
 			sort -u)
 	fi
-	
+
 	# Return unique list
 	printf '%s\n' "${detected_hosts[@]}" | sort -u
 }
@@ -547,17 +548,17 @@ CheckAllSeqConflicts() {
 	local is_fix_mode="${1:-false}"
 	local is_interactive="${2:-true}"
 	local is_dry_run="${3:-false}"
-	
+
 	local any_conflicts_found=false
-	
+
 	# Get all hostnames
 	local -a hostnames=()
 	mapfile -t hostnames < <(DetectHostnames)
-	
+
 	InfoMessage "Checking combinations for shells: ${GC_SUPPORTED_SHELLS[*]}"
 	InfoMessage "Checking combinations for hostnames: ${hostnames[*]}"
 	echo ""
-	
+
 	# Iterate through all combinations
 	for shell in "${GC_SUPPORTED_SHELLS[@]}"; do
 		for hostname in "${hostnames[@]}"; do
@@ -567,9 +568,8 @@ CheckAllSeqConflicts() {
 			echo # Add separator line
 		done
 	done
-	
+
 	# Report final overall status
-	SectionHeader "Overall Summary"
 	if [[ "$any_conflicts_found" == "true" ]]; then
 		if [[ "$is_fix_mode" == "true" && "$is_dry_run" == "false" ]]; then
 			WarningMessage "Sequence conflicts were detected. Some may not have been resolved."
@@ -594,13 +594,13 @@ CheckAllSeqConflicts() {
 ParseArguments() {
 	local -n options_ref="$1"
 	shift
-	
+
 	# Ensure Bash 4.3+ for namerefs
 	if [[ "${BASH_VERSINFO[0]}" -lt 4 || ("${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3) ]]; then
 		ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
 		return 1
 	fi
-	
+
 	# Set defaults using sourced functions
 	options_ref["target_hostname"]=$(DetectHostname)
 	options_ref["target_shell"]=$(DetectShell)
@@ -608,12 +608,12 @@ ParseArguments() {
 	options_ref["fix_conflicts"]=false
 	options_ref["is_interactive"]=true
 	options_ref["is_dry_run"]=false
-	
+
 	# Process arguments
 	while [[ $# -gt 0 ]]; do
 		local key="$1"
 		case "$key" in
-			-h|--help)
+			-h | --help)
 				ShowHelp # Exits
 				;;
 			--summary)
@@ -684,22 +684,22 @@ ParseArguments() {
 				;;
 		esac
 	done
-	
+
 	# Post-parsing validation
 	if ! ValidateShell "${options_ref["target_shell"]}"; then
 		return 1
 	fi
-	
+
 	# Handle interaction between --fix and --non-interactive
 	if [[ "${options_ref["fix_conflicts"]}" == "true" && "${options_ref["is_interactive"]}" == "false" ]]; then
 		WarningMessage "--fix requires interactive mode. Disabling fix mode."
 		options_ref["fix_conflicts"]=false
 	fi
-	
+
 	if [[ "${options_ref["is_dry_run"]}" == "true" ]]; then
 		InfoMessage "Running with --dry-run. No changes will be made."
 	fi
-	
+
 	return 0
 }
 
@@ -713,12 +713,10 @@ main() {
 	# Use associative array for options
 	declare -A options
 	local overall_status=0
-	
+
 	# Parse Arguments
 	ParseArguments options "$@" || exit $?
-	
-	SectionHeader "rcForge Sequence Conflict Check (v${gc_version})"
-	
+
 	# Determine whether to check all or specific context
 	if [[ "${options[check_all]}" == "true" ]]; then
 		CheckAllSeqConflicts \
@@ -735,7 +733,7 @@ main() {
 			"${options[is_dry_run]}"
 		overall_status=$?
 	fi
-	
+
 	return $overall_status
 }
 
