@@ -1,10 +1,6 @@
 # development project root
 PROJECT_ROOT="${HOME}/src/rcforge"
 
-# environment variables for rcForge code to be executed from within the project
-RCFORGE_APP_NAME="rcForge_src"
-RCFORGE_VERSION="na"
-
 # RCFORGE standard path variables
 # These typically point to install-root. Here we point to project-root.
 RCFORGE_ROOT="$PROJECT_ROOT"

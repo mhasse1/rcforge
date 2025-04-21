@@ -14,29 +14,13 @@ _error=false
 
 # Check appropriate shell-specific variables to detect if we're being sourced
 if [[ -n "${ZSH_VERSION:-}" ]]; then
-	# In Zsh: Check if in a function and not top-level shell
-	if [[ "$ZSH_EVAL_CONTEXT" != *:file:* ]]; then
-		_error=true
-	fi
-
-	# Check if interactive
-	if [[ ! -o interactive ]]; then
-		_error=true
-	fi
+	[[ "$ZSH_EVAL_CONTEXT" != *:file:* ]] && _error=true # Check if being sourced
+	[[ ! -o interactive ]] && _error=true                # Check if interactive
 elif [[ -n "${BASH_VERSION:-}" ]]; then
-	# In Bash: Check if being sourced by comparing BASH_SOURCE[0] to $0
-	if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-		_error=true
-	fi
-
-	# Check if interactive
-	if [[ $- != *i* ]]; then
-		_error=true
-	fi
+	[[ "${BASH_SOURCE[0]}" == "${0}" ]] && _error=true # Check if being sourced
+	[[ $- != *i* ]] && _error=true                     # Check if interactive
 else
-	# Unknown shell
-	printf "\033[1;31mERROR: rcForge requires either Bash or Zsh.\033[0m\n" >&2
-	[[ "$0" == "${BASH_SOURCE[0]:-$0}" ]] && exit 1 || return 1
+	printf "\033[1;WARNING: Unverified shell detected. Continuing.\033[0m\n" >&2
 fi
 
 if $_error; then
@@ -284,14 +268,7 @@ main() {
 	# --- Process API Keys (v0.5.0+ feature) ---
 	ProcessApiKeys
 
-	local current_shell=$(DetectShell)
-	if [[ "$current_shell" != "bash" && "$current_shell" != "zsh" ]]; then
-		WarningMessage "Unsupported shell detected: '$current_shell'. rcForge primarily supports bash and zsh."
-		# Continue anyway, maybe common scripts work
-	fi
-
-	# Perform integrity checks - simplified logic
-	SectionHeader "rcForge Integrity Checks"
+	# Perform integrity checks
 	local check_runner_script="${RCFORGE_CORE}/run-integrity-checks.sh"
 	local check_status=0
 	local has_integrity_issue=false
@@ -325,8 +302,6 @@ main() {
 		fi
 	fi
 
-	echo "" # Add newline after checks section
-
 	# --- Find and Source Configuration Files ---
 	SectionHeader "Loading rcForge Configuration"
 	InfoMessage "Locating and sourcing configuration files."
@@ -341,9 +316,9 @@ main() {
 	fi
 
 	# Source the files
-	InfoMessage "Starting rc-script sourcing for ${current_shell} on $(DetectHostname)."
+	InfoMessage "Starting rc-script sourcing for $(DetectShell) on $(DetectHostname)."
 	if [[ ${#config_files_to_load[@]} -gt 0 ]]; then
-		SourceConfigFiles "${config_files_to_load[@]}" # Call local function
+		SourceConfigFiles "${config_files_to_load[@]}"
 	else
 		InfoMessage "No specific rcForge configuration files found for ${current_shell} on $(DetectHostname)."
 	fi
@@ -356,7 +331,7 @@ main() {
 # EXECUTION START (When Sourced)
 # ============================================================================
 
-# Call the main loader function, capturing its status
+# Call the main loader function
 main "$@"
 
 # Clean up loader-specific function definitions from the shell environment

@@ -250,10 +250,7 @@ main() {
 	SectionHeader "rcForge RC File Checksum Verification"
 	if [[ "$fix_mode" == "true" ]]; then
 		InfoMessage "Running in FIX mode: Stored checksums will be updated on mismatch."
-	else
-		InfoMessage "Running in CHECK mode. Use --fix to update checksums on mismatch."
 	fi
-	echo "" # Add newline
 
 	# Verify checksums for each supported RC file
 	for rc_file_basename in "${gc_supported_rc_files[@]}"; do

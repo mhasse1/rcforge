@@ -44,7 +44,6 @@ set -o pipefail
 # MANIFEST_FILE is relative to PROJECT_ROOT (which is now pwd assumption)
 readonly MANIFEST_FILE_BASENAME="file-manifest.txt"
 readonly MANIFEST_FILE="./${MANIFEST_FILE_BASENAME}"
-readonly TARGET_BASE_DIR="$HOME/.config/rcforge"
 
 # ============================================================================
 # LOCAL HELPER FUNCTIONS
