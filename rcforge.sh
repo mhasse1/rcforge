@@ -19,15 +19,15 @@ _print() {
 
 	# Basic options parsing
 	if [[ $1 == "-n" ]]; then
-		nl="\n"
+		nl='\n'
 		shift
 	elif [[ $1 == "-r" ]]; then
-		$nl="\r"
+		$nl='\r'
 		shift
 	fi
-	local msg="${*}${nl}"
+	local msg="${1}"
 
-	printf "%b%s%b" $text_color $msg $reset
+	printf "%b%s%s%b" "$text_color" "$msg" "$nl" "$reset"
 }
 
 # ============================================================================
