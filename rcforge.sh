@@ -19,7 +19,7 @@ _fg='\033[0;31m'
 _bg='\033[47m'
 _reset='\033[0m'
 
-printf "%b%bInitializing rcForge. Press '.' to abort or 'd' to turn on debug within %is.%b\n" $_fg $_bg $_timeout $_reset
+printf "%b%bInitializing rcForge. Press '.' to abort or 'd' to turn on debug within %is.%b\r" $_fg $_bg $_timeout $_reset
 
 # Read user input with timeout
 if [[ -n "${ZSH_VERSION:-}" ]]; then
@@ -28,27 +28,23 @@ else
 	read -s -N 1 -t "$_timeout" _rcf_key
 fi
 
-echo ""
+printf "%79s\r" "" # remove the previous line
 
 if [[ -n "${_rcf_key:-}" ]]; then
 	case "$_rcf_key" in
 		".")
-			echo "rcForge loading aborted by user."
+			printf "rcForge aborted by user."
 			return 1
 			;;
 		"d")
-			echo "DEBUG_MODE turned on."
+			printf "DEBUG_MODE turned on."
 			DEBUG_MODE=true
 			;;
 	esac
 fi
 
 echo ""
-unset _rcf_key
-unset _timeout
-unset _fg
-unset _bg
-unset _reset
+unset _rcf_key _timeout _fg _bg _reset
 # --- End Abort Check ---
 
 # Set strict modes early for initialization safety
