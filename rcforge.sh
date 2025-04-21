@@ -183,6 +183,7 @@ SourceConfigFiles() {
 		if [[ -r "$file" ]]; then
 			# shellcheck disable=SC1090
 			source "$file"
+			SuccessMessage "$file sourced."
 		else
 			WarningMessage "Cannot read configuration file: $file. Skipping."
 		fi
