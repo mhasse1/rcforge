@@ -139,7 +139,7 @@ FindRcScripts() {
 	local pipeline_status=0
 	local -a config_files=()
 
-	local pattern="[0-9]{3}_(global|$(hostname))_(common|zsh)_.*\.sh"
+	local pattern="[0-9]{3}_(global|${hostname})_(common|${shell})_.*\.sh"
 
 	# Check if the scripts directory exists
 	if [[ ! -d "$RCFORGE_SCRIPTS" ]]; then
@@ -149,13 +149,13 @@ FindRcScripts() {
 
 	while IFS= read -r file; do
 		config_files+=("$file")
-	done < <(find "$RCFORGE_SCRIPTS" -type f -perm -u+x -name '*sh' | grep -E "$regex_pattern" | sort -n)
+	done < <(find "$RCFORGE_SCRIPTS" -type f -perm -u+x -name '*sh' | grep -E "$pattern" | sort -n)
 	pipeline_status=$?
 
 	if [[ $pipeline_status -ne 0 ]]; then
 		WarningMessage "Find command failed searching rc-scripts (status: $find_status)."
 		return $pipeline_status
-	elif [[ ${#config_files_to_load[@]} -eq 0 ]]; then
+	elif [[ ${#config_files[@]} -eq 0 ]]; then
 		echo "No rc files found."
 		return 1
 	fi

@@ -50,7 +50,7 @@ unset _rcf_key _timeout _fg _bg _reset
 # Set strict modes early for initialization safety
 set -o nounset
 
-# Source rcForge environment variabls
+# Source rcForge environment variables
 source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
 # Process path.conf to set PATH environment variable
@@ -101,6 +101,42 @@ ProcessApiKeys() {
 # Process PATH configuration (0.5.0+ feature)
 ProcessPathConfiguration
 
+# Check if Bash version meets requirements (>= 4.3)
+VerifyBashVersion() {
+	local required_version="4.3"
+	local bash_path=""
+	local bash_version=""
+
+	# Find first bash in PATH
+	bash_path=$(command -v bash 2>/dev/null)
+
+	if [[ -z "$bash_path" ]]; then
+		echo -e "\033[0;31mERROR:\033[0m Bash not found in PATH. rcForge requires Bash 4.3+." >&2
+		return 1
+	fi
+
+	# Get bash version
+	bash_version=$("$bash_path" --version | head -n 1 | sed -n 's/.*GNU bash, version \([0-9]\+\.[0-9.]*\).*/\1/p')
+
+	if [[ -z "$bash_version" ]]; then
+		echo -e "\033[0;31mERROR:\033[0m Unable to determine Bash version. rcForge requires Bash 4.3+." >&2
+		return 1
+	fi
+
+	# Compare versions (using sort -V for version comparison)
+	if ! printf '%s\n%s\n' "$required_version" "$bash_version" | sort -V -C; then
+		echo -e "\033[0;31mERROR:\033[0m Bash version $bash_version is too old. rcForge requires $required_version+." >&2
+		return 1
+	fi
+
+	return 0
+}
+
+# Verify bash version right after setting PATH
+if ! VerifyBashVersion; then
+	return 1
+fi
+
 # --- Source Core Utility Library ---
 # This needs to happen *after* PATH is set up
 if [[ -f "${RCFORGE_LIB}/utility-functions.sh" ]]; then
@@ -128,56 +164,17 @@ fi
 SourceConfigFiles() {
 	local -a files_to_source=("$@")
 	local file=""
-	local start_time=""
-	local end_time=""
-	local elapsed=""
-	local have_bc=false
-	local use_seconds=true # Default to using SECONDS fallback
-
-	# Setup for optional timing
-	if [[ "${DEBUG_MODE:-false}" == "true" ]]; then
-		if CommandExists bc; then
-			have_bc=true
-		fi
-		# Check if sub-second precision is available via date
-		if date +%s.%N &>/dev/null; then
-			use_seconds=false
-		fi
-		# Record start time
-		if [[ "$use_seconds" == "false" ]]; then
-			start_time=$(date +%s.%N)
-		else
-			start_time=$SECONDS
-		fi
-		DebugMessage "Starting rcForge configuration loading..."
-	fi
 
 	# Loop through and source files
 	for file in "${files_to_source[@]}"; do
 		if [[ -r "$file" ]]; then
-			InfoMessage "Sourcing $file"
 			# shellcheck disable=SC1090
 			source "$file"
+			SuccessMessage "Sourced $file"
 		else
 			WarningMessage "Cannot read configuration file: $file. Skipping."
 		fi
 	done
-
-	# Report timing if debug enabled
-	if [[ "${DEBUG_MODE:-false}" == "true" ]]; then
-		if [[ "$use_seconds" == "false" ]] && [[ "$have_bc" == "true" ]]; then
-			end_time=$(date +%s.%N)
-			elapsed=$(echo "$end_time - $start_time" | bc)
-			DebugMessage "rcForge configuration loaded in $elapsed seconds."
-		elif [[ "$use_seconds" == "true" ]]; then
-			local duration=$((SECONDS - start_time))
-			# Handle potential wrap-around or slight negative if start was near 0
-			[[ $duration -lt 0 ]] && duration=0
-			DebugMessage "rcForge configuration loaded in $duration seconds."
-		else
-			DebugMessage "rcForge configuration loading complete (precise timing unavailable)."
-		fi
-	fi
 }
 
 # ============================================================================
@@ -249,49 +246,55 @@ main() {
 		# Continue anyway, maybe common scripts work
 	fi
 
-	# Perform integrity checks unless skipped
-	if [[ -z "${RCFORGE_SKIP_CHECKS:-}" ]]; then
-		SectionHeader "rcForge Integrity Checks"
-		local check_runner_script="${RCFORGE_CORE}/run-integrity-checks.sh"
-		local check_runner_status=0
+	# Perform integrity checks - simplified logic
+	SectionHeader "rcForge Integrity Checks"
+	local check_runner_script="${RCFORGE_CORE}/run-integrity-checks.sh"
+	local check_status=0
+	local has_integrity_issue=false
 
-		if [[ -f "$check_runner_script" && -x "$check_runner_script" ]]; then
-			# Execute using bash to ensure correct environment for checks
-			bash "$check_runner_script"
-			check_runner_status=$?
-
-			if [[ $check_runner_status -ne 0 ]]; then
-				# Warnings already printed by runner script
-				# Ask user whether to proceed if interactive
-				if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
-					ErrorMessage "Running non-interactive. Aborting due to integrity issues." 1 # Use ErrorMessage to exit
-				fi
-				local response=""
-				printf "%b" "${YELLOW}Integrity checks reported issues. Continue loading? (y/N):${RESET} "
-				read -r response
-				if [[ ! "$response" =~ ^[Yy]$ ]]; then
-					ErrorMessage "Aborted by user due to integrity issues." 1 # Use ErrorMessage
-				else
-					SuccessMessage "Continuing despite integrity warnings..."
-				fi
-			else
-				SuccessMessage "All integrity checks passed."
-			fi
-		else
-			WarningMessage "Integrity check runner not found/executable: $check_runner_script"
-			WarningMessage "Skipping integrity checks."
-			# Consider if this should be fatal? For now, just warn.
-		fi
-		echo "" # Add newline after checks section
+	# Check if script exists and is executable
+	if [[ ! -f "$check_runner_script" || ! -x "$check_runner_script" ]]; then
+		WarningMessage "Integrity check runner not found/executable: $check_runner_script"
+		has_integrity_issue=true
 	else
-		InfoMessage "Skipping integrity checks due to RCFORGE_SKIP_CHECKS."
+		# Execute the checks
+		bash "$check_runner_script"
+		check_status=$?
+
+		if [[ $check_status -ne 0 ]]; then
+			has_integrity_issue=true
+		else
+			SuccessMessage "All integrity checks passed."
+		fi
 	fi
+
+	# Handle integrity issues (combined approach)
+	if [[ "$has_integrity_issue" == "true" ]]; then
+		# Only prompt if interactive
+		if [[ -n "${RCFORGE_NONINTERACTIVE:-}" || ! -t 0 ]]; then
+			ErrorMessage "Running non-interactive. Aborting due to integrity issues."
+			return 1
+		fi
+
+		# Prompt user
+		local response=""
+		printf "%b" "${YELLOW}Integrity check issues detected. Continue loading anyway? (y/N):${RESET} "
+		read -r response
+		if [[ ! "$response" =~ ^[Yy]$ ]]; then
+			ErrorMessage "Aborted by user due to integrity issues."
+			return 1
+		else
+			WarningMessage "Continuing despite integrity warnings..."
+		fi
+	fi
+
+	echo "" # Add newline after checks section
 
 	# --- Find and Source Configuration Files ---
 	SectionHeader "Loading rcForge Configuration"
 	InfoMessage "Locating and sourcing configuration files."
 
-	local -a config_files_to_load=$(FindRcScripts)
+	local -a config_files_to_load=($(FindRcScripts))
 	local find_status=$?
 
 	# Check if find failed *and* no files were loaded
@@ -301,7 +304,7 @@ main() {
 	fi
 
 	# Source the files
-	InfoMessage "Staring rc-script sourcing for ${current_shell} on $(DetectHostname)."
+	InfoMessage "Starting rc-script sourcing for ${current_shell} on $(DetectHostname)."
 	if [[ ${#config_files_to_load[@]} -gt 0 ]]; then
 		SourceConfigFiles "${config_files_to_load[@]}" # Call local function
 	else
@@ -318,16 +321,13 @@ main() {
 
 # Call the main loader function, capturing its status
 main "$@"
-_RCFORGE_INIT_STATUS=$?
 
 # Clean up loader-specific function definitions from the shell environment
 unset -f main
 unset -f SourceConfigFiles
 unset -f ProcessPathConfiguration
 unset -f ProcessApiKeys
+unset -f VerifyBashVersion
 # Note: 'rc' function remains exported
-
-# Return the final status of the main loader function
-exit $_RCFORGE_INIT_STATUS
 
 # EOF
