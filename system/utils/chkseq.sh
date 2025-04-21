@@ -347,7 +347,6 @@ FixSeqConflicts() {
 		done
 	done
 
-	echo "" # Add final newline
 	if [[ "$all_fixed_or_skipped" == "true" ]]; then
 		if [[ "$is_dry_run" == "true" ]]; then
 			SuccessMessage "[DRY RUN] Conflict resolution simulation complete."
@@ -557,7 +556,6 @@ CheckAllSeqConflicts() {
 
 	InfoMessage "Checking combinations for shells: ${GC_SUPPORTED_SHELLS[*]}"
 	InfoMessage "Checking combinations for hostnames: ${hostnames[*]}"
-	echo ""
 
 	# Iterate through all combinations
 	for shell in "${GC_SUPPORTED_SHELLS[@]}"; do

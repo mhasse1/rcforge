@@ -29,6 +29,21 @@ We've significantly streamlined the rcForge installation process by focusing on 
    - Added logic to handle path conflicts during XDG migration
    - Standardized file permissions (700 for directories/executables, 600 for configs)
 
+6. **Remove the Coddling Code**
+   - This code runs on Unix-like OSes. Keep in mind basic Unix tenants, for example,
+      - Build tools that do one thing well without unnecessary explanations.
+      - Build on potential users' expected knowledge (Assume we have knowledgable users that do not need their hands held)
+      - Write readable programs
+      - Use composition
+      - Build modular programs
+      - Write simple programs
+      - Write small programs
+      - Write transparent programs
+      - Avoid unnecessary output
+      - Write programs which fail in a way that is easy to diagnose
+      - Choose portability over efficiency.
+   - Assume the standard paths and files for rcForge exist - we know the intaller put them there - error if they do not, do not attempt to correct.
+
 ## Process Improvements
 
 1. **Installation Flow**
@@ -124,5 +139,9 @@ The same simplification approach we used for the installer could benefit other p
    - Simplify and standardize help text across commands
    - Focus on practical, concise examples rather than exhaustive options
    - Make the command structure more predictable and consistent
+
+5. **Standardized Functions**
+   - Prefer standardized functions in system/lib
+   - Suggest opportunities for further standardization
 
 The core philosophy across all these areas would be the same: focus on essential functionality, reduce complexity, eliminate redundancy, and ensure that the system remains flexible without becoming unnecessarily complicated.
