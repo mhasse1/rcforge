@@ -7,6 +7,8 @@
 #              Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 #              Now supports XDG structure and API key management.
 
+echo "" # create some space before we start to make messaging clearer
+
 # ============================================================================
 # Local message function (when sourced colors not available)
 # ============================================================================
