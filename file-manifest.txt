@@ -1,5 +1,5 @@
 # v0.5.0pre2 File Manifest
-# File version: 0.5.0pre2-1
+# File version: 0.5.0pre2-2
 
 # ----------------------------------------------------------------------------
 # XDG BASE DIRECTORY SUPPORT
@@ -30,7 +30,9 @@ DIRECTORIES:
 
 FILES:
 # Source Path (relative to project root)        Destination Path (relative to XDG roots)
-# --------------------------------------------- ----------------------------------------
+# ============================================= ========================================
+
+# xdg-data ------------------------------------ ----------------------------------------
 rcforge.sh                                      {xdg-data}/rcforge.sh
 
 LICENSE                                         {xdg-data}/docs/LICENSE
@@ -39,20 +41,24 @@ README.md                                       {xdg-data}/docs/README.md
 config/api-keys.conf.template                   {xdg-data}/config/api-keys.conf
 
 system/core/bash-version-check.sh               {xdg-data}/system/core/bash-version-check.sh
-system/core/rc.sh                                {xdg-data}/system/core/rc.sh
+system/core/rc.sh                               {xdg-data}/system/core/rc.sh
 system/core/run-integrity-checks.sh             {xdg-data}/system/core/run-integrity-checks.sh
 
+system/lib/set-rcforge-environment.sh           {xdg-data}/system/lib/set-rcforge-environment.sh
 system/lib/shell-colors.sh                      {xdg-data}/system/lib/shell-colors.sh
 system/lib/utility-functions.sh                 {xdg-data}/system/lib/utility-functions.sh
-system/lib/set-rcforge-environment.sh           {xdg-data}/system/lib/set-rcforge-environment.sh
 
+system/utils/apikey.sh                          {xdg-data}/system/utils/apikey.sh
 system/utils/checksums.sh                       {xdg-data}/system/utils/checksums.sh
 system/utils/chkseq.sh                          {xdg-data}/system/utils/chkseq.sh
 system/utils/concat-files.sh                    {xdg-data}/system/utils/concat-files.sh
 system/utils/diagram.sh                         {xdg-data}/system/utils/diagram.sh
 system/utils/export.sh                          {xdg-data}/system/utils/export.sh
-system/utils/apikey.sh                          {xdg-data}/system/utils/apikey.sh
+system/utils/path.sh                            {xdg-data}/system/utils/path.sh
 
-rc-scripts/README.md                            {xdg-home}/rc-scripts/README.md
+# xdg-home ------------------------------------ ----------------------------------------
 config/path.conf.template                       {xdg-home}/config/path.conf
+rc-scripts/README.md                            {xdg-home}/rc-scripts/README.md
+
+
 

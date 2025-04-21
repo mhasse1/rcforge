@@ -5,14 +5,16 @@ Inbox:
 	- path manipulation scripts should be available in `rc` @na
 	- `rc --home`: cd to ~/.config/rcforge folder. @na
 	- `rc --local`: cd to ~/.local/rcforge @na
-	- Rename diag to diagram @na
+	- Rename diag to diagram @na @done(2025-04-21)
 	- check_manifest: update to support XDG structure @na
 		e.g. assume system goes to local
-	- Migrate existing PATH to path.conf if new install @na
 	- Example script: Cannot embed arrays error @na
-	- Have the AI take a look at the language regarding set-rcforge-env in @na
-	- Simplify code across all functions @na
-		install-script done
+	- Have the AI take a look at the language regarding set-rcforge-env in @na @done(2025-04-21)
+	- Simplification: diagrams @na
+	- Simplification: export @na
+	- Simplification: bash-version-check @na
+	- Simplification: run-integrity-checks @na
+		1 pass so far
 	050 Docs:
 		- Update 041-documentation to 050 @na
 		- Update project-instructions to 050 @na
@@ -25,6 +27,7 @@ Inbox:
 Feature Requests:
 
 Ideas:
+	- Migrate existing PATH to path.conf if new install @ideas
 	- Update rc support functions-create a more cohesive solution @maybe
 	Scripts to migration to rc:
 		- domain-check
@@ -47,6 +50,17 @@ Bugs:
 
 
 Archive:
+	- Simplify code across all functions @done(2025-04-21) @project(Inbox)
+		install-script done
+	- Simplification: apikey @done(2025-04-21) @project(Inbox)
+	- Simplification: checksums @done(2025-04-21) @project(Inbox)
+	- Simplification: chkseq @done(2025-04-21) @project(Inbox)
+	- Simplification: concat-files @done(2025-04-21) @project(Inbox)
+	- Simplification: rc.sh @done(2025-04-21) @project(Inbox)
+	- Simplification: rcforge.sh @done(2025-04-21) @project(Inbox)
+		2 passes so far
+	- Simplification: utility-functions @done(2025-04-21) @project(Inbox)
+	- Simplification: shell-colors @done(2025-04-21) @project(Inbox)
 	- Update style guide @done(2025-04-18) @project(Inbox / 050 Docs)
 	- Cleanup txt files from docs on github @na @done(2025-04-18 17:24) @project(Inbox / 050 Docs)
 	- mark this done to test @project(Ideas/) @done(2025-04-19 08:18)

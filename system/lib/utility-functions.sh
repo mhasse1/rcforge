@@ -181,7 +181,7 @@ CheckRoot() {
 AddToPath() {
 	local dir_to_add="$1"
 	local position="${2:-prepend}"
-	
+
 	# Handle ~ expansion
 	if [[ "$dir_to_add" == "~"* ]]; then
 		dir_to_add="${HOME}/${dir_to_add#\~}"
@@ -213,6 +213,45 @@ AddToPath() {
 # Returns: 0 (always)
 AppendToPath() {
 	AddToPath "$1" "append"
+}
+
+# Function: RemoveFromPath
+# Description: Removes a directory from PATH if it exists
+# Usage: RemoveFromPath "/path/to/remove"
+# Returns: 0 if directory was removed, 1 if directory wasn't in PATH
+RemoveFromPath() {
+	local dir_to_remove="$1"
+	local found=false
+	local new_path=""
+	local separator=""
+
+	# Handle ~ expansion
+	if [[ "$dir_to_remove" == "~"* ]]; then
+		dir_to_remove="${HOME}/${dir_to_remove#\~/}"
+	fi
+
+	# Skip if directory isn't in PATH
+	if [[ ":${PATH}:" != *":${dir_to_remove}:"* ]]; then
+		return 1
+	fi
+
+	# Rebuild PATH without the specified directory
+	for path_entry in ${PATH//:/ }; do
+		if [[ "$path_entry" != "$dir_to_remove" ]]; then
+			new_path+="${separator}${path_entry}"
+			separator=":"
+		else
+			found=true
+		fi
+	done
+
+	# Update PATH if we found and removed the directory
+	if $found; then
+		export PATH="$new_path"
+		return 0
+	fi
+
+	return 1
 }
 
 # Function: ShowPath

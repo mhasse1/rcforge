@@ -75,3 +75,12 @@ templates/example-interface.rb
 templates/example-interface.ts
 templates/example-utility.sh
 templates/template-utility.sh
+config/rcforge-version.conf
+docs/design/050-Simplification-Overview.md
+local/colors-demo.sh
+local/fm-tmp.txt
+local/hb_install.sh
+local/shell-colors-changes-documentation.md
+local/util-func-changes-documentation.md
+tools/repo_copy_deploy.sh
+config/rcforge-version.conf.template
