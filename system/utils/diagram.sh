@@ -8,7 +8,7 @@
 # Description: Generates visual representations of shell configuration loading sequence
 
 # Source necessary libraries (utility-functions sources shell-colors)
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
+source "${RCFORGE_LIB}/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset # Re-enabled

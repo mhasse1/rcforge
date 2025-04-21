@@ -9,6 +9,9 @@ processed_manifest=$MANIFEST_TEMP.temp
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/rcforge"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/rcforge"
 
+cd $root
+git pull
+
 cp $root/$man $temp/
 awk '
 	# Skip comment lines and empty lines

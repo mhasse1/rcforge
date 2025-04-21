@@ -11,7 +11,7 @@
 
 # Source necessary libraries (utility-functions sources shell-colors)
 # RCFORGE_LIB should be set by the rc command wrapper or sourced environment
-source "${RCFORGE_LIB:-$HOME/.config/rcforge/system/lib}/utility-functions.sh"
+source "$RCFORGE_LIB/utility-functions.sh"
 
 # Set strict error handling
 set -o nounset # Treat unset variables as errors
@@ -23,7 +23,16 @@ set -o pipefail # Ensure pipeline fails on any component failing
 # ============================================================================
 # Inherited from sourced utility-functions: gc_version, gc_app_name
 readonly gc_supported_rc_files=(
+	".bash.prompt"
+	".bash_login"
+	".bash_logout"
+	".bash_profile"
 	".bashrc"
+	".profile"
+	".zlogin"
+	".zlogout"
+	".zprofile"
+	".zshenv"
 	".zshrc"
 	# Add other relevant RC files here if needed in the future
 )
@@ -47,10 +56,8 @@ CalculateChecksum() {
 
 	# Check if file exists and is readable first
 	if [[ ! -f "$file_path" ]]; then
-		# Warning issued by caller (VerifyRcFileChecksum)
 		return 1
 	elif [[ ! -r "$file_path" ]]; then
-		WarningMessage "Cannot read file for checksum calculation: $file_path"
 		return 1
 	fi
 
@@ -247,7 +254,6 @@ main() {
 		WarningMessage "Could not set permissions (700) on: $checksum_dir"
 	fi
 
-	SectionHeader "rcForge RC File Checksum Verification"
 	if [[ "$fix_mode" == "true" ]]; then
 		InfoMessage "Running in FIX mode: Stored checksums will be updated on mismatch."
 	fi
@@ -264,7 +270,6 @@ main() {
 	done
 
 	# Report final overall status
-	echo "" # Add newline before final message
 	if [[ $any_unresolved_mismatch -eq 1 ]]; then
 		WarningMessage "Checksum verification finished: One or more files have changed and were not updated (--fix not used or failed)."
 		return 1 # Indicate failure/unresolved mismatch

@@ -7,7 +7,6 @@
 #              Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 #              Now supports XDG structure and API key management.
 
-# test
 # ============================================================================
 # CRITICAL: INTERACTIVE SOURCING CHECK
 # ============================================================================
