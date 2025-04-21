@@ -10,29 +10,43 @@
 # ============================================================================
 # CRITICAL: INTERACTIVE SOURCING CHECK
 # ============================================================================
-# Check if being sourced (not executed directly)
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-	printf "\033[1;31mERROR: rcForge must be sourced, not executed directly.\033[0m\n" >&2
-	exit 1
-fi
+_error=false
 
-# Check if we're in an interactive shell
+# Check appropriate shell-specific variables to detect if we're being sourced
 if [[ -n "${ZSH_VERSION:-}" ]]; then
+	# In Zsh: Check if in a function and not top-level shell
+	if [[ "$ZSH_EVAL_CONTEXT" != *:file:* ]]; then
+		_error=true
+	fi
+
+	# Check if interactive
 	if [[ ! -o interactive ]]; then
-		printf "\033[1;31mERROR: rcForge must be sourced in an interactive Zsh shell.\033[0m\n" >&2
-		return 1
+		_error=true
 	fi
 elif [[ -n "${BASH_VERSION:-}" ]]; then
-	# Bash: Check if interactive mode flag is set in $-
+	# In Bash: Check if being sourced by comparing BASH_SOURCE[0] to $0
+	if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+		_error=true
+	fi
+
+	# Check if interactive
 	if [[ $- != *i* ]]; then
-		printf "\033[1;31mERROR: rcForge must be sourced in an interactive Bash shell.\033[0m\n" >&2
-		return 1
+		_error=true
 	fi
 else
 	# Unknown shell
 	printf "\033[1;31mERROR: rcForge requires either Bash or Zsh.\033[0m\n" >&2
+	[[ "$0" == "${BASH_SOURCE[0]:-$0}" ]] && exit 1 || return 1
+fi
+
+if $_error; then
+	printf "\a\n\033[1;31mERROR: rcForge must be sourced in an interactive shell.\033[0m\n\n" >&2
 	return 1
 fi
+
+unset _error
+
+# If we get here, we're in an interactive shell and being sourced correctly
 # --- End interactive sourcing check ---------------------------------------------------------
 
 # ============================================================================
