@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 # checksums.sh - Verify checksums of standard shell RC files
-# Author: Mark Hasse / rcForge Team (AI Refactored)
-# Date: 2025-04-16 # Updated Date
-# Version: 0.4.2 # Core Version
+# Author: rcForge Team
+# Date: 2025-04-21
+# Version: 0.5.0
 # Category: system/utility
-# RC Summary: Checks and validates checksums for shell configuration files (.bashrc, .zshrc).
+# RC Summary: Checks and validates checksums for shell configuration files
 # Description: Verifies checksums for standard shell configuration files
 #              (~/.bashrc, ~/.zshrc) against previously stored values.
 #              Includes an option to update stored checksums if files change.
 
-# Source necessary libraries (utility-functions sources shell-colors)
-# RCFORGE_LIB should be set by the rc command wrapper or sourced environment
-source "$RCFORGE_LIB/utility-functions.sh"
+# Source necessary libraries
+source "${RCFORGE_LIB:-${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib}/utility-functions.sh"
 
 # Set strict error handling
-set -o nounset # Treat unset variables as errors
-# set -o errexit  # Let functions handle errors and return status
+set -o nounset  # Treat unset variables as errors
 set -o pipefail # Ensure pipeline fails on any component failing
+# set -o errexit  # Let functions handle errors and return status
 
 # ============================================================================
 # GLOBAL CONSTANTS (Readonly)
 # ============================================================================
-# Inherited from sourced utility-functions: gc_version, gc_app_name
+# Inherit constants from environment, with fallback
+[[ -v gc_version ]] || readonly gc_version="${RCFORGE_VERSION:-0.5.0}"
+[[ -v gc_app_name ]] || readonly gc_app_name="${RCFORGE_APP_NAME:-rcForge}"
+readonly UTILITY_NAME="checksums"
 readonly gc_supported_rc_files=(
 	".bash.prompt"
 	".bash_login"
@@ -34,7 +36,6 @@ readonly gc_supported_rc_files=(
 	".zprofile"
 	".zshenv"
 	".zshrc"
-	# Add other relevant RC files here if needed in the future
 )
 
 # ============================================================================
@@ -100,7 +101,7 @@ VerifyRcFileChecksum() {
 	local rc_file="$1"
 	local checksum_file="$2"
 	local rc_name="$3"
-	local fix_mode="$4" # Renamed from RCFORGE_FIX_CHECKSUMS env var
+	local fix_mode="$4"
 	local current_sum=""
 	local stored_sum=""
 
@@ -172,21 +173,32 @@ VerifyRcFileChecksum() {
 
 # ============================================================================
 # Function: ShowHelp
-# Description: Displays help information for the check-checksums utility.
+# Description: Displays help information for the checksums utility.
 # Usage: ShowHelp
 # Arguments: None
-# Returns: None. Prints help message to stdout. Exits script.
+# Returns: None. Prints help message to stdout. Exits script with 0.
 # ============================================================================
 ShowHelp() {
-	local script_specific_options
-	# Format script-specific options for clarity
-	script_specific_options=$(
-		cat <<EOF
-  --fix              Update stored checksums to match current RC files if mismatches are found.
-EOF
-	)
-	# Use the standard help function from utility-functions.sh
-	ShowStandardHelp "$script_specific_options" "$0" # Pass $0 for script name detection
+	echo "${UTILITY_NAME} - ${gc_app_name} Utility (v${gc_version})"
+	echo ""
+	echo "Description:"
+	echo "  Verifies checksums for standard shell configuration files like ~/.bashrc"
+	echo "  and ~/.zshrc against previously stored values. This helps detect"
+	echo "  unexpected changes to shell initialization files."
+	echo ""
+	echo "Usage:"
+	echo "  rc ${UTILITY_NAME} [options]"
+	echo "  ${0##*/} [options]"
+	echo ""
+	echo "Options:"
+	echo "  --fix              Update stored checksums to match current RC files if mismatches are found"
+	echo "  --help, -h         Show this help message"
+	echo "  --summary          Show a one-line description (for rc help)"
+	echo "  --version          Show version information"
+	echo ""
+	echo "Examples:"
+	echo "  rc ${UTILITY_NAME}      # Check checksums of standard shell RC files"
+	echo "  rc ${UTILITY_NAME} --fix # Update checksums if mismatches are found"
 	exit 0
 }
 
@@ -200,7 +212,6 @@ EOF
 # ============================================================================
 main() {
 	local fix_mode=false # Default to check-only
-	local rcforge_dir=""
 	local checksum_dir=""
 	local any_unresolved_mismatch=0 # Track overall status
 	local rc_file_basename=""       # Loop variable
@@ -217,13 +228,19 @@ main() {
 				shift
 				;;
 			# Standard args handled by wrapper or direct call patterns
-			-h | --help) ShowHelp ;; # Exits
+			-h | --help)
+				ShowHelp
+				;; # Exits
 			--summary)
 				ExtractSummary "$0"
 				exit $?
 				;; # Exits
 			--version)
-				ShowVersionInfo "$0"
+				if command -v _rcforge_show_version >/dev/null 2>&1; then
+					_rcforge_show_version "$0"
+				else
+					echo "${UTILITY_NAME} v${gc_version} - ${gc_app_name}"
+				fi
 				exit 0
 				;; # Exits
 			--)
@@ -242,8 +259,8 @@ main() {
 	done
 	# --- End Argument Parsing ---
 
-	rcforge_dir=$RCFORGE_CONFIG_ROOT
-	checksum_dir="${rcforge_dir}/docs/checksums" # Store in docs/checksums
+	# Use XDG paths for checksum directory
+	checksum_dir="${RCFORGE_DATA_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/rcforge}/config/checksums"
 
 	# Ensure checksum directory exists
 	if ! mkdir -p "$checksum_dir"; then
@@ -289,7 +306,7 @@ main() {
 # Script Execution Guard
 # ============================================================================
 # Ensure main execution logic runs only when script is executed directly
-# or via the 'rc' command wrapper function. Uses sourced IsExecutedDirectly.
+# or via the 'rc' command wrapper function.
 if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
 	main "$@"
 	exit $? # Exit with status from main function
