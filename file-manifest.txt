@@ -12,30 +12,21 @@
 # 2. Program data files are installed to ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/}
 #    - This includes system/, backups/, utils/, and other program data
 #
-# The DIRECTORIES section lists all directories that should be created under
-# either XDG_CONFIG_HOME/rcforge/ or XDG_DATA_HOME/rcforge/ depending on their purpose.
+# The DIRECTORIES section lists directories that should be created.
+#    - REQUIRED: Directories that will be empty at the end of the install.
+#    - OPTIONAL: (not recommended) Directories that will contain files.
 #
 # The FILES section maps source paths (relative to project root) to destination paths.
 # Destination path prefixes determine where files are installed:
 #   - Paths starting with "rc-scripts/" or "config/" go to ${XDG_CONFIG_HOME}/rcforge/
 #   - All other paths go to ${XDG_DATA_HOME}/rcforge/
 
+DIRECTORIES:
 # xdg-home = ${XDG_CONFIG_HOME:-$HOME/.config}/rcforge/
-{xdg-home}/
-{xdg-home}/config/
-{xdg-home}/utils/
-{xdg-home}/rc-scripts/
 
 # xdg-data = ${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/
-{xdg-data}/
 {xdg-data}/backups/
-{xdg-data}/config/
 {xdg-data}/config/checksums/
-{xdg-data}/docs/
-{xdg-data}/system/
-{xdg-data}/system/core/
-{xdg-data}/system/lib/
-{xdg-data}/system/utils/
 
 FILES:
 # Source Path (relative to project root)        Destination Path (relative to XDG roots)
@@ -48,7 +39,7 @@ README.md                                       {xdg-data}/docs/README.md
 config/api-keys.conf.template                   {xdg-data}/config/api-keys.conf
 
 system/core/bash-version-check.sh               {xdg-data}/system/core/bash-version-check.sh
-system/core/rc.sh                               {xdg-data}/system/core/rc.sh
+system/core/rc.sh                                {xdg-data}/system/core/rc.sh
 system/core/run-integrity-checks.sh             {xdg-data}/system/core/run-integrity-checks.sh
 
 system/lib/shell-colors.sh                      {xdg-data}/system/lib/shell-colors.sh

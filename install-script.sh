@@ -22,7 +22,8 @@ CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/rcforge"
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/rcforge"
 OLD_RCFORGE_DIR="$HOME/.config/rcforge" # Pre-0.5.0 path
 BACKUP_DIR="${DATA_HOME}/backups"
-BACKUP_FILE="${BACKUP_DIR}/rcforge_backup_$(date +%Y%m%d%H%M%S).tar.gz"
+RUNTIME=$(date +%Y%m%d%H%M%S)
+BACKUP_FILE="${BACKUP_DIR}/rcforge_backup_$RUNTIME.tar.gz"
 MANIFEST_TEMP="/tmp/rcforge_manifest_$"
 GITHUB_BASE_URL=""
 
@@ -30,8 +31,37 @@ GITHUB_BASE_URL=""
 REQUIRED_BASH_VERSION="4.3"
 
 # ============================================================================
-# UTILITY FUNCTIONS
+# UTILITY FUNCTIONS AND VARIBLES
 # ============================================================================
+
+# Simple command existence check
+command_exists() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+##### UTILITY VARIABLES
+# Create spaces variable to clear printf "\r" lines
+spaces=$(printf "%30s" "")
+# If fold exists, use it, otherwise use cat
+$(command_exists fold) && FOLD="$(which fold) -s" || FOLD=$(which cat)
+##### END UTILITY VARIABLES
+
+# simple associative array dump for debugging
+_debug_print_hash() {
+	declare -n hash_ref="$1"
+
+	printf '%.s-' $(seq -s " " 75)
+	printf "\n*** Markdown table. Paste as plain text.*** \n\n"
+	echo "| KEY | VALUE |"
+	echo "|-----|-------|"
+
+	for key in "${!hash_ref[@]}"; do
+		printf "| %q | %q |\n" "$key" "${hash_ref[$key]}"
+	done
+
+	printf '%.s-' $(seq -s " " 75)
+	echo ""
+}
 
 # Simple error handler that exits with a message
 error_exit() {
@@ -41,14 +71,9 @@ error_exit() {
 	exit 1
 }
 
-# Simple command existence check
-command_exists() {
-	command -v "$1" >/dev/null 2>&1
-}
-
 # Check if Bash version meets requirements
 check_bash_version() {
-	echo "Checking Bash version..."
+	printf "Checking Bash version...\r"
 	if [[ -z "${BASH_VERSION:-}" ]]; then
 		error_exit "This installer requires Bash ${REQUIRED_BASH_VERSION}+ to run."
 	fi
@@ -58,7 +83,7 @@ check_bash_version() {
 		error_exit "Bash version (${BASH_VERSION}) is too old. Required: v${REQUIRED_BASH_VERSION}+."
 	fi
 
-	echo "✓ Bash version ${BASH_VERSION} meets requirements."
+	echo "✓ Bash version ${BASH_VERSION} found"
 }
 
 # Download a file with curl
@@ -69,7 +94,7 @@ download_file() {
 	# Create directory if it doesn't exist
 	mkdir -p "$(dirname "$destination")"
 
-	echo "Downloading: $(basename "$destination")"
+	printf "Downloading: %-30s\r" "$(basename "$destination")"
 
 	# Download with curl
 	if ! curl --fail --silent --show-error --location --output "$destination" "$url"; then
@@ -98,7 +123,7 @@ needs_xdg_migration() {
 
 # Create backup of existing installation
 create_backup() {
-	echo "Creating backup of existing installation..."
+	printf "Creating backup of existing installation...\r"
 
 	# Ensure backup directory exists
 	mkdir -p "$BACKUP_DIR"
@@ -113,12 +138,21 @@ create_backup() {
 		# Backup old legacy structure
 		tar -czf "$BACKUP_FILE" -C "$(dirname "$OLD_RCFORGE_DIR")" "$(basename "$OLD_RCFORGE_DIR")"
 	else
-		echo "No existing installation found to back up."
+		unset BACKUP_FILE
 		return 0
 	fi
 
-	chmod 600 "$BACKUP_FILE"
-	echo "✓ Backup created: $BACKUP_FILE"
+	if [[ -v BACKUP_FILE ]]; then
+		if [[ -r $BACKUP_FILE ]]; then
+			chmod 600 "$BACKUP_FILE"
+			echo "✓ Backup created: $BACKUP_FILE"
+		else
+			error_exit "Unknown backup error. Please correct and retry."
+		fi
+	else
+		echo "✓ Backup not required${spaces}"
+	fi
+	echo ""
 }
 
 # Perform XDG migration
@@ -127,11 +161,11 @@ migrate_to_xdg() {
 
 	# Check if old and new config paths are the same
 	if [[ "$OLD_RCFORGE_DIR" == "$CONFIG_HOME" ]]; then
-		echo "Renaming existing directory to avoid conflicts..."
-		local backup_dir="${CONFIG_HOME}.pre-xdg"
+		printf "Renaming existing directory to avoid conflicts...\r"
+		local backup_dir="${CONFIG_HOME}.${RUNTIME}"
 
 		# Rename the old directory
-		if ! mv "$OLD_RCFORGE_DIR" "$backup_dir"; then
+		if ! mv -i "$OLD_RCFORGE_DIR" "$backup_dir"; then
 			error_exit "Failed to rename existing directory for migration."
 		fi
 
@@ -173,92 +207,162 @@ migrate_to_xdg() {
 		mkdir -p "${DATA_HOME}/config"
 		chmod 700 "${DATA_HOME}/config"
 		cp -p "${OLD_RCFORGE_DIR}/docs/.bash_location" "${DATA_HOME}/config/bash-location"
-		echo "✓ Migrated Bash location information."
+		echo "✓ Migrated rcForge script-execution config"
 	fi
 
 	echo "✓ Migration complete."
-	echo "NOTE: The old directory at '${OLD_RCFORGE_DIR}' is no longer needed."
-	echo "      You may want to review its contents and remove it manually."
+	echo ""
+	printf "The old directory at '${OLD_RCFORGE_DIR}' is no longer needed. Review its contents and remove manually.\n" | $FOLD
+	echo ""
+}
+
+# Verify, prepare and extract manifest
+preprocess_manifest() {
+	printf "Processing manifest file...\r"
+
+	# Create a temporary file for the processed manifest
+	local processed_manifest="/tmp/rcforge_processed_manifest_$$"
+
+	# Validate manifest structure first
+	if ! grep -q "^DIRECTORIES:" "$MANIFEST_TEMP"; then
+		error_exit "Invalid manifest format: Missing required DIRECTORIES section"
+	fi
+
+	if ! grep -q "^FILES:" "$MANIFEST_TEMP"; then
+		error_exit "Invalid manifest format: Missing required FILES section"
+	fi
+
+	# Process the manifest file:
+	# 1. Replace XDG placeholders
+	# 2. Remove comments and blank lines
+	# 3. Maintain section headers
+	awk '
+        # Skip comment lines and empty lines
+        /^#/ || /^[[:space:]]*$/ { next }
+
+        # Keep section headers as is
+        /^DIRECTORIES:/ || /^FILES:/ { print; next }
+
+        # Process and print all other lines
+        {
+            # Replace placeholders
+            gsub(/\{xdg-home\}/, "'"$CONFIG_HOME"'")
+            gsub(/\{xdg-data\}/, "'"$DATA_HOME"'")
+            print
+        }
+    ' "$MANIFEST_TEMP" >"$processed_manifest"
+
+	# Verify the processed file has content
+	if [[ ! -s "$processed_manifest" ]]; then
+		error_exit "Error processing manifest: Empty result"
+	fi
+
+	# Replace the original temp manifest with the processed one
+	mv "$processed_manifest" "$MANIFEST_TEMP"
+
+	# Initialize global arrays for directories and files
+	declare -ga MANIFEST_DIRS=()  # For explicitly listed directories (empty ones)
+	declare -gA MANIFEST_FILES=() # For file mappings
+	declare -gA ALL_DIRS=()       # For tracking all directories (including file parents)
+
+	# Extract directories and files into arrays
+	local current_section=""
+	while IFS= read -r line; do
+		# Track current section
+		if [[ "$line" == "DIRECTORIES:" ]]; then
+			current_section="dirs"
+			continue
+		elif [[ "$line" == "FILES:" ]]; then
+			current_section="files"
+			continue
+		fi
+
+		# Process based on current section
+		if [[ "$current_section" == "dirs" ]]; then
+			# Add explicitly listed directory to array
+			MANIFEST_DIRS+=("$line")
+			# Also track in all directories
+			ALL_DIRS["$line"]=1
+		elif [[ "$current_section" == "files" ]]; then
+			# Split line into source and destination
+			read -r source_path dest_path <<<"$line"
+			if [[ -n "$source_path" && -n "$dest_path" ]]; then
+				# Add to associative array
+				MANIFEST_FILES["$source_path"]="$dest_path"
+
+				# Track the parent directory of this file
+				local dest_dir=$(dirname "$dest_path")
+				ALL_DIRS["$dest_dir"]=1
+			else
+				error_exit "Invalid file mapping in manifest: '$line' - Both source and destination must be specified"
+			fi
+		fi
+	done <"$MANIFEST_TEMP"
+
+	# Validate extraction results
+	if [[ ${#MANIFEST_FILES[@]} -eq 0 ]]; then
+		error_exit "No file mappings found in manifest"
+	fi
+
+	echo "✓ Manifest processed: ${#ALL_DIRS[@]} directories (${#MANIFEST_DIRS[@]} explicit) and ${#MANIFEST_FILES[@]} file mappings found"
+
+	return 0
 }
 
 # Install files from manifest
 process_manifest() {
 	echo "Installing rcForge files from manifest..."
 
-	local in_section="NONE"
-	local line="" source_path="" dest_path=""
 	local dir_count=0 file_count=0 skip_count=0
+	local dest_path="" source_path="" file_url=""
 
-	# Process manifest line by line
-	while IFS= read -r line; do
-		# Skip comments and empty lines
-		[[ -z "$line" || "$line" =~ ^# ]] && continue
-
-		# Handle section markers
-		if [[ "$line" == "DIRECTORIES:" ]]; then
-			in_section="DIRS"
-			continue
-		elif [[ "$line" == "FILES:" ]]; then
-			in_section="FILES"
-			continue
+	# Create all required directories first
+	printf "Creating directories...\r"
+	for dir_path in "${!ALL_DIRS[@]}"; do
+		if mkdir -p "$dir_path"; then
+			chmod 700 "$dir_path"
+			dir_count=$((dir_count + 1))
+		else
+			error_exit "Failed to create directory: $dir_path"
 		fi
+	done
 
-		# Process directories
-		if [[ "$in_section" == "DIRS" ]]; then
-			# Replace XDG placeholders
-			line="${line//\{xdg-home\}/${CONFIG_HOME}}"
-			line="${line//\{xdg-data\}/${DATA_HOME}}"
+	# Process files
+	printf "Processing files...    \r"
+	for source_path in "${!MANIFEST_FILES[@]}"; do
+		dest_path="${MANIFEST_FILES[$source_path]}"
 
-			# Create directory and set permissions
-			mkdir -p "$line"
-			chmod 700 "$line"
-			((dir_count++))
-
-		# Process files
-		elif [[ "$in_section" == "FILES" ]]; then
-			# Split line into source and destination paths
-			read -r source_path dest_path <<<"$line"
-
-			# Skip if line format is invalid
-			if [[ -z "$source_path" || -z "$dest_path" ]]; then
+		# Skip user configuration files that already exist
+		if [[ "$dest_path" == ${CONFIG_HOME}/* ]] && [[ -f "$dest_path" ]]; then
+			# Handle templates differently - check if the non-template file exists
+			if [[ "$dest_path" == *.template ]]; then
+				actual_file="${dest_path%.template}"
+				if [[ -f "$actual_file" ]]; then
+					skip_count=$((skip_count + 1))
+					continue
+				else
+					# Template file but actual file doesn't exist - download and rename
+					dest_path="$actual_file"
+				fi
+			else
+				# Regular config file that already exists - skip
+				skip_count=$((skip_count + 1))
 				continue
 			fi
-
-			# Replace XDG placeholders in destination path
-			dest_path="${dest_path//\{xdg-home\}/${CONFIG_HOME}}"
-			dest_path="${dest_path//\{xdg-data\}/${DATA_HOME}}"
-
-			# Skip user configuration files that already exist
-			if [[ "$dest_path" == ${CONFIG_HOME}/* ]] && [[ -f "$dest_path" ]]; then
-				# Handle templates differently - check if the non-template file exists
-				if [[ "$dest_path" == *.template ]]; then
-					actual_file="${dest_path%.template}"
-					if [[ -f "$actual_file" ]]; then
-						((skip_count++))
-						continue
-					else
-						# Template file but actual file doesn't exist - download and rename
-						dest_path="$actual_file"
-					fi
-				else
-					# Regular config file that already exists - skip
-					((skip_count++))
-					continue
-				fi
-			fi
-
-			# Construct download URL and get the file
-			file_url="${GITHUB_BASE_URL}/${source_path}"
-			download_file "$file_url" "$dest_path"
-			((file_count++))
 		fi
-	done <"$MANIFEST_TEMP"
 
-	echo "✓ Created $dir_count directories."
-	echo "✓ Downloaded $file_count files."
+		# Construct download URL and get the file
+		file_url="${GITHUB_BASE_URL}/${source_path}"
+		download_file "$file_url" "$dest_path" || error_exit "Failed to download/install $source_path to $dest_path"
+		file_count=$((file_count + 1))
+	done
+	printf "✓ File download complete${spaces}\n"
+
+	echo "✓ Created $dir_count directories"
+	echo "✓ Downloaded $file_count files"
 
 	if [[ $skip_count -gt 0 ]]; then
-		echo "  Skipped $skip_count existing user configuration files."
+		echo "  Skipped $skip_count existing user configuration files"
 	fi
 
 	# Special case for API keys file
@@ -272,12 +376,14 @@ process_manifest() {
 	mkdir -p "$(dirname "$version_file")"
 	echo "RCFORGE_VERSION=\"$RELEASE_TAG\"" >"$version_file"
 	chmod 600 "$version_file"
-	echo "✓ Saved installation version: $RELEASE_TAG"
+	echo "✓ Configuration of version $RELEASE_TAG complete"
+
+	return 0
 }
 
 # Update shell RC files if needed
 update_rc_files() {
-	echo "Checking shell RC files..."
+	printf "Checking shell RC files...\r"
 
 	local rc_files=("$HOME/.bashrc" "$HOME/.zshrc")
 	local source_line="source \"\${XDG_DATA_HOME:-\$HOME/.local/share}/rcforge/rcforge.sh\""
@@ -289,13 +395,13 @@ update_rc_files() {
 
 		# Check if rcforge is already sourced
 		if grep -q "rcforge/rcforge.sh" "$rc_file"; then
-			echo "  rcForge already sourced in $rc_file - no changes made."
+			echo "✓ rcForge sourced in $rc_file; no changes applied"
 		else
 			# Add source line
 			echo "" >>"$rc_file"
 			echo "# rcForge - Shell Configuration Manager (Added $(date +%Y-%m-%d))" >>"$rc_file"
 			echo "$source_line" >>"$rc_file"
-			echo "✓ Added rcForge source line to $rc_file."
+			echo "✓ Added rcForge source line to $rc_file"
 		fi
 	done
 }
@@ -319,15 +425,27 @@ parse_arguments() {
 				RELEASE_TAG="$2"
 				shift 2
 				;;
+			--manifest)
+				if [[ -z "${2:-}" || "$2" == -* ]]; then
+					error_exit "--manifest requires a value."
+				fi
+				MANIFEST="$2"
+				if [[ ! -r $MANIFEST ]]; then
+					error_exit "$MANIFEST not found or cannot be read."
+				fi
+				shift 2
+				;;
 			--help)
 				echo "rcForge Installer"
 				echo ""
 				echo "Usage: $(basename "$0") [--release-tag=TAG]"
 				echo ""
 				echo "Options:"
-				echo "  --release-tag=TAG  Specify GitHub release tag (e.g., v0.5.0)"
-				echo "                     Optional: Will use latest release if not specified"
-				echo "  --help             Show this help message"
+				echo "  --release-tag=TAG   Specify GitHub release tag (e.g., v0.5.0)"
+				echo "                      Optional: Will use latest release if not specified"
+				echo "  --manifest=manifest Specify a local file-manifest (e.g. fm.txt)"
+				echo "                      Optional: Will use release manifest if not specified"
+				echo "  --help              Show this help message"
 				exit 0
 				;;
 			*)
@@ -365,6 +483,7 @@ parse_arguments() {
 # ============================================================================
 
 main() {
+	echo ""
 	echo "rcForge Installer - Installing from tag: $RELEASE_TAG"
 	echo "GitHub URL: $GITHUB_BASE_URL"
 
@@ -375,10 +494,16 @@ main() {
 		error_exit "curl is required for installation but not found. Please install curl and try again."
 	fi
 
-	# 2. Download and process the manifest file
-	echo "Downloading manifest..."
-	manifest_url="${GITHUB_BASE_URL}/file-manifest.txt"
-	download_file "$manifest_url" "$MANIFEST_TEMP"
+	# 2. Download and process the manifest file (or use provided file)
+	printf "Downloading manifest...\r"
+	if [[ -v MANIFEST && ! -z "$MANIFEST" ]]; then
+		cp $MANIFEST $MANIFEST_TEMP
+	else
+		manifest_url="${GITHUB_BASE_URL}/file-manifest.txt"
+		download_file "$manifest_url" "$MANIFEST_TEMP"
+	fi
+	printf "✓ Manifest download complete${spaces}\n"
+	preprocess_manifest
 
 	# 3. Create backup if necessary
 	if is_installed; then
@@ -386,13 +511,13 @@ main() {
 
 		# 4. Check if XDG migration is needed
 		if needs_xdg_migration; then
-			echo "Detected pre-0.5.0 installation that needs XDG migration."
+			echo "Detected pre-XDG installation. $spaces"
 			migrate_to_xdg
 		else
-			echo "Existing XDG-compliant installation detected. Proceeding with update."
+			echo "Detected XDG-compliant installation. Updating."
 		fi
 	else
-		echo "No existing installation detected. Performing fresh install."
+		echo "No existing installation detected. Installing."
 	fi
 
 	# 5. Create directories and install files
@@ -404,18 +529,14 @@ main() {
 	# 7. Clean up and show completion message
 	rm -f "$MANIFEST_TEMP"
 
-	echo ""
 	echo "✓ rcForge installation complete!"
 	echo ""
 	echo "To activate rcForge in your CURRENT shell session, run:"
 	echo "  source \"\${XDG_DATA_HOME:-\$HOME/.local/share}/rcforge/rcforge.sh\""
 	echo ""
-	echo "For automatic loading in new sessions, ensure this line is present"
-	echo "in your ~/.bashrc or ~/.zshrc (the installer has attempted to add it)."
+	echo "Verify this line is present in your shell rc files."
 	echo ""
-	echo "TIP: When rcForge starts, you'll have a 1-second window to press '.' to abort"
-	echo "     the loading process if needed. This emergency exit can be helpful if you"
-	echo "     experience any issues with your configuration."
+	echo "When rcForge starts, there is a 1-second window to press '.' to abort. This emergency escape feature can be helpful if your configuration is forcing a logout or there are other issues." | $FOLD
 	echo ""
 
 	return 0
