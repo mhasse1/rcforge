@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# concat-files.sh - Concatenate specified files with markers
+# concat-files.sh - Concatenate files with clear markers
 # Author: rcForge Team
 # Date: 2025-04-21
 # Version: 0.5.0
 # Category: system/utility
-# RC Summary: Concatenates files matching a pattern with clear markers
-# Description: Finds files in the current directory (optionally recursively)
-#              matching an optional pattern, then prints their name and
-#              content to standard output, separated by start/end markers.
+# RC Summary: Concatenates files matching a pattern with standard markers
+# Description: Combines files matching a pattern into a single output with
+#              filename markers for easy identification.
 
 # Source required libraries
 source "${RCFORGE_LIB:-${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib}/utility-functions.sh"
@@ -23,33 +22,30 @@ readonly UTILITY_NAME="concat-files"
 
 # ============================================================================
 # Function: ShowHelp
-# Description: Display detailed help information for this utility.
+# Description: Display help information for this utility.
 # Usage: ShowHelp
-# Arguments: None
-# Returns: None. Exits with status 0.
+# Returns: Exits with status 0.
 # ============================================================================
 ShowHelp() {
     _rcforge_show_help <<EOF
-  Finds files in the current directory (optionally recursively) matching an
-  optional pattern, then prints their name and content to standard output,
-  separated by start/end markers.
+  Combines files matching a pattern into a single output with
+  filename markers for easy identification.
 
 Usage:
   rc ${UTILITY_NAME} [options]
   $0 [options]
 
 Options:
-  -p, --pattern PATTERN   Find files matching PATTERN (e.g., '*.sh')
-                          Default: all files (*)
-  -nr, --no-recursive     Only search the current directory (non-recursive)
+  -p, --pattern PATTERN   Find files matching PATTERN (default: *)
+  -nr, --no-recursive     Search current directory only (non-recursive)
   --help, -h              Show this help message
   --version               Show version information
-  --summary               Show one-line description (for rc help)
+  --summary               Show one-line description
 
 Examples:
   rc ${UTILITY_NAME} -p '*.sh'            # Concatenate all .sh files recursively
   rc ${UTILITY_NAME} -p '*.md' -nr        # Concatenate .md files in current dir only
-  rc ${UTILITY_NAME} > all_files.txt      # Save concatenated files to a file
+  rc ${UTILITY_NAME} > all_files.txt      # Save output to a file
 EOF
     exit 0
 }
@@ -62,20 +58,26 @@ EOF
 # Returns: 0 on success, 1 on error.
 # ============================================================================
 main() {
-    # Parse arguments using standardized function
-    declare -A options
-    
-    # Set default values for options
-    StandardParseArgs options \
-        --pattern="*" \
-        --recursive=true \
-        -- "$@" || exit $?
+    # Set default options
+    local pattern="*"
+    local recursive=true
 
-    # Handle standard flags automatically
-    for arg in "$@"; do
-        case "$arg" in
+    # Process options
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -p|--pattern)
+                shift
+                [[ $# -eq 0 ]] && ErrorMessage "Missing pattern argument" && return 1
+                pattern="$1"
+                ;;
+            --pattern=*)
+                pattern="${1#*=}"
+                ;;
+            -nr|--no-recursive)
+                recursive=false
+                ;;
             --help|-h)
-                ShowHelp  # Exit after showing help
+                ShowHelp
                 ;;
             --version)
                 _rcforge_show_version "$0"
@@ -85,69 +87,48 @@ main() {
                 ExtractSummary "$0"
                 exit $?
                 ;;
+            *)
+                ErrorMessage "Unknown option: $1"
+                return 1
+                ;;
         esac
+        shift
     done
-
-    local find_pattern="${options[pattern]}"
-    local is_recursive="${options[recursive]}"
     
-    # Display section header
-    SectionHeader "File Concatenation Utility"
-
-    # Build find command with simplified approach
-    local find_cmd="find ."
+    # Build simple find command
+    local find_opts=""
+    [[ "$recursive" == "false" ]] && find_opts="-maxdepth 1"
     
-    # Add maxdepth if non-recursive
-    if [[ "$is_recursive" == "false" ]]; then
-        find_cmd+=" -maxdepth 1"
-    fi
-    
-    # Add standard exclusions
-    find_cmd+=" \\( -path './.git' -o -path './node_modules' \\) -prune -o"
-    
-    # Add pattern and file type
-    find_cmd+=" -name '$find_pattern' -type f -print0"
-    
-    # Create introduction header
-    local intro_line=$(printf '%*s' "75" '' | tr ' ' '-')
-    cat <<EOF
-${intro_line}
-# Introduction
-This file contains a concatenation of files. The individual files are
-delimited by lines formatted as:
-
-    ========== <./path/to/file> ==========
-
-The delimiter provides the name of the file and its path from the
-project root.
-${intro_line}
-EOF
-
-    # Flag to track if any files were found
-    local file_found=false
-    
-    # Use process substitution to safely handle filenames with spaces/special chars
+    # Print header only if files found
+    local file_count=0
     while IFS= read -r -d '' file; do
-        file_found=true
-        
-        # Display filename with consistent marker format
-        local display_path="${file#./}"
-        echo "# ========== <./${display_path}> =========="
-        
-        # Output file content (using -- to handle filenames starting with -)
-        cat -- "$file"
-        
-        # Add blank line after each file for better readability
-        echo ""
-    done < <(eval "$find_cmd")
-    
-    # Report if no files were found
-    if [[ "$file_found" == "false" ]]; then
-        if [[ "$is_recursive" == "true" ]]; then
-            InfoMessage "No files found matching pattern '$find_pattern' (recursive search)"
-        else
-            InfoMessage "No files found matching pattern '$find_pattern' (current directory only)"
+        if [[ $file_count -eq 0 ]]; then
+            echo "# Start of concatenated files"
+            echo "#"
+            echo "# Files are separated by markers in this format:"
+            echo "# ========== <file_path> =========="
+            echo ""
         fi
+        
+        # Print filename marker
+        local display_path="${file#./}"
+        echo "# ========== <${display_path}> =========="
+        
+        # Output file content
+        cat -- "$file"
+        echo ""
+        
+        file_count=$((file_count + 1))
+    done < <(find . $find_opts -type f -name "$pattern" -print0 2>/dev/null | sort)
+    
+    # Show message if no files found
+    if [[ $file_count -eq 0 ]]; then
+        local scope="recursively"
+        [[ "$recursive" == "false" ]] && scope="in current directory"
+        InfoMessage "No files matching pattern '$pattern' found $scope"
+        return 0
+    else
+        echo "# End of concatenated files (total: $file_count)"
     fi
     
     return 0

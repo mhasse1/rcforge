@@ -5,50 +5,48 @@
 - [Introduction](#introduction)
 - [General Principles](#general-principles)
 - [Shell Scripting Standards](#shell-scripting-standards)
-  - [Script Structure](#script-structure)
-  - [Standard Environment Variables](#standard-environment-variables)
-  - [Main Function Standards](#main-function-standards)
-  - [Output and Formatting](#output-and-formatting)
-    - [Messaging](#messaging)
-    - [Colors and Formatting](#colors-and-formatting)
-    - [Error Handling](#error-handling)
-  - [Function Design](#function-design)
-  - [Source-able Files vs. Standalone Scripts](#source-able-files-vs-standalone-scripts)
-- [RC Scripts Development](#rc-scripts-development)
-  - [Naming Convention](#naming-convention)
-  - [Sequence Ranges](#sequence-ranges)
-  - [Common vs. Shell-Specific Scripts](#common-vs-shell-specific-scripts)
-  - [Global vs. Hostname-Specific Scripts](#global-vs-hostname-specific-scripts)
+	- [Script Structure](#script-structure)
+	- [Standard Environment Variables](#standard-environment-variables)
+	- [Main Function Standards](#main-function-standards)
+	- [Output and Formatting](#output-and-formatting)
+		- [Messaging](#messaging)
+		- [Colors and Formatting](#colors-and-formatting)
+		- [Error Handling](#error-handling)
+	- [Function Design](#function-design)
+	- [Source-able Files vs. Standalone Scripts](#source-able-files-vs-standalone-scripts)
+	- [RC Scripts Development](#rc-scripts-development)
+	- [Naming Convention](#naming-convention)
+	- [Sequence Ranges](#sequence-ranges)
+	- [Common vs. Shell-Specific Scripts](#common-vs-shell-specific-scripts)
+	- [Global vs. Hostname-Specific Scripts](#global-vs-hostname-specific-scripts)
 - [RC Command Utility Development](#rc-command-utility-development)
-  - [Utility Script Structure](#utility-script-structure)
-  - [Utility Template Usage](#utility-template-usage)
-  - [Standard Function Implementations](#standard-function-implementations)
-  - [Help Documentation](#help-documentation)
-  - [User Override Considerations](#user-override-considerations)
-  - [Integration with Search](#integration-with-search)
-  - [Lazy Loading Patterns](#lazy-loading-patterns)
+	- [Utility Script Structure](#utility-script-structure)
+	- [Utility Template Usage](#utility-template-usage)
+	- [Standard Function Implementations](#standard-function-implementations)
+	- [Help Documentation](#help-documentation)
+	- [User Override Considerations](#user-override-considerations)
+	- [Integration with Search](#integration-with-search)
+	- [Lazy Loading Patterns](#lazy-loading-patterns)
 - [Variable Naming Conventions](#variable-naming-conventions)
-  - [Variable Types in Shell Scripts](#variable-types-in-shell-scripts)
-  - [Key Rules for Variables in Libraries](#key-rules-for-variables-in-libraries)
-  - [Example: Before and After Refactoring](#example-before-and-after-refactoring)
-    - [Before (Inconsistent Conventions)](#before-inconsistent-conventions)
-    - [After (Following Conventions)](#after-following-conventions)
+	- [Variable Types in Shell Scripts](#variable-types-in-shell-scripts)
+	- [Key Rules for Variables in Libraries](#key-rules-for-variables-in-libraries)
+	- [Example: Before and After Refactoring](#example-before-and-after-refactoring)
+		- [Before (Inconsistent Conventions)](#before-inconsistent-conventions)
+		- [After (Following Conventions)](#after-following-conventions)
 - [Documentation Standards](#documentation-standards)
-  - [Markdown Guidelines](#markdown-guidelines)
-  - [RC Command Help Documentation](#rc-command-help-documentation)
 - [Version Control](#version-control)
-  - [Commit Messages](#commit-messages)
-  - [Branch Naming](#branch-naming)
+	- [Commit Messages](#commit-messages)
+	- [Branch Naming](#branch-naming)
 - [File Naming Conventions](#file-naming-conventions)
 - [Error Handling](#error-handling-1)
 - [Performance Considerations](#performance-considerations)
 - [Testing Standards](#testing-standards)
-  - [RC Script Testing](#rc-script-testing)
-  - [RC Command Utility Testing](#rc-command-utility-testing)
+	- [RC Script Testing](#rc-script-testing)
+	- [RC Command Utility Testing](#rc-command-utility-testing)
 - [Continuous Improvement](#continuous-improvement)
 - [XDG Compliance (v0.5.0+)](#xdg-compliance-v050)
-  - [Directory Structure](#directory-structure)
-  - [Path References](#path-references)
+	- [Directory Structure](#directory-structure)
+	- [Path References](#path-references)
 
 ## Introduction
 
@@ -592,96 +590,33 @@ readonly UTILITY_NAME="utility-name"
 # Returns: None. Exits with status 0.
 # ============================================================================
 ShowHelp() {
-    local script_name
-    script_name=$(basename "$0")
+    # Use _rcforge_show_help with heredoc for consistent help formatting
+    _rcforge_show_help <<EOF
+  Detailed utility description goes here.
 
-    echo "${UTILITY_NAME} - ${gc_app_name} Utility (v${gc_version})"
-    echo ""
-    echo "Description:"
-    echo "  Detailed utility description goes here."
-    echo ""
-    echo "Usage:"
-    echo "  rc ${UTILITY_NAME} [options] <arguments>"
-    echo "  ${script_name} [options] <arguments>"
-    echo ""
-    echo "Options:"
-    echo "  --option1=VALUE    Description of option1"
-    echo "  --option2          Description of option2"
-    echo "  --verbose, -v      Enable verbose output"
-    echo "  --help, -h         Show this help message"
-    echo "  --summary          Show a one-line description (for rc help)"
-    echo "  --version          Show version information"
-    echo ""
-    echo "Examples:"
-    echo "  rc ${UTILITY_NAME} --option1=value example.com"
-    echo "  rc ${UTILITY_NAME} --verbose /path/to/file"
+Usage:
+  rc ${UTILITY_NAME} [command] [options] <arguments>
+  ${0##*/} [command] [options] <arguments>
+
+Commands:
+  command1           Description of command1
+  command2           Description of command2
+  help               Show this help message
+  summary            Show a one-line description (for rc help)
+
+Options:
+  --option1=VALUE    Description of option1
+  --option2          Description of option2
+  --verbose, -v      Enable verbose output
+  --help, -h         Show this help message
+  --summary          Show a one-line description (for rc help)
+  --version          Show version information
+
+Examples:
+  rc ${UTILITY_NAME} command1 --option1=value example.com
+  rc ${UTILITY_NAME} command2 --verbose /path/to/file
+EOF
     exit 0
-}
-
-# ============================================================================
-# Function: ParseArguments
-# Description: Parse command-line arguments for this utility.
-# Usage: declare -A options; ParseArguments options "$@"
-# Arguments:
-#   $1 (required) - Reference to associative array for storing parsed options
-#   $2+ (required) - Command line arguments to parse
-# Returns: Populates associative array by reference. Returns 0 on success, 1 on error.
-# ============================================================================
-ParseArguments() {
-    local -n options_ref="$1"
-    shift
-
-    # Ensure Bash 4.3+ for namerefs (-n)
-    if [[ "${BASH_VERSINFO[0]}" -lt 4 || ( "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -lt 3 ) ]]; then
-        ErrorMessage "Internal Error: ParseArguments requires Bash 4.3+ for namerefs."
-        return 1
-    fi
-
-    # Set default values
-    options_ref["option1"]=""
-    options_ref["verbose_mode"]=false
-
-    # Process arguments
-    while [[ $# -gt 0 ]]; do
-        local key="$1"
-        case "$key" in
-            -h|--help)
-                ShowHelp # Exits
-                ;;
-            --summary)
-                ExtractSummary "$0"; exit $? # Call helper and exit
-                ;;
-            --version)
-                _rcforge_show_version "$0"; exit 0 # Call helper and exit
-                ;;
-            --option1=*)
-                options_ref["option1"]="${key#*=}"
-                shift ;;
-            --option1)
-                shift
-                if [[ -z "${1:-}" || "$1" == -* ]]; then
-                    ErrorMessage "--option1 requires a value."
-                    return 1
-                fi
-                options_ref["option1"]="$1"
-                shift ;;
-            -v|--verbose)
-                options_ref["verbose_mode"]=true
-                shift ;;
-            --)
-                shift # Move past --
-                break # Stop processing options
-                ;;
-            -*)
-                ErrorMessage "Unknown option: $key"
-                return 1 ;;
-            *)
-                ErrorMessage "Unexpected argument: $key"
-                return 1 ;;
-        esac
-    done
-
-    return 0
 }
 
 # ============================================================================
@@ -693,23 +628,65 @@ ParseArguments() {
 # Returns: 0 on success, 1 on failure.
 # ============================================================================
 main() {
-    # Use associative array for options (requires Bash 4+)
+    # Use associative array for options
     declare -A options
-    # Parse arguments, exit if parser returns non-zero (error)
-    ParseArguments options "$@" || exit $?
+
+    # Parse arguments directly in main using StandardParseArgs
+    StandardParseArgs options \
+        --command="" \
+        --option1="" \
+        --verbose=false \
+        -- "$@" || return $?
+
+    # Handle standard flags and subcommands
+    local command="${options[command]:-}"
+
+    # Handle subcommands or flags for help/summary
+    if [[ "$command" == "help" || -v "options[help]" && "${options[help]}" == "true" ]]; then
+        ShowHelp
+    fi
+
+    if [[ "$command" == "summary" || -v "options[summary]" && "${options[summary]}" == "true" ]]; then
+        ExtractSummary "$0"
+        return $?
+    fi
+
+    if [[ -v "options[version]" && "${options[version]}" == "true" ]]; then
+        _rcforge_show_version "$0"
+        return 0
+    fi
 
     # Access options from the array
-    local option1="${options[option1]}"
-    local is_verbose="${options[verbose_mode]}"
+    local option1="${options[option1]:-}"
+    local is_verbose="${options[verbose_mode]:-false}"
 
     # Display section header
     SectionHeader "rcForge ${UTILITY_NAME^} Utility"
 
-    # Example verbose message
-    VerboseMessage "$is_verbose" "Running with options: option1=${option1}, verbose=${is_verbose}"
-
-    # Main implementation goes here
-    # ...
+    # Process based on command
+    case "$command" in
+        "command1")
+            # Handle command1
+            VerboseMessage "$is_verbose" "Running command1 with option1=${option1}"
+            # Implementation for command1...
+            ;;
+        "command2")
+            # Handle command2
+            VerboseMessage "$is_verbose" "Running command2 with option1=${option1}"
+            # Implementation for command2...
+            ;;
+        "")
+            # No command specified (optional default behavior)
+            InfoMessage "No command specified. Use --help for available commands."
+            return 1
+            ;;
+        *)
+            # Unknown command
+            ErrorMessage "Unknown command: $command"
+            InfoMessage "Use --help to see available commands."
+            return 1
+            ;;
+    esac
 
     SuccessMessage "Operation completed successfully."
     return 0
@@ -720,8 +697,6 @@ if IsExecutedDirectly || [[ "$0" == *"rc"* ]]; then
     main "$@"
     exit $? # Exit with status from main
 fi
-
-# EOF
 ```
 
 ### Utility Template Usage
@@ -1035,7 +1010,7 @@ export -f ErrorMessage  # If needed elsewhere
 
 ## Documentation Standards
 
-### Markdown Guidelines
+**Markdown Guidelines**
 
 - Use GitHub Flavored Markdown
 - Maintain clear, concise documentation
@@ -1051,19 +1026,18 @@ Example:
 Brief description of the utility.
 
 ## Usage
-```bash
+bash
 rc utility-name [options] <arguments>
-```
 
 ## Options
+
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Show help message
 
 ## Examples
-```bash
+bash
 rc utility-name example.com
 rc utility-name --verbose /path/to/file
-```
 ```
 
 ### RC Command Help Documentation

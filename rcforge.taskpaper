@@ -2,7 +2,7 @@
 title: rcForge ToDos
 ---
 Inbox:
-	- path manipulation scripts should be available in `rc` @na
+	- path manipulation scripts should be available in `rc` @na @done(2025-04-21)
 	- `rc --home`: cd to ~/.config/rcforge folder. @na
 	- `rc --local`: cd to ~/.local/rcforge @na
 	- Rename diag to diagram @na @done(2025-04-21)
@@ -10,11 +10,15 @@ Inbox:
 		e.g. assume system goes to local
 	- Example script: Cannot embed arrays error @na
 	- Have the AI take a look at the language regarding set-rcforge-env in @na @done(2025-04-21)
-	- Simplification: diagrams @na
-	- Simplification: export @na
+	- Simplification: diagram @na
+	- Simplification: export @na @done(2025-04-21)
+	- Simplification: concat-files @done(2025-04-21)
 	- Simplification: bash-version-check @na
 	- Simplification: run-integrity-checks @na
 		1 pass so far
+	- rc diagram help: Unexpected positional argument: help @na
+	- rc concat-files help: unknown option help @na
+	- rc export help: unknown option help @na
 	050 Docs:
 		- Update 041-documentation to 050 @na
 		- Update project-instructions to 050 @na

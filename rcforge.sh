@@ -7,6 +7,8 @@
 #              Meant to be sourced by user's ~/.bashrc or ~/.zshrc.
 #              Now supports XDG structure and API key management.
 
+echo ""
+echo "============================================================================"
 echo "" # create some space before we start to make messaging clearer
 
 # ============================================================================
@@ -54,7 +56,7 @@ fi
 
 if ! $_interactive_source; then
 	_print -n "ERROR: rcForge must be sourced in an interactive shell."
-	return 1
+	exit 1
 fi
 unset _interactive_source
 

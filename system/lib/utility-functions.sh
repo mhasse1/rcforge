@@ -13,11 +13,11 @@ if [[ -n "${_RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED:-}" ]]; then
 	return 0
 fi
 _RCFORGE_UTILITY_FUNCTIONS_SH_SOURCED=true
+# --- End Include Guard ---
 
-# Reset rcForge environment
+# --- Source Libraries ---
 source "${XDG_DATA_HOME:-$HOME/.local/share}/rcforge/system/lib/set-rcforge-environment.sh"
 
-# --- Source Shell Colors Library ---
 if [[ -f "${RCFORGE_LIB}/shell-colors.sh" ]]; then
 	# shellcheck disable=SC1090
 	source "${RCFORGE_LIB}/shell-colors.sh"
@@ -26,6 +26,7 @@ else
 	echo -e "\033[0;31mERROR:\033[0m Cannot source required library: shell-colors.sh" >&2
 	return 1
 fi
+# --- End Source Libraries ---
 
 # ============================================================================
 # GLOBAL CONSTANTS (Readonly, NOT Exported)
@@ -383,10 +384,12 @@ ShowStandardHelp() {
 # ARGUMENT PROCESSING
 # ============================================================================
 
+# ============================================================================
 # Function: StandardParseArgs
-# Description: Standardized argument parser for rcForge utilities
+# Description: Standardized argument parser with subcommand support
 # Usage: declare -A options; StandardParseArgs options [defaults] -- "$@"
 # Returns: 0 on success, 1 on error
+# ============================================================================
 StandardParseArgs() {
 	local -n _options_ref="$1"
 	shift
@@ -412,7 +415,13 @@ StandardParseArgs() {
 	# Skip the -- separator
 	if [[ "$1" == "--" ]]; then shift; fi
 
-	# Parse actual arguments
+	# Check for subcommand as first non-flag argument
+	if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+		_options_ref["command"]="$1"
+		shift
+	fi
+
+	# Parse remaining arguments
 	while [[ $# -gt 0 ]]; do
 		local arg="$1"
 
@@ -432,38 +441,48 @@ StandardParseArgs() {
 				shift
 				_options_ref["$option_name"]="$1"
 			else
-				ErrorMessage "Option --$option_name requires a value"
-				return 1
+				_options_ref["$option_name"]="true" # Flag without value
 			fi
+
+		# Handle short flags -v
+		elif [[ "$arg" =~ ^-([a-zA-Z]+)$ ]]; then
+			local flags="${BASH_REMATCH[1]}"
+			for ((i = 0; i < ${#flags}; i++)); do
+				local flag="${flags:$i:1}"
+				case "$flag" in
+					h) _options_ref["help"]="true" ;;
+					v) _options_ref["verbose_mode"]="true" ;;
+					# Add other short flags as needed
+					*)
+						ErrorMessage "Unknown short flag: -$flag"
+						return 1
+						;;
+				esac
+			done
 
 		# Handle --
 		elif [[ "$arg" == "--" ]]; then
 			shift
 			break
 
-		# Handle unknown options
-		elif [[ "$arg" =~ ^- ]]; then
-			ErrorMessage "Unknown option: $arg"
-			return 1
-
-		# Handle positional arguments
+		# Handle positional arguments (beyond subcommand)
 		else
-			if [[ -v "_options_ref[positional]" ]]; then
-				_options_ref["positional"]+=" $arg"
+			if [[ -v "_options_ref[args]" ]]; then
+				_options_ref["args"]+=" $arg"
 			else
-				_options_ref["positional"]="$arg"
+				_options_ref["args"]="$arg"
 			fi
 		fi
 
 		shift
 	done
 
-	# Add remaining arguments after -- to positional
+	# Add remaining arguments after -- to args
 	while [[ $# -gt 0 ]]; do
-		if [[ -v "_options_ref[positional]" ]]; then
-			_options_ref["positional"]+=" $1"
+		if [[ -v "_options_ref[args]" ]]; then
+			_options_ref["args"]+=" $1"
 		else
-			_options_ref["positional"]="$1"
+			_options_ref["args"]="$1"
 		fi
 		shift
 	done
@@ -501,11 +520,55 @@ InitUtility() {
 	return 0
 }
 
+# Function: _rcforge_show_help
+# Description: Standardized help text display with heredoc support
+# Usage: _rcforge_show_help <<EOF
+#   Help text here
+# EOF
+# Returns: Echoes formatted help text
+_rcforge_show_help() {
+	local script_name=""
+	if [[ -n "${BASH_SOURCE[1]:-}" ]]; then
+		script_name=$(basename "${BASH_SOURCE[1]}")
+	elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+		script_name=$(basename "${BASH_SOURCE[0]}")
+	else
+		script_name=$(basename "$0")
+	fi
+
+	echo "${UTILITY_NAME:-$script_name} - ${gc_app_name} Utility (v${gc_version})"
+	echo ""
+
+	# Read heredoc content from stdin
+	if [[ -p /dev/stdin ]]; then
+		# If stdin is a pipe (heredoc)
+		cat
+	else
+		# Fallback message if no heredoc provided
+		echo "No detailed help available."
+	fi
+}
+
+# Function: _rcforge_show_version
+# Description: Displays version information in a standardized format
+# Usage: _rcforge_show_version ["/path/to/script"]
+# Returns: Echoes version information
+_rcforge_show_version() {
+	local script_path="${1:-$0}"
+	local script_name=$(basename "$script_path")
+
+	echo "${script_name} (${gc_app_name} Utility) v${gc_version}"
+	echo "Copyright (c) $(date +%Y) ${gc_app_name} Team"
+	echo "Released under the MIT License"
+}
+
 # ============================================================================
 # EXPORT PUBLIC FUNCTIONS FOR BASH
 # ============================================================================
 # Only export for Bash, Zsh exports sourced functions automatically
 if IsBash; then
+	export -f _rcforge_show_help
+	export -f _rcforge_show_version
 	export -f DetectShell
 	export -f IsZsh
 	export -f IsBash

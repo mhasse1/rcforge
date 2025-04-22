@@ -30,30 +30,33 @@ FindCommand() {
     local user_dir="${RCFORGE_USER_UTILS:-}"
     local sys_dir="${RCFORGE_UTILS:-}"
     local found_scripts=()
-    
+
     # Determine search paths based on force_system flag
     local search_dirs=("$user_dir" "$sys_dir")
     [[ "$force_system" == "true" ]] && search_dirs=("$sys_dir")
-    
+
     # Search for matching command
     for dir in "${search_dirs[@]}"; do
         [[ ! -d "$dir" ]] && continue
-        
+
         while IFS= read -r -d '' file; do
             [[ -x "$file" ]] && found_scripts+=("$file")
         done < <(find "$dir" -maxdepth 1 \( -name "${command}" -o -name "${command}.*" \) -type f -print0 2>/dev/null)
-        
+
         # Stop if we found something in user dir (unless forcing system)
         [[ ${#found_scripts[@]} -gt 0 && "$force_system" == "false" && "$dir" == "$user_dir" ]] && break
     done
-    
+
     # Handle results
     if [[ ${#found_scripts[@]} -eq 0 ]]; then
         echo "command_not_found"
     elif [[ ${#found_scripts[@]} -eq 1 ]]; then
         echo "${found_scripts[0]}"
     else
-        echo "ambiguous_command:$(IFS=$','; echo "${found_scripts[*]}")"
+        echo "ambiguous_command:$(
+            IFS=$','
+            echo "${found_scripts[*]}"
+        )"
     fi
 }
 
@@ -64,16 +67,16 @@ ScanUtilities() {
     local -n commands_map_ref="$1"
     local -n overrides_map_ref="$2"
     local -n conflict_map_ref="$3"
-    
+
     local user_dir="${RCFORGE_USER_UTILS:-}"
     local sys_dir="${RCFORGE_UTILS:-}"
     declare -A system_cmds=() user_cmds=() all_cmds=() overrides=() conflicts=()
-    
+
     # Clear output maps
     commands_map_ref=()
     overrides_map_ref=()
     conflict_map_ref=()
-    
+
     # Scan system utilities
     if [[ -d "$sys_dir" ]]; then
         while IFS= read -r -d '' file; do
@@ -83,14 +86,14 @@ ScanUtilities() {
             system_cmds["$name"]="$file"
         done < <(find "$sys_dir" -maxdepth 1 -type f -print0 2>/dev/null)
     fi
-    
+
     # Scan user utilities
     if [[ -d "$user_dir" ]]; then
         while IFS= read -r -d '' file; do
             [[ ! -x "$file" ]] && continue
             local name=$(basename "${file%.*}")
             [[ -z "$name" || "$name" == .* ]] && continue
-            
+
             if [[ -v "user_cmds[$name]" ]]; then
                 conflicts["$name"]="${user_cmds[$name]},${file}"
             else
@@ -98,12 +101,12 @@ ScanUtilities() {
             fi
         done < <(find "$user_dir" -maxdepth 1 -type f -print0 2>/dev/null)
     fi
-    
+
     # Build final command map
     for name in "${!system_cmds[@]}"; do
         commands_map_ref["$name"]="${system_cmds[$name]}"
     done
-    
+
     # Add/override with user commands
     for name in "${!user_cmds[@]}"; do
         # For conflicts, use first found file (per documentation)
@@ -119,7 +122,7 @@ ScanUtilities() {
             fi
         fi
     done
-    
+
     return 0
 }
 
@@ -154,57 +157,60 @@ ShowFrameworkHelp() {
 ListCommands() {
     declare -A commands_map overrides_map conflict_map
     ScanUtilities commands_map overrides_map conflict_map
-    
+
     echo "rcForge Utility Commands (v${gc_version:-unknown})"
     echo ""
-    
+
     if [[ ${#commands_map[@]} -eq 0 ]]; then
         echo "No commands found."
         return 0
     fi
-    
+
     # Sort commands for display
     local sorted_cmds=($(printf '%s\n' "${!commands_map[@]}" | sort))
-    
+
     for cmd in "${sorted_cmds[@]}"; do
         local path="${commands_map[$cmd]}"
         local summary=""
         local cmd_display="$cmd"
-        
+        local cmd_color=""
+
         # Get summary if possible
         if [[ -x "$path" ]]; then
             summary=$(bash "$path" --summary 2>/dev/null) || summary="No summary available"
         else
             summary="Error: Invalid script path"
         fi
-        
+
         # Format display based on status
         if [[ -v "conflict_map[$cmd]" ]]; then
-            cmd_display="${RED}${cmd}${RESET} ${RED}(CONFLICT)${RESET}"
+            cmd_color="${RED}"
+            cmd_display="${cmd} (CONFLICT)"
             summary="Multiple executables found - see 'rc --conflicts'"
         elif [[ -v "overrides_map[$cmd]" ]]; then
-            cmd_display="${GREEN}${cmd}${RESET} ${YELLOW}(user override)${RESET}"
+            cmd_color="${YELLOW}"
+            cmd_display="${cmd}"
+            summary="(user override) $summary"
         else
-            cmd_display="${GREEN}${cmd}${RESET}"
+            cmd_color="${GREEN}"
+            cmd_display="${cmd}"
         fi
-        
-        printf "  %b\n" "$cmd_display"
-        printf "    %s\n" "$summary"
-        echo ""
+
+        printf "  %b%-15s%b : %s\n" $cmd_color "$cmd_display" $RESET "$summary"
     done
-    
+
     # Show conflicts note if needed
     if [[ ${#overrides_map[@]} -gt 0 || ${#conflict_map[@]} -gt 0 ]]; then
         echo "Note: Run 'rc --conflicts' to see details on overrides and conflicts."
     fi
-    
+
     return 0
 }
 
 ShowConflicts() {
     declare -A commands_map overrides_map conflict_map
     ScanUtilities commands_map overrides_map conflict_map
-    
+
     if [[ ${#overrides_map[@]} -eq 0 && ${#conflict_map[@]} -eq 0 ]]; then
         if command -v SuccessMessage &>/dev/null; then
             SuccessMessage "No user overrides or execution conflicts detected."
@@ -213,16 +219,16 @@ ShowConflicts() {
         fi
         return 0
     fi
-    
+
     # Show overrides
     if [[ ${#overrides_map[@]} -gt 0 ]]; then
         echo "User Overrides:"
         echo ""
-        
+
         for cmd in $(printf '%s\n' "${!overrides_map[@]}" | sort); do
             local user_path="${commands_map[$cmd]}"
             local system_path="${overrides_map[$cmd]}"
-            
+
             if command -v WarningMessage &>/dev/null; then
                 WarningMessage "User utility '${cmd}' overrides system utility:"
             else
@@ -233,17 +239,17 @@ ShowConflicts() {
             echo ""
         done
     fi
-    
+
     # Show conflicts
     if [[ ${#conflict_map[@]} -gt 0 ]]; then
         echo "Execution Conflicts (Ambiguous Commands):"
         echo ""
-        
+
         for cmd in $(printf '%s\n' "${!conflict_map[@]}" | sort); do
             local conflict_paths="${conflict_map[$cmd]}"
             local first_path="${conflict_paths%%,*}"
             local conflict_dir=$(dirname "$first_path")
-            
+
             if command -v ErrorMessage &>/dev/null; then
                 ErrorMessage "Conflict for command '${cmd}' in ${conflict_dir}:"
             else
@@ -253,7 +259,7 @@ ShowConflicts() {
             echo ""
         done
     fi
-    
+
     return 0
 }
 
@@ -264,26 +270,51 @@ main() {
     local force_system=false
     local command=""
     local -a cmd_args=()
-    
+
     # Process command-line options
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --system|-s) force_system=true; shift ;;
-            --help|-h) command="help"; shift; break ;;
-            --conflicts) command="conflicts"; shift; break ;;
-            list) command="list"; shift; cmd_args=("$@"); break ;;
-            --summary) 
+            --system | -s)
+                force_system=true
+                shift
+                ;;
+            --help | -h)
+                command="help"
+                shift
+                break
+                ;;
+            --conflicts)
+                command="conflicts"
+                shift
+                break
+                ;;
+            list)
+                command="list"
+                shift
+                cmd_args=("$@")
+                break
+                ;;
+            --summary)
                 echo "rc - rcForge command execution framework."
                 exit 0
                 ;;
-            --) shift; cmd_args=("$@"); break ;;
-            *) command="$1"; shift; cmd_args=("$@"); break ;;
+            --)
+                shift
+                cmd_args=("$@")
+                break
+                ;;
+            *)
+                command="$1"
+                shift
+                cmd_args=("$@")
+                break
+                ;;
         esac
     done
-    
+
     # Default to list if no command
     [[ -z "$command" ]] && command="list"
-    
+
     # Handle built-in commands
     case "$command" in
         help)
@@ -307,10 +338,10 @@ main() {
             return 0
             ;;
     esac
-    
+
     # Find command script
     local target=$(FindCommand "$command" "$force_system")
-    
+
     # Execute command or handle errors
     if [[ "$target" == "command_not_found" ]]; then
         if command -v ErrorMessage &>/dev/null; then
