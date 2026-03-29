@@ -3,9 +3,9 @@
 **A user-centric, modular shell configuration management system for Bash and Zsh.**
 rcForge is a flexible, modular configuration system for Bash and Zsh shells that provides a single framework for managing your shell environment across multiple machines.
 
-**Status:** Currently under active development
+**Status: Archived.** This project is no longer maintained. The pure-shell approach hit practical limits in complexity and performance. My efforts have moved to [rush](https://github.com/mhasse1/rush), a modern Unix shell built in C# with clean syntax and native LLM agent support.
 
-**Documentation:** (under development) See https://github.com/mhasse1/rcforge/wiki
+**Documentation:** See https://github.com/mhasse1/rcforge/wiki
 
 ``` ascii
       _.-._          _.-._                                     *        *
